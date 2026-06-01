@@ -3,7 +3,10 @@
 use App\Http\Controllers\API\AccountController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\CategoryController;
+use App\Http\Controllers\API\ForgotPasswordController;
 use App\Http\Controllers\API\ImportController;
+use App\Http\Controllers\API\ResetPasswordController;
+use App\Http\Controllers\API\SocialAuthController;
 use App\Http\Controllers\API\SummaryController;
 use App\Http\Controllers\API\TransactionController;
 use Illuminate\Support\Facades\Route;
@@ -18,6 +21,14 @@ use Illuminate\Support\Facades\Route;
 // Public Routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Social Login (Google)
+Route::get('auth/google', [SocialAuthController::class, 'redirectToGoogle']);
+Route::get('auth/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
+
+// Password Reset
+Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
+Route::post('reset-password', [ResetPasswordController::class, 'reset']);
 
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {

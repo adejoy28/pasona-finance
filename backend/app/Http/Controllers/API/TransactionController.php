@@ -46,6 +46,13 @@ class TransactionController extends Controller
      */
     public function store(Request $request)
     {
+        // Check if the user has any accounts
+        if ($request->user()->accounts()->count() === 0) {
+            return response()->json([
+                'message' => 'You must create at least one account before adding transactions.'
+            ], 403);
+        }
+
         $validated = $request->validate([
             'account_id' => 'required|exists:accounts,id',
             'to_account_id' => 'nullable|exists:accounts,id',
@@ -81,7 +88,7 @@ class TransactionController extends Controller
     }
 
     /**
-     * Bulk store for offline sync.
+     * Bulk store for offline sync using Queue Jobs.
      * 
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -96,21 +103,17 @@ class TransactionController extends Controller
             'transactions.*.transaction_date' => 'required|date',
         ]);
 
-        $synced = [];
-        
-        DB::transaction(function () use ($request, &$synced) {
-            foreach ($request->transactions as $item) {
-                // We typically skip duplicate checks during sync unless specified,
-                // as the user already confirmed them offline.
-                $item['user_id'] = $request->user()->id;
-                $item['is_synced'] = true;
-                $synced[] = Transaction::create($item);
-            }
-        });
+        $transactions = collect($request->transactions)->map(function ($item) use ($request) {
+            $item['user_id'] = $request->user()->id;
+            $item['is_synced'] = true;
+            return $item;
+        })->toArray();
+
+        // Dispatch to background queue as per requirements
+        \App\Jobs\ProcessSync::dispatch($transactions);
 
         return response()->json([
-            'message' => count($synced) . ' transactions synced successfully.',
-            'data' => $synced
+            'message' => 'Sync process started in the background.'
         ]);
     }
 
