@@ -1,4 +1,4 @@
-# 💰 Pasona Pasona FinTrack — Personal Finance Tracker
+# 💰 Pasona FinTrack — Personal Finance Tracker
 
 A simple, fast, offline-first personal finance tracker built with **Laravel** (backend API) and **Next.js** (frontend PWA). Designed for daily expense logging across multiple bank accounts, with bank statement import and spending breakdowns.
 
