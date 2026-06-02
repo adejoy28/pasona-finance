@@ -4,36 +4,53 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { Navbar } from '@/components/Navbar';
-import { Upload, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
+import { Upload, CheckCircle2, AlertCircle } from 'lucide-react';
 
 import { Skeleton } from '@/components/Skeleton';
 import { ErrorMessage } from '@/components/ErrorMessage';
+
+type Account = {
+  id: number;
+  name: string;
+};
+
+type PreviewRow = {
+  transaction_date: string;
+  description: string;
+  amount: number;
+  type: 'income' | 'expense' | 'transfer' | string;
+  is_duplicate: boolean;
+};
 
 /**
  * Enhanced Bank Statement Import Page
  */
 export default function ImportPage() {
-  const [accounts, setAccounts] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountId, setAccountId] = useState('');
   const [csvContent, setCsvContent] = useState('');
-  const [preview, setPreview] = useState<any[]>([]);
+  const [preview, setPreview] = useState<PreviewRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [step, setStep] = useState<'input' | 'preview'>('input');
-
-  useEffect(() => {
-    fetchAccounts();
-  }, []);
 
   const fetchAccounts = async () => {
     try {
       const res = await api.get('/accounts');
       setAccounts(res.data);
       if (res.data.length > 0) setAccountId(res.data[0].id.toString());
-    } catch (err) {
+    } catch {
       setError('Connection failed.');
     }
   };
+
+  useEffect(() => {
+    const initialize = async () => {
+      await fetchAccounts();
+    };
+
+    void initialize();
+  }, []);
 
   const handlePreview = async () => {
     if (!csvContent || !accountId) return;
@@ -46,7 +63,7 @@ export default function ImportPage() {
       });
       setPreview(res.data);
       setStep('preview');
-    } catch (err) {
+    } catch {
       setError('CSV parsing failed. Check format.');
     } finally {
       setLoading(false);
@@ -83,7 +100,7 @@ export default function ImportPage() {
       setStep('input');
       setCsvContent('');
       setPreview([]);
-    } catch (err) {
+    } catch {
       alert('Import failed');
     } finally {
       setLoading(false);
@@ -134,7 +151,7 @@ export default function ImportPage() {
             <p className="text-sm text-slate-500">
               Found <span className="font-bold text-slate-800">{preview.length}</span> rows
             </p>
-            <button 
+            <button
               onClick={() => setStep('input')}
               className="text-xs font-bold text-blue-600"
             >
@@ -144,8 +161,8 @@ export default function ImportPage() {
 
           <div className="space-y-3">
             {preview.map((row, idx) => (
-              <div 
-                key={idx} 
+              <div
+                key={idx}
                 className={`p-4 rounded-2xl border ${row.is_duplicate ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-100 shadow-sm'}`}
               >
                 <div className="flex justify-between items-start">

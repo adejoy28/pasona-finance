@@ -3,10 +3,21 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
-import { db } from '@/lib/db';
+import { db, type OfflineTransaction } from '@/lib/db';
 import { Navbar } from '@/components/Navbar';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
-import { Save, AlertCircle, ArrowLeft, Check, ChevronDown } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Check, ChevronDown } from 'lucide-react';
+
+type Account = {
+  id: number;
+  name: string;
+};
+
+type Category = {
+  id: number;
+  name: string;
+  type: 'income' | 'expense' | 'transfer' | string;
+};
 
 /**
  * Enhanced Add Transaction Page
@@ -14,8 +25,8 @@ import { Save, AlertCircle, ArrowLeft, Check, ChevronDown } from 'lucide-react';
  * Modern, card-based entry form with polished inputs and animations.
  */
 export default function AddTransaction() {
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const { isOnline } = useOfflineSync();
   const router = useRouter();
@@ -28,30 +39,34 @@ export default function AddTransaction() {
   const [categoryId, setCategoryId] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  
+
   const [error, setError] = useState('');
   const [duplicateWarning, setDuplicateWarning] = useState(false);
-
-  useEffect(() => {
-    fetchMetadata();
-  }, []);
 
   const fetchMetadata = async () => {
     try {
       const [accRes, catRes] = await Promise.all([
         api.get('/accounts'),
-        api.get('/categories')
+        api.get('/categories'),
       ]);
       setAccounts(accRes.data);
       setCategories(catRes.data);
       if (accRes.data.length > 0) setAccountId(accRes.data[0].id.toString());
-    } catch (err) {
-      console.error(err);
+    } catch {
+      console.error('Failed to load metadata');
       setError('Connection failed. Please check your internet.');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const initialize = async () => {
+      await fetchMetadata();
+    };
+
+    void initialize();
+  }, []);
 
   const handleSave = async (force = false) => {
     if (!amount || !accountId) {
@@ -59,11 +74,11 @@ export default function AddTransaction() {
       return;
     }
 
-    const transactionData = {
+    const transactionData: Omit<OfflineTransaction, 'id' | 'created_at'> = {
       account_id: parseInt(accountId),
-      to_account_id: toAccountId ? parseInt(toAccountId) : null,
+      to_account_id: toAccountId ? parseInt(toAccountId) : undefined,
       type,
-      category_id: categoryId ? parseInt(categoryId) : null,
+      category_id: categoryId ? parseInt(categoryId) : undefined,
       amount: parseFloat(amount),
       description,
       transaction_date: date,
@@ -73,18 +88,25 @@ export default function AddTransaction() {
       try {
         await api.post('/transactions', { ...transactionData, force });
         router.push('/dashboard');
-      } catch (err: any) {
-        if (err.response?.status === 409) {
+      } catch (error: unknown) {
+        const errResponse = error as {
+          response?: {
+            status?: number;
+            data?: { message?: string };
+          };
+        };
+
+        if (errResponse.response?.status === 409) {
           setDuplicateWarning(true);
         } else {
-          setError(err.response?.data?.message || 'Failed to save transaction');
+          setError(errResponse.response?.data?.message || 'Failed to save transaction');
         }
       }
     } else {
       try {
         await db.transactions.add({ ...transactionData, created_at: Date.now() });
         router.push('/dashboard');
-      } catch (err) {
+      } catch {
         setError('Storage error');
       }
     }
@@ -115,20 +137,20 @@ export default function AddTransaction() {
         )}
 
         {duplicateWarning && (
-          <div className="bg-white p-6 rounded-[2rem] card-shadow border border-amber-100 space-y-4">
+          <div className="bg-white p-6 rounded-4xl card-shadow border border-amber-100 space-y-4">
             <div className="flex items-center gap-2 text-amber-600">
               <AlertCircle size={20} />
               <p className="font-black text-sm uppercase tracking-tight">Possible Duplicate</p>
             </div>
             <p className="text-sm text-slate-500 font-medium leading-relaxed">This looks like a transaction you already logged. Do you want to save it anyway?</p>
             <div className="flex gap-3">
-              <button 
+              <button
                 onClick={() => handleSave(true)}
                 className="flex-1 py-3 bg-amber-500 text-white rounded-xl font-bold text-xs"
               >
                 Yes, Save
               </button>
-              <button 
+              <button
                 onClick={() => setDuplicateWarning(false)}
                 className="flex-1 py-3 bg-slate-50 text-slate-400 rounded-xl font-bold text-xs"
               >
@@ -161,9 +183,8 @@ export default function AddTransaction() {
             <button
               key={t}
               onClick={() => setType(t)}
-              className={`flex-1 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all ${
-                type === t ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'
-              }`}
+              className={`flex-1 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all ${type === t ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'
+                }`}
             >
               {t}
             </button>
@@ -194,7 +215,7 @@ export default function AddTransaction() {
           {/* Target Account (Transfers) */}
           {type === 'transfer' && (
             <div className="space-y-2 animate-slide-up">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 text-blue-600">To Account</label>
+              <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-1">To Account</label>
               <div className="relative">
                 <select
                   className="w-full p-4.5 appearance-none rounded-2xl bg-blue-50/50 border border-blue-100 outline-none text-sm font-bold text-blue-900"
@@ -271,15 +292,15 @@ export default function AddTransaction() {
 
 // Minimal CSS helper for RefreshCw
 const RefreshCw = ({ size, className }: { size: number, className?: string }) => (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
     className={className}
   >
     <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />

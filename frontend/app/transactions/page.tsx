@@ -9,6 +9,16 @@ import { Trash2, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, ReceiptText } from
 import { Skeleton } from '@/components/Skeleton';
 import { ErrorMessage } from '@/components/ErrorMessage';
 
+type Transaction = {
+  id: number;
+  description?: string;
+  category?: { name: string };
+  transaction_date: string;
+  account?: { name: string };
+  type: 'income' | 'expense' | 'transfer' | string;
+  amount: number;
+};
+
 /**
  * Enhanced Transactions List Page
  * 
@@ -16,13 +26,9 @@ import { ErrorMessage } from '@/components/ErrorMessage';
  * skeleton loading, and actionable error states.
  */
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-
-  useEffect(() => {
-    fetchTransactions();
-  }, []);
 
   const fetchTransactions = async () => {
     setError(false);
@@ -38,12 +44,20 @@ export default function TransactionsPage() {
     }
   };
 
+  useEffect(() => {
+    const initialize = async () => {
+      await fetchTransactions();
+    };
+
+    void initialize();
+  }, []);
+
   const handleDelete = async (id: number) => {
     if (!confirm('Delete this transaction?')) return;
     try {
       await api.delete(`/transactions/${id}`);
-      fetchTransactions();
-    } catch (err) {
+      void fetchTransactions();
+    } catch {
       alert('Delete failed');
     }
   };
@@ -88,8 +102,8 @@ export default function TransactionsPage() {
 
       <div className="space-y-4">
         {transactions.map((t) => (
-          <div 
-            key={t.id} 
+          <div
+            key={t.id}
             className={cn(
               "bg-white p-5 rounded-[2rem] card-shadow border-l-[6px] flex items-center justify-between group transition-all hover:scale-[1.01]",
               t.type === 'income' ? 'border-l-green-500' : t.type === 'expense' ? 'border-l-red-500' : 'border-l-blue-500'
@@ -118,8 +132,8 @@ export default function TransactionsPage() {
               )}>
                 {t.type === 'expense' ? '-' : t.type === 'income' ? '+' : ''}{formatCurrency(t.amount)}
               </p>
-              <button 
-                onClick={() => handleDelete(t.id)} 
+              <button
+                onClick={() => handleDelete(t.id)}
                 className="p-2 text-slate-100 group-hover:text-slate-300 hover:text-red-500 transition-colors"
               >
                 <Trash2 size={16} />

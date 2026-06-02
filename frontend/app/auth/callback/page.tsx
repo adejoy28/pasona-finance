@@ -1,21 +1,23 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { login } = useAuth();
 
   useEffect(() => {
-    const token = searchParams.get('token');
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+
     if (token) {
+      const authToken = token;
       async function handleAuth() {
         try {
-          await login(token);
+          await login(authToken);
           router.push('/dashboard');
         } catch (error) {
           console.error('Authentication failed:', error);
@@ -26,7 +28,7 @@ export default function AuthCallbackPage() {
     } else {
       router.push('/login?error=no_token');
     }
-  }, [searchParams, router, login]);
+  }, [router, login]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden" style={{ background: '#0a0a0f' }}>

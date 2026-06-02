@@ -46,11 +46,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             background: '#0a0a0f',
           }}
         >
-        <AuthProvider>
-          <main className="flex-1 w-full overflow-y-auto scrollbar-hide bg-slate-950">
-            {children}
-          </main>
-        </AuthProvider>
+          <AuthProvider>
+            <main className="flex-1 w-full overflow-y-auto scrollbar-hide bg-slate-950">
+              {children}
+            </main>
+          </AuthProvider>
         </div>
       </body>
     </html>

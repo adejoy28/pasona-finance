@@ -66,7 +66,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    initialize();
+    const initializeSession = async () => {
+      await initialize();
+    };
+
+    void initializeSession();
   }, []);
 
   return (

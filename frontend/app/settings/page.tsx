@@ -9,21 +9,23 @@ import { LogOut, Bell, Shield, ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/Skeleton';
 import { ErrorMessage } from '@/components/ErrorMessage';
 
+type User = {
+  name?: string;
+  email?: string;
+  reminder_time?: string;
+};
+
 /**
  * Enhanced Settings Page
  * 
  * High-quality management interface for profile and app settings.
  */
 export default function SettingsPage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [reminderTime, setReminderTime] = useState('21:10');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    fetchProfile();
-  }, []);
 
   const fetchProfile = async () => {
     setError(false);
@@ -32,19 +34,27 @@ export default function SettingsPage() {
       const res = await api.get('/me');
       setUser(res.data);
       setReminderTime(res.data.reminder_time || '21:10');
-    } catch (err) {
-      console.error(err);
+    } catch {
+      console.error('Failed to load profile');
       setError(true);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    const initialize = async () => {
+      await fetchProfile();
+    };
+
+    void initialize();
+  }, []);
+
   const handleLogout = async () => {
     try {
       await api.post('/logout');
-    } catch (err) {
-      console.error(err);
+    } catch {
+      console.error('Logout failed');
     } finally {
       localStorage.removeItem('auth_token');
       router.push('/login');
@@ -55,7 +65,7 @@ export default function SettingsPage() {
     try {
       // Mock reminder update
       alert('Reminder time updated! Notifications will trigger at ' + reminderTime);
-    } catch (err) {
+    } catch {
       alert('Failed to update reminder');
     }
   };
@@ -140,7 +150,7 @@ export default function SettingsPage() {
             </div>
             <ChevronRight size={18} className="text-slate-200" />
           </div>
-          <button 
+          <button
             onClick={handleLogout}
             className="w-full p-6 flex items-center justify-between group hover:bg-red-50/50 transition-colors"
           >

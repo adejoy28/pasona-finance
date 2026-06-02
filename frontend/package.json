@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check-all": "pnpm lint && tsc --noEmit"
   },
   "dependencies": {
     "axios": "^1.16.1",

@@ -9,6 +9,13 @@ import { Plus, CreditCard, Smartphone, Wallet, Trash2, ArrowLeft, ChevronRight }
 import { Skeleton } from '@/components/Skeleton';
 import { ErrorMessage } from '@/components/ErrorMessage';
 
+type Account = {
+  id: number;
+  name: string;
+  type: 'bank' | 'mobile' | 'cash' | string;
+  balance: number;
+};
+
 /**
  * Enhanced Accounts Management Page
  * 
@@ -16,7 +23,7 @@ import { ErrorMessage } from '@/components/ErrorMessage';
  * polished states and skeleton loaders.
  */
 export default function AccountsPage() {
-  const [accounts, setAccounts] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
@@ -26,23 +33,27 @@ export default function AccountsPage() {
   const [type, setType] = useState('bank');
   const [balance, setBalance] = useState('');
 
-  useEffect(() => {
-    fetchAccounts();
-  }, []);
-
   const fetchAccounts = async () => {
     setError(false);
     setLoading(true);
     try {
       const response = await api.get('/accounts');
       setAccounts(response.data);
-    } catch (err) {
-      console.error('Failed to fetch accounts', err);
+    } catch {
+      console.error('Failed to fetch accounts');
       setError(true);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const initialize = async () => {
+      await fetchAccounts();
+    };
+
+    void initialize();
+  }, []);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,8 +66,8 @@ export default function AccountsPage() {
       setShowAdd(false);
       setName('');
       setBalance('');
-      fetchAccounts();
-    } catch (err) {
+      void fetchAccounts();
+    } catch {
       alert('Failed to add account');
     }
   };
@@ -65,8 +76,8 @@ export default function AccountsPage() {
     if (!confirm('Are you sure? All transactions for this account will be deleted.')) return;
     try {
       await api.delete(`/accounts/${id}`);
-      fetchAccounts();
-    } catch (err) {
+      void fetchAccounts();
+    } catch {
       alert('Failed to delete account');
     }
   };
@@ -137,7 +148,7 @@ export default function AccountsPage() {
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
-            
+
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Type</label>
               <select
@@ -173,12 +184,12 @@ export default function AccountsPage() {
 
       <div className="space-y-4">
         {accounts.map((account) => (
-          <div 
-            key={account.id} 
+          <div
+            key={account.id}
             className="relative bg-white p-6 rounded-[2.5rem] card-shadow border border-slate-50 overflow-hidden group"
           >
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-slate-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700" />
-            
+
             <div className="relative flex justify-between items-center">
               <div className="flex items-center gap-4">
                 <div className={cn(
@@ -192,14 +203,14 @@ export default function AccountsPage() {
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{account.type}</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => handleDelete(account.id)}
                 className="p-2 text-slate-100 group-hover:text-slate-300 hover:text-red-500 transition-colors"
               >
                 <Trash2 size={18} />
               </button>
             </div>
-            
+
             <div className="relative mt-6 pt-6 border-t border-slate-50 flex justify-between items-end">
               <div>
                 <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] mb-1">Available Balance</p>

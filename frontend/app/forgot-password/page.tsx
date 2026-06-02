@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Link from 'next/link';
 import { Mail, AlertCircle, RefreshCw, ArrowLeft } from 'lucide-react';
@@ -16,7 +15,6 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,8 +25,21 @@ export default function ForgotPasswordPage() {
     try {
       const response = await api.post('/forgot-password', { email });
       setMessage(response.data.message || 'Password reset link sent to your email!');
-    } catch (err: any) {
-      setError(err.response?.data?.email?.[0] || err.response?.data?.message || 'Failed to send reset link. Please try again.');
+    } catch (err: unknown) {
+      const errorResponse = err as {
+        response?: {
+          data?: {
+            email?: string[];
+            message?: string;
+          };
+        };
+      };
+
+      setError(
+        errorResponse.response?.data?.email?.[0] ??
+        errorResponse.response?.data?.message ??
+        'Failed to send reset link. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -39,8 +50,8 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-sm space-y-8 animate-slide-up">
         {/* Header Section */}
         <div className="text-center space-y-3">
-          <Link 
-            href="/login" 
+          <Link
+            href="/login"
             className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-blue-600 transition-colors mb-4"
           >
             <ArrowLeft size={14} /> Back to Login

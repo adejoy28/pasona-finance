@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { Mail, Lock, User, AlertCircle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { SearchParamsHandler } from './SearchParamsHandler';
 
 /**
  * Premium Dark Mode Registration Page
@@ -20,16 +21,6 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const token = searchParams.get('token');
-    const user = searchParams.get('user');
-    if (token && user) {
-      localStorage.setItem('auth_token', token);
-      router.push('/dashboard');
-    }
-  }, [searchParams, router]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +67,11 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="page-shell">
+    <>
+      <Suspense fallback={null}>
+        <SearchParamsHandler />
+      </Suspense>
+      <div className="page-shell">
       {/* Background texture */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -398,7 +393,8 @@ export default function RegisterPage() {
           color: rgba(255,255,255,0.3);
         }
       `}</style>
-    </div>
+      </div>
+    </>
   );
 }
 // sName = "text-blue-600 font-bold hover:underline cursor-pointer" > Sign In</Link >

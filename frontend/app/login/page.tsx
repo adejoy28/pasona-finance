@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Link from 'next/link';
 import { Mail, Lock, AlertCircle, RefreshCw } from 'lucide-react';
+import { SearchParamsHandler } from './SearchParamsHandler';
 
 /**
  * Premium Dark Mode Login Page
@@ -18,16 +19,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const token = searchParams.get('token');
-    const user = searchParams.get('user');
-    if (token && user) {
-      localStorage.setItem('auth_token', token);
-      router.push('/dashboard');
-    }
-  }, [searchParams, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +52,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="page-shell">
+    <>
+      <Suspense fallback={null}>
+        <SearchParamsHandler />
+      </Suspense>
+      <div className="page-shell">
       {/* Background texture - animated gradients */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -343,6 +338,7 @@ export default function LoginPage() {
           color: rgba(255,255,255,0.3);
         }
       `}</style>
-    </div>
+      </div>
+    </>
   );
 }

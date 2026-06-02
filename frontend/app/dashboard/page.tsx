@@ -5,11 +5,33 @@ import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { Navbar } from '@/components/Navbar';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
-import { Wifi, WifiOff, RefreshCw, ArrowUpRight, ArrowDownLeft, Wallet, CreditCard, ChevronRight } from 'lucide-react';
+import { RefreshCw, ArrowUpRight, ArrowDownLeft, Wallet, CreditCard, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
 import { DashboardSkeleton } from '@/components/Skeleton';
 import { ErrorMessage } from '@/components/ErrorMessage';
+
+type Account = {
+  id: number;
+  name: string;
+  type: 'bank' | 'mobile' | 'cash' | string;
+  balance: number;
+};
+
+type CategoryItem = {
+  category_name: string;
+  total: number;
+};
+
+type SummaryData = {
+  total_balance: number;
+  monthly_summary: {
+    income: number;
+    expense: number;
+  };
+  accounts: Account[];
+  category_breakdown: CategoryItem[];
+};
 
 /**
  * Enhanced Dashboard Page
@@ -18,14 +40,10 @@ import { ErrorMessage } from '@/components/ErrorMessage';
  * and skeleton loading states.
  */
 export default function Dashboard() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const { isOnline, isSyncing } = useOfflineSync();
-
-  useEffect(() => {
-    fetchSummary();
-  }, []);
 
   const fetchSummary = async () => {
     setError(false);
@@ -33,13 +51,21 @@ export default function Dashboard() {
     try {
       const response = await api.get('/summary');
       setData(response.data);
-    } catch (err) {
-      console.error('Failed to fetch summary', err);
+    } catch {
+      console.error('Failed to fetch summary');
       setError(true);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const initialize = async () => {
+      await fetchSummary();
+    };
+
+    void initialize();
+  }, []);
 
   if (loading) return <DashboardSkeleton />;
   if (error) return (
@@ -115,16 +141,15 @@ export default function Dashboard() {
             <Link href="/accounts" className="text-xs font-bold text-blue-600 hover:underline">View All</Link>
           </div>
           <div className="flex overflow-x-auto gap-4 pb-4 -mx-2 px-2 scrollbar-hide">
-            {data?.accounts?.map((account: any) => (
-              <div 
-                key={account.id} 
+            {data?.accounts?.map((account) => (
+              <div
+                key={account.id}
                 className="flex-shrink-0 w-44 bg-white p-5 rounded-[2.2rem] card-shadow border border-slate-50 space-y-4"
               >
                 <div className="flex justify-between items-start">
-                  <div className={`p-2.5 rounded-2xl ${
-                    account.type === 'bank' ? 'bg-blue-50 text-blue-600' : 
+                  <div className={`p-2.5 rounded-2xl ${account.type === 'bank' ? 'bg-blue-50 text-blue-600' :
                     account.type === 'mobile' ? 'bg-purple-50 text-purple-600' : 'bg-amber-50 text-amber-600'
-                  }`}>
+                    }`}>
                     {account.type === 'bank' ? <CreditCard size={18} /> : <Wallet size={18} />}
                   </div>
                 </div>
@@ -149,8 +174,8 @@ export default function Dashboard() {
             <p className="text-[10px] font-bold text-slate-400 uppercase">This Month</p>
           </div>
           <div className="bg-white rounded-[2.5rem] card-shadow border border-slate-50 p-6 space-y-4">
-            {data?.category_breakdown?.map((item: any, idx: number) => {
-              const maxTotal = Math.max(...data.category_breakdown.map((i: any) => i.total), 1);
+            {(data?.category_breakdown ?? []).map((item, idx) => {
+              const maxTotal = Math.max(...(data?.category_breakdown?.map((i) => i.total) ?? [1]), 1);
               const percentage = (item.total / maxTotal) * 100;
               return (
                 <div key={idx} className="space-y-2">
@@ -159,7 +184,7 @@ export default function Dashboard() {
                     <span className="text-xs font-black text-slate-900">{formatCurrency(item.total)}</span>
                   </div>
                   <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-blue-600 rounded-full transition-all duration-1000 ease-out"
                       style={{ width: `${percentage}%` }}
                     />
@@ -167,14 +192,14 @@ export default function Dashboard() {
                 </div>
               );
             })}
-            {data?.category_breakdown?.length === 0 && (
+            {(data?.category_breakdown?.length ?? 0) === 0 && (
               <div className="text-center py-6">
                 <p className="text-slate-400 text-sm font-medium">No expenses recorded yet.</p>
               </div>
             )}
-            {data?.category_breakdown?.length > 0 && (
-              <Link 
-                href="/transactions" 
+            {(data?.category_breakdown?.length ?? 0) > 0 && (
+              <Link
+                href="/transactions"
                 className="flex items-center justify-center gap-1 text-[10px] font-black text-slate-300 uppercase tracking-widest pt-4 border-t border-slate-50 hover:text-blue-600 transition-colors"
               >
                 Full History <ChevronRight size={12} />
