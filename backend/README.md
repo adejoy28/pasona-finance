@@ -1,59 +1,333 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🔧 FinTrack API — Laravel Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+The REST API powering FinTrack. Built with **Laravel 11** and **PostgreSQL**. Handles authentication, account management, transaction logging, CSV import, and financial summaries.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 📁 Folder Structure
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+```
+fintrack-api/
+├── app/
+│   ├── Http/
+│   │   └── Controllers/
+│   │       ├── AuthController.php          # Login, register, logout
+│   │       ├── AccountController.php       # CRUD for bank/mobile/cash accounts
+│   │       ├── TransactionController.php   # CRUD for all transactions
+│   │       ├── CategoryController.php      # CRUD for expense/income categories
+│   │       ├── ImportController.php        # CSV bank statement import + duplicate check
+│   │       └── SummaryController.php       # Monthly summary + category breakdown
+│   ├── Models/
+│   │   ├── User.php
+│   │   ├── Account.php
+│   │   ├── Transaction.php
+│   │   └── Category.php
+│   └── Services/
+│       ├── BalanceService.php              # Calculates live account balances
+│       ├── ImportService.php               # Parses CSV and checks duplicates
+│       └── SummaryService.php             # Aggregates monthly and category totals
+├── database/
+│   ├── migrations/                         # All table definitions
+│   └── seeders/
+│       ├── CategorySeeder.php              # Seeds default categories
+│       └── DatabaseSeeder.php
+├── routes/
+│   └── api.php                             # All API route definitions
+├── .env.example                            # Environment variable template
+└── README.md                               # This file
+```
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## ⚙️ Requirements
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- PHP 8.2 or higher
+- Composer 2+
+- PostgreSQL 15+
+- Laravel 11
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## 🚀 Installation
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Step 1 — Clone and install dependencies
 
-### Premium Partners
+```bash
+cd fintrack-api
+composer install
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### Step 2 — Copy and configure environment
 
-## Contributing
+```bash
+cp .env.example .env
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Open `.env` and update these values:
 
-## Code of Conduct
+```env
+APP_NAME=FinTrack
+APP_ENV=production
+APP_KEY=                        # Will be generated in next step
+APP_DEBUG=false
+APP_URL=https://api.yourdomain.com
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1               # Usually localhost on cPanel
+DB_PORT=5432
+DB_DATABASE=your_db_name
+DB_USERNAME=your_db_user
+DB_PASSWORD=your_db_password
 
-## Security Vulnerabilities
+SANCTUM_STATEFUL_DOMAINS=yourdomain.com,www.yourdomain.com
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+SESSION_DRIVER=cookie
+SESSION_DOMAIN=.yourdomain.com
+```
 
-## License
+### Step 3 — Generate app key
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+php artisan key:generate
+```
+
+### Step 4 — Run migrations
+
+This creates all the database tables.
+
+```bash
+php artisan migrate
+```
+
+### Step 5 — Seed default categories
+
+This loads the default income and expense categories.
+
+```bash
+php artisan db:seed --class=CategorySeeder
+```
+
+### Step 6 — Start the local dev server
+
+```bash
+php artisan serve
+# API will be available at http://localhost:8000
+```
+
+---
+
+## 🗄 Database Schema
+
+### `users`
+
+| Column        | Type      | Description                             |
+| ------------- | --------- | --------------------------------------- |
+| id            | bigint    | Primary key                             |
+| name          | string    | User's full name                        |
+| email         | string    | Login email (unique)                    |
+| password      | string    | Hashed password                         |
+| reminder_time | time      | Daily notification time (default 21:10) |
+| created_at    | timestamp | Record creation time                    |
+| updated_at    | timestamp | Last update time                        |
+
+### `accounts`
+
+| Column           | Type              | Description                             |
+| ---------------- | ----------------- | --------------------------------------- |
+| id               | bigint            | Primary key                             |
+| user_id          | bigint            | Foreign key → users                     |
+| name             | string            | Account name (e.g. "Kuda")              |
+| type             | enum              | bank / mobile / cash                    |
+| starting_balance | decimal(15,2)     | Balance before any tracked transactions |
+| notes            | string (nullable) | Optional description                    |
+| created_at       | timestamp         |                                         |
+| updated_at       | timestamp         |                                         |
+
+### `categories`
+
+| Column     | Type              | Description                               |
+| ---------- | ----------------- | ----------------------------------------- |
+| id         | bigint            | Primary key                               |
+| user_id    | bigint (nullable) | NULL = system default, set = user-created |
+| name       | string            | Category label (e.g. "Food & Groceries")  |
+| type       | enum              | income / expense                          |
+| is_default | boolean           | True for seeded categories                |
+| created_at | timestamp         |                                           |
+| updated_at | timestamp         |                                           |
+
+### `transactions`
+
+| Column           | Type              | Description                                           |
+| ---------------- | ----------------- | ----------------------------------------------------- |
+| id               | bigint            | Primary key                                           |
+| user_id          | bigint            | Foreign key → users                                   |
+| account_id       | bigint            | The account money came FROM (or TO for income)        |
+| to_account_id    | bigint (nullable) | Destination account — only used for transfers         |
+| type             | enum              | income / expense / transfer                           |
+| category_id      | bigint (nullable) | Foreign key → categories (not required for transfers) |
+| amount           | decimal(15,2)     | Transaction amount in Naira                           |
+| description      | string            | Short note about the transaction                      |
+| reference        | string (nullable) | Bank transaction ID or receipt number                 |
+| transaction_date | date              | The actual date of the transaction                    |
+| is_synced        | boolean           | True once synced from offline queue                   |
+| created_at       | timestamp         |                                                       |
+| updated_at       | timestamp         |                                                       |
+
+---
+
+## 🌐 API Endpoints
+
+All routes are prefixed with `/api`. Protected routes require `Authorization: Bearer {token}` header.
+
+### Authentication
+
+| Method | Route           | Description              |
+| ------ | --------------- | ------------------------ |
+| POST   | `/api/register` | Create a new account     |
+| POST   | `/api/login`    | Login and get token      |
+| POST   | `/api/logout`   | Invalidate current token |
+| GET    | `/api/user`     | Get current user profile |
+
+### Accounts
+
+| Method | Route                | Description                          |
+| ------ | -------------------- | ------------------------------------ |
+| GET    | `/api/accounts`      | List all accounts with live balances |
+| POST   | `/api/accounts`      | Create a new account                 |
+| GET    | `/api/accounts/{id}` | Get a single account                 |
+| PUT    | `/api/accounts/{id}` | Update account details               |
+| DELETE | `/api/accounts/{id}` | Delete an account                    |
+
+### Transactions
+
+| Method | Route                    | Description                                   |
+| ------ | ------------------------ | --------------------------------------------- |
+| GET    | `/api/transactions`      | List all transactions (paginated, filterable) |
+| POST   | `/api/transactions`      | Log a new transaction                         |
+| GET    | `/api/transactions/{id}` | Get a single transaction                      |
+| PUT    | `/api/transactions/{id}` | Update a transaction                          |
+| DELETE | `/api/transactions/{id}` | Delete a transaction                          |
+| POST   | `/api/transactions/bulk` | Sync offline batch (array of transactions)    |
+
+### Categories
+
+| Method | Route                  | Description                                    |
+| ------ | ---------------------- | ---------------------------------------------- |
+| GET    | `/api/categories`      | List all categories (defaults + user's custom) |
+| POST   | `/api/categories`      | Create a custom category                       |
+| PUT    | `/api/categories/{id}` | Rename a custom category                       |
+| DELETE | `/api/categories/{id}` | Delete a custom category (not defaults)        |
+
+### Import
+
+| Method | Route                 | Description                                      |
+| ------ | --------------------- | ------------------------------------------------ |
+| POST   | `/api/import/preview` | Parse CSV and return rows with duplicate flags   |
+| POST   | `/api/import/confirm` | Save only the non-duplicate rows to transactions |
+
+### Summary
+
+| Method | Route                     | Description                                                |
+| ------ | ------------------------- | ---------------------------------------------------------- |
+| GET    | `/api/summary/monthly`    | Monthly income, expenses, savings, savings rate            |
+| GET    | `/api/summary/categories` | Expense totals grouped by category (filterable by quarter) |
+
+---
+
+## 🔐 Authentication Flow
+
+1. User registers or logs in via `/api/login`
+2. API returns a Sanctum token
+3. Frontend stores token in `localStorage`
+4. Every subsequent request sends `Authorization: Bearer {token}` header
+5. On logout, token is deleted from database and `localStorage`
+
+---
+
+## 📦 Key Laravel Packages Used
+
+| Package                        | Purpose                               |
+| ------------------------------ | ------------------------------------- |
+| `laravel/sanctum`              | Token-based API authentication        |
+| `league/csv`                   | CSV parsing for bank statement import |
+| `spatie/laravel-query-builder` | Filterable, sortable API queries      |
+
+Install them:
+
+```bash
+composer require laravel/sanctum league/csv spatie/laravel-query-builder
+```
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+php artisan test
+
+# Run only API tests
+php artisan test --filter=Api
+```
+
+---
+
+## 🗂 Environment Variables Reference
+
+```env
+# App
+APP_NAME=FinTrack
+APP_ENV=production
+APP_KEY=base64:...
+APP_DEBUG=false
+APP_URL=https://api.yourdomain.com
+
+# Database
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=fintrack_db
+DB_USERNAME=fintrack_user
+DB_PASSWORD=secret
+
+# Auth
+SANCTUM_STATEFUL_DOMAINS=yourdomain.com
+SESSION_DRIVER=cookie
+SESSION_DOMAIN=.yourdomain.com
+
+# Queue (for import jobs)
+QUEUE_CONNECTION=database
+```
+
+---
+
+## ⚠️ Common Issues
+
+**Migration fails on PostgreSQL**
+Make sure `pgsql` extension is enabled in your `php.ini`:
+
+```
+extension=pdo_pgsql
+extension=pgsql
+```
+
+**CORS errors from frontend**
+Update `config/cors.php` to include your frontend domain:
+
+```php
+'allowed_origins' => ['https://yourdomain.com'],
+```
+
+**Token not working**
+Make sure your request includes the header:
+
+```
+Accept: application/json
+Authorization: Bearer your-token-here
+```
+
+---
+
+## 📄 License
+
+MIT
