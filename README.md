@@ -1,4 +1,4 @@
-# 💰 FinTrack — Personal Finance Tracker
+# 💰 Pasona Pasona FinTrack — Personal Finance Tracker
 
 A simple, fast, offline-first personal finance tracker built with **Laravel** (backend API) and **Next.js** (frontend PWA). Designed for daily expense logging across multiple bank accounts, with bank statement import and spending breakdowns.
 
@@ -7,9 +7,9 @@ A simple, fast, offline-first personal finance tracker built with **Laravel** (b
 ## 📁 Project Structure
 
 ```
-fintrack/
-├── fintrack-api/        # Laravel backend (REST API)
-├── fintrack-web/        # Next.js frontend (PWA)
+Pasona FinTrack/
+├── Pasona FinTrack-api/        # Laravel backend (REST API)
+├── Pasona FinTrack-web/        # Next.js frontend (PWA)
 ├── DEPLOY.md            # Deployment instructions for cPanel
 └── README.md            # This file
 ```
@@ -59,14 +59,14 @@ fintrack/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/fintrack.git
-cd fintrack
+git clone https://github.com/yourusername/Pasona FinTrack.git
+cd Pasona FinTrack
 ```
 
 ### 2. Set up the backend
 
 ```bash
-cd fintrack-api
+cd Pasona FinTrack-api
 cp .env.example .env
 composer install
 php artisan key:generate
@@ -75,19 +75,19 @@ php artisan migrate --seed
 php artisan serve
 ```
 
-See [`fintrack-api/README.md`](./fintrack-api/README.md) for full backend setup.
+See [`Pasona FinTrack-api/README.md`](./Pasona FinTrack-api/README.md) for full backend setup.
 
 ### 3. Set up the frontend
 
 ```bash
-cd fintrack-web
+cd Pasona FinTrack-web
 cp .env.local.example .env.local
 npm install
 # Edit .env.local with your API URL
 npm run dev
 ```
 
-See [`fintrack-web/README.md`](./fintrack-web/README.md) for full frontend setup.
+See [`Pasona FinTrack-web/README.md`](./Pasona FinTrack-web/README.md) for full frontend setup.
 
 ---
 
