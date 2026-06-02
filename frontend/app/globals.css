@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --primary: #1d4ed8; /* WCAG 2.1 Compliant (4.5:1+) on white */
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569; /* Darkened for accessibility (from 64748b) */
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --destructive: #dc2626; /* WCAG 2.1 Compliant red */
+  --destructive-foreground: #f8fafc;
+  --border: #e2e8f0;
+  --input: #cbd5e1; /* Darkened for better contrast on bg-slate-50 */
+  --ring: #1d4ed8;
+  --radius: 1.25rem;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Utilities for a Premium Feel */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.card-shadow {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05), 0 20px 25px -5px rgb(0 0 0 / 0.02);
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.premium-gradient {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+}
+
+.input-focus {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.input-focus:focus {
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.1);
+}
+
+/* Animation for list items */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out forwards;
+}
+
+/* Shared visual system */
+.page-shell {
+  @apply min-h-screen flex flex-col justify-center px-6 py-8 bg-slate-950 text-slate-50;
+  background: radial-gradient(circle at 12% 12%, rgba(59,130,246,0.16), transparent 22%),
+              radial-gradient(circle at 86% 14%, rgba(56,189,248,0.08), transparent 28%),
+              #020617;
+}
+
+.page-shell-light {
+  @apply min-h-screen bg-slate-50 text-slate-900;
+}
+
+.panel-surface {
+  @apply rounded-[2.5rem] border border-slate-200/70 bg-white/95 shadow-[0_24px_80px_-32px_rgba(15,23,42,0.16)] backdrop-blur-xl;
+}
+
+.panel-glass {
+  @apply rounded-[2.5rem] border border-white/10 bg-white/10 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.25)] backdrop-blur-xl;
+}
+
+.section-heading {
+  @apply text-3xl font-black tracking-tight;
+}
+
+.section-copy {
+  @apply text-sm text-slate-400 max-w-xl;
+}
+
+.form-label {
+  @apply text-[11px] font-black uppercase tracking-[0.2em] text-slate-500;
+}
+
+.form-field {
+  @apply w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-medium text-slate-800 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-2xl bg-blue-600 px-5 py-4 text-sm font-black text-white shadow-lg shadow-blue-500/30 transition hover:bg-blue-700 active:scale-[0.98];
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-black text-slate-900 transition hover:bg-slate-50 active:scale-[0.98];
+}
+
+.badge-pill {
+  @apply inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.25em] bg-slate-100/90 text-slate-700;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg,#6366f1,#4f46e5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.form-field::placeholder {
+  color: #94a3b8;
+}
