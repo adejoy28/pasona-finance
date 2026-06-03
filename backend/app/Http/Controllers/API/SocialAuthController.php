@@ -29,7 +29,7 @@ class SocialAuthController extends Controller
     {
         try {
             $googleUser = Socialite::driver('google')->stateless()->user();
-            
+
             $user = User::where('email', $googleUser->getEmail())->first();
 
             if ($user) {
@@ -50,10 +50,10 @@ class SocialAuthController extends Controller
             $token = $user->createToken('auth_token')->plainTextToken;
 
             // Redirect to frontend with token and user info
-            $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:8080');
             return redirect("{$frontendUrl}/login?token={$token}&user={$user->id}");
         } catch (Exception $e) {
-            $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:8080');
             return redirect("{$frontendUrl}/login?error=" . urlencode('Google authentication failed: ' . $e->getMessage()));
         }
     }
