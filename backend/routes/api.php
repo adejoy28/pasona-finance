@@ -19,6 +19,10 @@ use Illuminate\Support\Facades\Route;
  */
 
 // Public Routes
+Route::get('/', function () {
+    return response()->json(['message' => 'Welcome to the Pasona Finance Tracker API!']);
+});
+
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
