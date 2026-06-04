@@ -1,0 +1,31 @@
+{
+  "name": "pasona-finance",
+  "version": "1.0.0",
+  "description": "This is going to be a finance app for my personal use. It will be built for easy use and will be able to track my expenses and income. It will also be able to generate reports and charts to help me understand my financial situation better.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "finance",
+    "expenses",
+    "income",
+    "reports",
+    "charts",
+    "finance app",
+    "personal finance",
+    "financial management",
+    "budgeting",
+    "money management"
+  ],
+  "author": "Adebayo Systems",
+  "website": "https://pasona.adebayosystems.com.ng",
+  "parent website": "https://adebayosystems.com.ng",
+  "license": "ISC",
+  "packageManager": "pnpm@10.34.1",
+  "dependencies": {
+    "@google/gemini-cli": "^0.44.1",
+    "next.js": "^1.0.3",
+    "opencode-ai": "^1.15.13"
+  }
+}
