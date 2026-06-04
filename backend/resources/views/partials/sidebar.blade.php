@@ -52,14 +52,6 @@
             </ul>
         </div>
 
-        {{-- SDKs --}}
-        <div class="sidebar__section">
-            <h4 class="sidebar__heading">SDKs &amp; Libraries</h4>
-            <ul class="sidebar__list">
-                <li><a href="{{ route('docs.sdks') }}" class="sidebar__link {{ request()->routeIs('docs.sdks') ? 'is-active' : '' }}">Available SDKs</a></li>
-            </ul>
-        </div>
-
         {{-- On-page table of contents (auto-populated for endpoint pages) --}}
         @hasSection('page-toc')
             <div class="sidebar__section sidebar__section--toc">
