@@ -22,6 +22,12 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'GET'])
         <code class="endpoint__url">{{ $base }}/accounts</code>
+        @include('partials.tryit-trigger', [
+            'method' => 'GET',
+            'path'   => '/accounts',
+            'auth'   => true,
+            'title'  => 'List accounts',
+        ])
     </header>
     <h2 class="endpoint__title">List accounts</h2>
     <p>Returns every account owned by the authenticated user, each with its calculated <code>balance</code>.</p>
@@ -79,6 +85,13 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'POST'])
         <code class="endpoint__url">{{ $base }}/accounts</code>
+        @include('partials.tryit-trigger', [
+            'method' => 'POST',
+            'path'   => '/accounts',
+            'body'   => "{\n  \"name\": \"GTBank Checking\",\n  \"type\": \"bank\",\n  \"starting_balance\": 1000.00,\n  \"notes\": \"Primary salary account\"\n}",
+            'auth'   => true,
+            'title'  => 'Create an account',
+        ])
     </header>
     <h2 class="endpoint__title">Create an account</h2>
     <p>Creates a new financial account for the authenticated user.</p>
@@ -183,6 +196,12 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'GET'])
         <code class="endpoint__url">{{ $base }}/accounts/<span class="path-param">{id}</span></code>
+        @include('partials.tryit-trigger', [
+            'method' => 'GET',
+            'path'   => '/accounts/{id}',
+            'auth'   => true,
+            'title'  => 'Retrieve an account',
+        ])
     </header>
     <h2 class="endpoint__title">Retrieve an account</h2>
     <p>Returns a single account by ID, including its calculated <code>balance</code>.</p>
@@ -251,6 +270,13 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'PUT'])
         <code class="endpoint__url">{{ $base }}/accounts/<span class="path-param">{id}</span></code>
+        @include('partials.tryit-trigger', [
+            'method' => 'PUT',
+            'path'   => '/accounts/{id}',
+            'body'   => "{\n  \"name\": \"GTBank Checking (Updated)\"\n}",
+            'auth'   => true,
+            'title'  => 'Update an account',
+        ])
     </header>
     <h2 class="endpoint__title">Update an account</h2>
     <p>Updates one or more fields of an existing account. Only the fields you send are updated.</p>
@@ -274,6 +300,12 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'DELETE'])
         <code class="endpoint__url">{{ $base }}/accounts/<span class="path-param">{id}</span></code>
+        @include('partials.tryit-trigger', [
+            'method' => 'DELETE',
+            'path'   => '/accounts/{id}',
+            'auth'   => true,
+            'title'  => 'Delete an account',
+        ])
     </header>
     <h2 class="endpoint__title">Delete an account</h2>
     <p>Permanently deletes an account and all of its associated transactions. This action cannot be undone.</p>

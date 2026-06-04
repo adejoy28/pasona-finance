@@ -22,6 +22,13 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'POST'])
         <code class="endpoint__url">{{ $base }}/import/preview</code>
+        @include('partials.tryit-trigger', [
+            'method' => 'POST',
+            'path'   => '/import/preview',
+            'body'   => "{\n  \"account_id\": 1,\n  \"csv_content\": \"Date,Description,Amount,Dr/Cr\\n2026-06-01,Coffee shop,4.50,Dr\\n2026-06-02,Salary,2500.00,Cr\"\n}",
+            'auth'   => true,
+            'title'  => 'Preview a CSV import',
+        ])
     </header>
     <h2 class="endpoint__title">Preview a CSV import</h2>
     <p>Parses a CSV string and returns each row tagged with a duplicate flag. The expected header row is <code>Date, Description, Amount, Dr/Cr</code>.</p>
@@ -118,6 +125,13 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'POST'])
         <code class="endpoint__url">{{ $base }}/import/store</code>
+        @include('partials.tryit-trigger', [
+            'method' => 'POST',
+            'path'   => '/import/store',
+            'body'   => "{\n  \"transactions\": [\n    {\n      \"account_id\": 1,\n      \"transaction_date\": \"2026-06-01\",\n      \"description\": \"Coffee shop\",\n      \"amount\": 4.50,\n      \"type\": \"expense\"\n    },\n    {\n      \"account_id\": 1,\n      \"transaction_date\": \"2026-06-02\",\n      \"description\": \"Salary\",\n      \"amount\": 2500.00,\n      \"type\": \"income\"\n    }\n  ]\n}",
+            'auth'   => true,
+            'title'  => 'Commit an import',
+        ])
     </header>
     <h2 class="endpoint__title">Commit an import</h2>
     <p>Persists the chosen rows from a preview as real transactions on the user's account.</p>

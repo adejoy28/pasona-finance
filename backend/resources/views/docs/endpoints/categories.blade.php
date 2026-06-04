@@ -21,6 +21,12 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'GET'])
         <code class="endpoint__url">{{ $base }}/categories</code>
+        @include('partials.tryit-trigger', [
+            'method' => 'GET',
+            'path'   => '/categories',
+            'auth'   => true,
+            'title'  => 'List categories',
+        ])
     </header>
     <h2 class="endpoint__title">List categories</h2>
     <p>Returns the default system categories plus the authenticated user's custom categories.</p>
@@ -77,6 +83,13 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'POST'])
         <code class="endpoint__url">{{ $base }}/categories</code>
+        @include('partials.tryit-trigger', [
+            'method' => 'POST',
+            'path'   => '/categories',
+            'body'   => "{\n  \"name\": \"Side Hustle\",\n  \"type\": \"income\"\n}",
+            'auth'   => true,
+            'title'  => 'Create a category',
+        ])
     </header>
     <h2 class="endpoint__title">Create a category</h2>
     <p>Creates a custom category owned by the authenticated user.</p>
@@ -154,6 +167,12 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'GET'])
         <code class="endpoint__url">{{ $base }}/categories/<span class="path-param">{id}</span></code>
+        @include('partials.tryit-trigger', [
+            'method' => 'GET',
+            'path'   => '/categories/{id}',
+            'auth'   => true,
+            'title'  => 'Retrieve a category',
+        ])
     </header>
     <h2 class="endpoint__title">Retrieve a category</h2>
     <p>Returns a single category by ID.</p>
@@ -179,6 +198,13 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'PUT'])
         <code class="endpoint__url">{{ $base }}/categories/<span class="path-param">{id}</span></code>
+        @include('partials.tryit-trigger', [
+            'method' => 'PUT',
+            'path'   => '/categories/{id}',
+            'body'   => "{\n  \"name\": \"Freelance Work\"\n}",
+            'auth'   => true,
+            'title'  => 'Update a category',
+        ])
     </header>
     <h2 class="endpoint__title">Update a category</h2>
     <p>Updates a custom category. <strong>Default system categories cannot be updated</strong> &mdash; attempting to do so returns a <code>403</code>.</p>
@@ -230,6 +256,12 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'DELETE'])
         <code class="endpoint__url">{{ $base }}/categories/<span class="path-param">{id}</span></code>
+        @include('partials.tryit-trigger', [
+            'method' => 'DELETE',
+            'path'   => '/categories/{id}',
+            'auth'   => true,
+            'title'  => 'Delete a category',
+        ])
     </header>
     <h2 class="endpoint__title">Delete a category</h2>
     <p>Deletes a custom category. <strong>Default system categories cannot be deleted</strong> &mdash; attempting to do so returns a <code>403</code>.</p>

@@ -21,6 +21,12 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'GET'])
         <code class="endpoint__url">{{ $base }}/transactions</code>
+        @include('partials.tryit-trigger', [
+            'method' => 'GET',
+            'path'   => '/transactions',
+            'auth'   => true,
+            'title'  => 'List transactions',
+        ])
     </header>
     <h2 class="endpoint__title">List transactions</h2>
     <p>Returns the authenticated user's transactions, ordered by <code>transaction_date</code> descending, paginated 50 per page. Each row is eager-loaded with its <code>account</code>, <code>toAccount</code>, and <code>category</code>.</p>
@@ -80,6 +86,13 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'POST'])
         <code class="endpoint__url">{{ $base }}/transactions</code>
+        @include('partials.tryit-trigger', [
+            'method' => 'POST',
+            'path'   => '/transactions',
+            'body'   => "{\n  \"account_id\": 1,\n  \"category_id\": 2,\n  \"type\": \"expense\",\n  \"amount\": 25.50,\n  \"description\": \"Lunch with team\",\n  \"transaction_date\": \"2026-06-03\"\n}",
+            'auth'   => true,
+            'title'  => 'Create a transaction',
+        ])
     </header>
     <h2 class="endpoint__title">Create a transaction</h2>
     <p>Records a new income, expense, or transfer. The user must have at least one account before creating a transaction.</p>
@@ -232,6 +245,13 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'POST'])
         <code class="endpoint__url">{{ $base }}/transactions/sync</code>
+        @include('partials.tryit-trigger', [
+            'method' => 'POST',
+            'path'   => '/transactions/sync',
+            'body'   => "{\n  \"transactions\": [\n    {\n      \"account_id\": 1,\n      \"type\": \"expense\",\n      \"amount\": 12.00,\n      \"description\": \"Coffee\",\n      \"transaction_date\": \"2026-06-02\"\n    },\n    {\n      \"account_id\": 1,\n      \"type\": \"expense\",\n      \"amount\": 4.50,\n      \"description\": \"Bus fare\",\n      \"transaction_date\": \"2026-06-02\"\n    }\n  ]\n}",
+            'auth'   => true,
+            'title'  => 'Bulk sync (offline)',
+        ])
     </header>
     <h2 class="endpoint__title">Bulk sync (offline)</h2>
     <p>Accepts a batch of transactions recorded offline and dispatches them to a background queue job (<code>App\Jobs\ProcessSync</code>) for processing.</p>
@@ -290,6 +310,12 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'GET'])
         <code class="endpoint__url">{{ $base }}/transactions/<span class="path-param">{id}</span></code>
+        @include('partials.tryit-trigger', [
+            'method' => 'GET',
+            'path'   => '/transactions/{id}',
+            'auth'   => true,
+            'title'  => 'Retrieve a transaction',
+        ])
     </header>
     <h2 class="endpoint__title">Retrieve a transaction</h2>
     <p>Returns a single transaction with its <code>account</code>, <code>toAccount</code>, and <code>category</code> relations loaded.</p>
@@ -300,6 +326,13 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'PUT'])
         <code class="endpoint__url">{{ $base }}/transactions/<span class="path-param">{id}</span></code>
+        @include('partials.tryit-trigger', [
+            'method' => 'PUT',
+            'path'   => '/transactions/{id}',
+            'body'   => "{\n  \"amount\": 27.00,\n  \"description\": \"Lunch with team (updated)\"\n}",
+            'auth'   => true,
+            'title'  => 'Update a transaction',
+        ])
     </header>
     <h2 class="endpoint__title">Update a transaction</h2>
     <p>Updates one or more fields of an existing transaction. All fields are optional &mdash; only the fields you send are updated.</p>
@@ -327,6 +360,12 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'DELETE'])
         <code class="endpoint__url">{{ $base }}/transactions/<span class="path-param">{id}</span></code>
+        @include('partials.tryit-trigger', [
+            'method' => 'DELETE',
+            'path'   => '/transactions/{id}',
+            'auth'   => true,
+            'title'  => 'Delete a transaction',
+        ])
     </header>
     <h2 class="endpoint__title">Delete a transaction</h2>
     <p>Permanently removes a transaction and recalculates the affected account balances.</p>

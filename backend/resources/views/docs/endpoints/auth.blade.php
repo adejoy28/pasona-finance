@@ -21,6 +21,12 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'POST'])
         <code class="endpoint__url">{{ $base }}/register</code>
+        @include('partials.tryit-trigger', [
+            'method' => 'POST',
+            'path'   => '/register',
+            'auth'   => false,
+            'title'  => 'Register a new account',
+        ])
     </header>
     <h2 class="endpoint__title">Register a new account</h2>
     <p>Creates a new user and immediately returns a Sanctum access token.</p>
@@ -115,6 +121,13 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'POST'])
         <code class="endpoint__url">{{ $base }}/login</code>
+        @include('partials.tryit-trigger', [
+            'method' => 'POST',
+            'path'   => '/login',
+            'body'   => "{\n  \"email\": \"[email protected]\",\n  \"password\": \"supersecret123\"\n}",
+            'auth'   => false,
+            'title'  => 'Log in',
+        ])
     </header>
     <h2 class="endpoint__title">Log in</h2>
     <p>Authenticates a user with email and password and returns a Sanctum access token.</p>
@@ -183,6 +196,12 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'GET'])
         <code class="endpoint__url">{{ $base }}/me</code>
+        @include('partials.tryit-trigger', [
+            'method' => 'GET',
+            'path'   => '/me',
+            'auth'   => true,
+            'title'  => 'Get current user',
+        ])
     </header>
     <h2 class="endpoint__title">Get current user</h2>
     <p>Returns the authenticated user's profile. <strong>Requires a valid bearer token.</strong></p>
@@ -224,6 +243,12 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'POST'])
         <code class="endpoint__url">{{ $base }}/logout</code>
+        @include('partials.tryit-trigger', [
+            'method' => 'POST',
+            'path'   => '/logout',
+            'auth'   => true,
+            'title'  => 'Log out',
+        ])
     </header>
     <h2 class="endpoint__title">Log out</h2>
     <p>Revokes the bearer token used for the current request. <strong>Requires authentication.</strong></p>
@@ -249,6 +274,13 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'POST'])
         <code class="endpoint__url">{{ $base }}/forgot-password</code>
+        @include('partials.tryit-trigger', [
+            'method' => 'POST',
+            'path'   => '/forgot-password',
+            'body'   => "{\n  \"email\": \"[email protected]\"\n}",
+            'auth'   => false,
+            'title'  => 'Request a password reset link',
+        ])
     </header>
     <h2 class="endpoint__title">Request a password reset link</h2>
     <p>Sends a password-reset email to the given address if the user exists.</p>
@@ -302,6 +334,13 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'POST'])
         <code class="endpoint__url">{{ $base }}/reset-password</code>
+        @include('partials.tryit-trigger', [
+            'method' => 'POST',
+            'path'   => '/reset-password',
+            'body'   => "{\n  \"token\": \"reset-token-from-email\",\n  \"email\": \"[email protected]\",\n  \"password\": \"newsecret123\",\n  \"password_confirmation\": \"newsecret123\"\n}",
+            'auth'   => false,
+            'title'  => 'Reset password',
+        ])
     </header>
     <h2 class="endpoint__title">Reset password</h2>
     <p>Finalises a password reset using the token emailed by the forgot-password endpoint.</p>
