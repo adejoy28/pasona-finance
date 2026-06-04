@@ -48,9 +48,12 @@ return [
     | considered expired. This will override any values set in the token's
     | "expires_at" attribute, but first-party sessions are not affected.
     |
+    | Without an expiry, a stolen token is valid forever. Default is 7 days
+    | (10080 minutes); override with SANCTUM_TOKEN_EXPIRY_MINUTES in .env.
+    |
     */
 
-    'expiration' => null,
+    'expiration' => env('SANCTUM_TOKEN_EXPIRY_MINUTES', 10080),
 
     /*
     |--------------------------------------------------------------------------

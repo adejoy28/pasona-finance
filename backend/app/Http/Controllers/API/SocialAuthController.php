@@ -23,7 +23,12 @@ class SocialAuthController extends Controller
 
     /**
      * Handle Google callback.
-     * Redirects to frontend with token and user data in URL params.
+     * Redirects to the frontend with the issued Sanctum token only. User
+     * details are intentionally omitted from the URL — the frontend must
+     * call GET /api/me with the token to hydrate the session, rather
+     * than trusting a user payload baked into the redirect target
+     * (which would land in browser history, server logs, and the
+     * Referer header of any subsequent outbound request).
      */
     public function handleGoogleCallback(Request $request)
     {
@@ -49,9 +54,8 @@ class SocialAuthController extends Controller
 
             $token = $user->createToken('auth_token')->plainTextToken;
 
-            // Redirect to frontend with token and user info
             $frontendUrl = env('FRONTEND_URL', 'http://localhost:8080');
-            return redirect("{$frontendUrl}/login?token={$token}&user={$user->id}");
+            return redirect("{$frontendUrl}/login?token={$token}");
         } catch (Exception $e) {
             $frontendUrl = env('FRONTEND_URL', 'http://localhost:8080');
             return redirect("{$frontendUrl}/login?error=" . urlencode('Google authentication failed: ' . $e->getMessage()));
