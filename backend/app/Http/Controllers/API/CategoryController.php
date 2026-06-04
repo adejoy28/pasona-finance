@@ -11,6 +11,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * CategoryController Class
@@ -43,7 +44,14 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('categories', 'name')
+                    ->where('user_id', $request->user()->id)
+                    ->where('type', $request->input('type')),
+            ],
             'type' => 'required|in:income,expense',
         ]);
 
@@ -77,7 +85,16 @@ class CategoryController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
+            'name' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('categories', 'name')
+                    ->where('user_id', $request->user()->id)
+                    ->where('type', $request->input('type', $category->type))
+                    ->ignore($category->id),
+            ],
             'type' => 'sometimes|required|in:income,expense',
         ]);
 

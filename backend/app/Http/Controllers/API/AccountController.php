@@ -11,6 +11,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * AccountController Class
@@ -46,7 +47,12 @@ class AccountController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('accounts', 'name')->where('user_id', $request->user()->id),
+            ],
             'type' => 'required|in:bank,mobile,cash',
             'starting_balance' => 'required|numeric',
             'notes' => 'nullable|string',
@@ -82,7 +88,15 @@ class AccountController extends Controller
         $this->authorize('update', $account);
 
         $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
+            'name' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('accounts', 'name')
+                    ->where('user_id', $request->user()->id)
+                    ->ignore($account->id),
+            ],
             'type' => 'sometimes|required|in:bank,mobile,cash',
             'starting_balance' => 'sometimes|required|numeric',
             'notes' => 'nullable|string',

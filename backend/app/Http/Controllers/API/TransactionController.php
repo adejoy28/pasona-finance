@@ -66,20 +66,17 @@ class TransactionController extends Controller
         ]);
 
         // Duplicate Detection Logic
-        if (!$request->force) {
-            $isDuplicate = Transaction::where('user_id', $request->user()->id)
-                ->where('transaction_date', $validated['transaction_date'])
-                ->where('type', $validated['type'])
-                ->where('amount', $validated['amount'])
-                ->where('account_id', $validated['account_id'])
-                ->exists();
-
-            if ($isDuplicate) {
-                return response()->json([
-                    'message' => 'Potential duplicate detected.',
-                    'is_duplicate' => true
-                ], 409);
-            }
+        if (!$request->force && Transaction::isPotentialDuplicate(
+            $request->user()->id,
+            $validated['transaction_date'],
+            $validated['type'],
+            $validated['amount'],
+            $validated['account_id'],
+        )) {
+            return response()->json([
+                'message' => 'Potential duplicate detected.',
+                'is_duplicate' => true
+            ], 409);
         }
 
         $transaction = $request->user()->transactions()->create($validated);

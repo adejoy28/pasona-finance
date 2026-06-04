@@ -37,5 +37,4 @@ Route::prefix('docs')->name('docs.')->group(function () {
 
     Route::get('/guides', fn () => view('docs.guides'))->name('guides');
     Route::get('/changelog', fn () => view('docs.changelog'))->name('changelog');
-    Route::get('/sdks', fn () => view('docs.sdks'))->name('sdks');
 });

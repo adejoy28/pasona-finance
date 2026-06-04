@@ -10,6 +10,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Account Model
@@ -67,16 +68,32 @@ class Account extends Model
     /**
      * Accessor for live balance calculation.
      * Balance = Starting Balance + Total Income - Total Expense - Total Transfers Out + Total Transfers In
-     * 
+     *
+     * Computed with a single conditional-sum query against the
+     * transactions table (4 queries down to 1 per account).
+     *
      * @return float
      */
     public function getBalanceAttribute()
     {
-        $income = $this->transactions()->where('type', 'income')->sum('amount');
-        $expense = $this->transactions()->where('type', 'expense')->sum('amount');
-        $transfersOut = $this->transactions()->where('type', 'transfer')->sum('amount');
-        $transfersIn = $this->receivedTransfers()->sum('amount');
+        $id = $this->getKey();
 
-        return $this->starting_balance + $income - $expense - $transfersOut + $transfersIn;
+        $row = DB::table('transactions')
+            ->where(function ($q) use ($id) {
+                $q->where('account_id', $id)
+                  ->orWhere('to_account_id', $id);
+            })
+            ->selectRaw("
+                COALESCE(SUM(CASE
+                    WHEN account_id   = ? AND type = 'income'   THEN  amount
+                    WHEN account_id   = ? AND type = 'expense'  THEN -amount
+                    WHEN account_id   = ? AND type = 'transfer' THEN -amount
+                    WHEN to_account_id = ? AND type = 'transfer' THEN  amount
+                    ELSE 0
+                END), 0) AS net
+            ", [$id, $id, $id, $id])
+            ->first();
+
+        return $this->starting_balance + (float) $row->net;
     }
 }

@@ -17,6 +17,7 @@ $allowedOrigins = array_values(array_filter(array_map(
     explode(',', (string) env('CORS_ALLOWED_ORIGINS', sprintf(
         '%s,%s',
         env('FRONTEND_URL', 'http://localhost:8080'),
+        'http://localhost:3000',
     ))),
 )));
 
