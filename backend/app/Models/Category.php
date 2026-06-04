@@ -30,7 +30,6 @@ class Category extends Model
         'user_id',
         'name',
         'type',
-        'is_default',
     ];
 
     /**

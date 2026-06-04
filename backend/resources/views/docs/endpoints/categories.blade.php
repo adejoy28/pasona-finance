@@ -11,8 +11,8 @@
     <p class="page-header__eyebrow">API Reference</p>
     <h1 id="categories">Categories</h1>
     <p class="page-header__lead">
-        Organise transactions into income and expense categories. The response includes the
-        default system categories plus any custom categories the user has created.
+        Organise transactions into income and expense categories. Every new user is seeded with a
+        default set; the response returns those plus any additional categories the user has created.
     </p>
 </div>
 
@@ -29,7 +29,7 @@
         ])
     </header>
     <h2 class="endpoint__title">List categories</h2>
-    <p>Returns the default system categories plus the authenticated user's custom categories.</p>
+    <p>Returns the authenticated user's categories, including the seeded defaults.</p>
 
     <h3>Response</h3>
     <div class="response-tabs" data-response-tabs>
@@ -45,24 +45,21 @@
                 'code'     => '[
   {
     "id": 1,
+    "user_id": 1,
     "name": "Salary",
-    "type": "income",
-    "is_default": true,
-    "user_id": null
+    "type": "income"
   },
   {
     "id": 2,
+    "user_id": 1,
     "name": "Groceries",
-    "type": "expense",
-    "is_default": true,
-    "user_id": null
+    "type": "expense"
   },
   {
     "id": 17,
+    "user_id": 1,
     "name": "Side Hustle",
-    "type": "income",
-    "is_default": false,
-    "user_id": 1
+    "type": "income"
   }
 ]',
             ])
@@ -139,10 +136,9 @@
                 'title'    => '201 Created',
                 'code'     => '{
   "id": 17,
+  "user_id": 1,
   "name": "Side Hustle",
-  "type": "income",
-  "is_default": false,
-  "user_id": 1
+  "type": "income"
 }',
             ])
         </div>
@@ -207,7 +203,7 @@
         ])
     </header>
     <h2 class="endpoint__title">Update a category</h2>
-    <p>Updates a custom category. <strong>Default system categories cannot be updated</strong> &mdash; attempting to do so returns a <code>403</code>.</p>
+    <p>Updates a category owned by the authenticated user. Duplicate <code>(name, type)</code> pairs are blocked by a unique key and return <code>422</code>.</p>
 
     <h3>Request body</h3>
     <div class="table-wrap">
@@ -223,8 +219,8 @@
     <h3>Responses</h3>
     <div class="response-tabs" data-response-tabs>
         <div class="response-tabs__head" role="tablist">
-            <button class="response-tabs__tab is-active" data-resp="200">200</button>
-            <button class="response-tabs__tab" data-resp="403">403</button>
+        <button class="response-tabs__tab is-active" data-resp="200">200</button>
+        <button class="response-tabs__tab" data-resp="422">422</button>
         </div>
         <div class="response-tabs__panel" data-resp-panel="200">
             @include('partials.code-block', [
@@ -233,19 +229,23 @@
                 'title'    => '200 OK',
                 'code'     => '{
   "id": 17,
+  "user_id": 1,
   "name": "Freelance Work",
-  "type": "income",
-  "is_default": false,
-  "user_id": 1
+  "type": "income"
 }',
             ])
         </div>
-        <div class="response-tabs__panel" data-resp-panel="403">
+        <div class="response-tabs__panel" data-resp-panel="422">
             @include('partials.code-block', [
-                'id'       => 'update-category-403',
+                'id'       => 'update-category-422',
                 'language' => 'json',
-                'title'    => '403 Forbidden',
-                'code'     => '{ "message": "Default categories cannot be updated." }',
+                'title'    => '422 Unprocessable Entity',
+                'code'     => '{
+  "message": "The given data was invalid.",
+  "errors": {
+    "name": ["The name has already been taken."]
+  }
+}',
             ])
         </div>
     </div>
@@ -264,7 +264,7 @@
         ])
     </header>
     <h2 class="endpoint__title">Delete a category</h2>
-    <p>Deletes a custom category. <strong>Default system categories cannot be deleted</strong> &mdash; attempting to do so returns a <code>403</code>.</p>
+    <p>Deletes a category owned by the authenticated user, including the seeded defaults.</p>
 
     <h3>Response</h3>
     @include('partials.code-block', [

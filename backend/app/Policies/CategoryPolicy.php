@@ -12,7 +12,7 @@ class CategoryPolicy
      */
     public function view(User $user, Category $category): bool
     {
-        return $category->is_default || $user->id === $category->user_id;
+        return $user->id === $category->user_id;
     }
 
     /**
@@ -20,7 +20,7 @@ class CategoryPolicy
      */
     public function update(User $user, Category $category): bool
     {
-        return !$category->is_default && $user->id === $category->user_id;
+        return $user->id === $category->user_id;
     }
 
     /**
@@ -28,6 +28,6 @@ class CategoryPolicy
      */
     public function delete(User $user, Category $category): bool
     {
-        return !$category->is_default && $user->id === $category->user_id;
+        return $user->id === $category->user_id;
     }
 }

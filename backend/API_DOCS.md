@@ -591,24 +591,21 @@ GET /api/categories
 [
   {
     "id": 1,
-    "user_id": null,
+    "user_id": 1,
     "name": "Food & Groceries",
-    "type": "expense",
-    "is_default": true
+    "type": "expense"
   },
   {
     "id": 2,
-    "user_id": null,
+    "user_id": 1,
     "name": "Salary",
-    "type": "income",
-    "is_default": true
+    "type": "income"
   },
   {
     "id": 15,
     "user_id": 1,
     "name": "Hobbies",
-    "type": "expense",
-    "is_default": false
+    "type": "expense"
   }
 ]
 ```
@@ -644,8 +641,7 @@ curl -X POST http://localhost:8000/api/categories \
   "id": 16,
   "user_id": 1,
   "name": "Subscriptions",
-  "type": "expense",
-  "is_default": false
+  "type": "expense"
 }
 ```
 
@@ -667,7 +663,7 @@ Returns a single category.
 PUT /api/categories/{id}
 ```
 
-> Default categories (`is_default: true`) cannot be updated and will return `403 Forbidden`.
+> Default seeded categories are owned by the user and can be updated like any other category. Duplicate `(name, type)` pairs are blocked by a unique key and will return `422 Unprocessable Entity`.
 
 #### Request Body
 
@@ -676,10 +672,15 @@ PUT /api/categories/{id}
 | `name` | string | New category name            |
 | `type` | enum   | `income` or `expense`        |
 
-#### Response — `403 Forbidden` (when default)
+#### Response — `422 Unprocessable Entity` (duplicate)
 
 ```json
-{ "message": "Default categories cannot be updated." }
+{
+  "message": "The given data was invalid.",
+  "errors": {
+    "name": ["The name has already been taken."]
+  }
+}
 ```
 
 ---
@@ -690,7 +691,7 @@ PUT /api/categories/{id}
 DELETE /api/categories/{id}
 ```
 
-> Default categories cannot be deleted and will return `403 Forbidden`.
+> All of the authenticated user's categories (including the seeded defaults) can be deleted.
 
 #### Response — `204 No Content`
 
@@ -1179,13 +1180,12 @@ Returned when attempting to view, update, or delete a resource owned by another 
 
 ### Category
 
-| Field        | Type    | Notes                            |
-| ------------ | ------- | -------------------------------- |
-| `id`         | bigint  | Primary key                      |
-| `user_id`    | bigint? | `null` for default categories    |
-| `name`       | string  |                                  |
-| `type`       | enum    | `income` / `expense`             |
-| `is_default` | boolean | `true` for system defaults       |
+| Field      | Type    | Notes                                  |
+| ---------- | ------- | -------------------------------------- |
+| `id`       | bigint  | Primary key                            |
+| `user_id`  | bigint  | Owner of the category                  |
+| `name`     | string  |                                        |
+| `type`     | enum    | `income` / `expense`                   |
 
 ### Transaction
 

@@ -28,9 +28,7 @@ class CategoryController extends Controller
      */
     public function index(Request $request)
     {
-        $categories = Category::where('is_default', true)
-            ->orWhere('user_id', $request->user()->id)
-            ->get();
+        $categories = $request->user()->categories()->get();
 
         return response()->json($categories);
     }
@@ -58,7 +56,6 @@ class CategoryController extends Controller
         $category = $request->user()->categories()->create([
             'name' => $validated['name'],
             'type' => $validated['type'],
-            'is_default' => false,
         ]);
 
         return response()->json($category, 201);
@@ -79,10 +76,6 @@ class CategoryController extends Controller
     public function update(Request $request, Category $category)
     {
         $this->authorize('update', $category);
-
-        if ($category->is_default) {
-            return response()->json(['message' => 'Default categories cannot be updated.'], 403);
-        }
 
         $validated = $request->validate([
             'name' => [
@@ -109,10 +102,6 @@ class CategoryController extends Controller
     public function destroy(Category $category)
     {
         $this->authorize('delete', $category);
-
-        if ($category->is_default) {
-            return response()->json(['message' => 'Default categories cannot be deleted.'], 403);
-        }
 
         $category->delete();
 

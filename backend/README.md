@@ -29,7 +29,6 @@ fintrack-api/
 ├── database/
 │   ├── migrations/                         # All table definitions
 │   └── seeders/
-│       ├── CategorySeeder.php              # Seeds default categories
 │       └── DatabaseSeeder.php
 ├── routes/
 │   └── api.php                             # All API route definitions
@@ -99,15 +98,7 @@ This creates all the database tables.
 php artisan migrate
 ```
 
-### Step 5 — Seed default categories
-
-This loads the default income and expense categories.
-
-```bash
-php artisan db:seed --class=CategorySeeder
-```
-
-### Step 6 — Start the local dev server
+### Step 5 — Start the local dev server
 
 ```bash
 php artisan serve
@@ -145,15 +136,14 @@ php artisan serve
 
 ### `categories`
 
-| Column     | Type              | Description                               |
-| ---------- | ----------------- | ----------------------------------------- |
-| id         | bigint            | Primary key                               |
-| user_id    | bigint (nullable) | NULL = system default, set = user-created |
-| name       | string            | Category label (e.g. "Food & Groceries")  |
-| type       | enum              | income / expense                          |
-| is_default | boolean           | True for seeded categories                |
-| created_at | timestamp         |                                           |
-| updated_at | timestamp         |                                           |
+| Column     | Type      | Description                              |
+| ---------- | --------- | ---------------------------------------- |
+| id         | bigint    | Primary key                              |
+| user_id    | bigint    | Owner of the category                    |
+| name       | string    | Category label (e.g. "Food & Groceries") |
+| type       | enum      | income / expense                         |
+| created_at | timestamp |                                          |
+| updated_at | timestamp |                                          |
 
 ### `transactions`
 
