@@ -21,6 +21,12 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'GET'])
         <code class="endpoint__url">{{ $base }}/summary</code>
+        @include('partials.tryit-trigger', [
+            'method' => 'GET',
+            'path'   => '/summary',
+            'auth'   => true,
+            'title'  => 'Get dashboard summary',
+        ])
     </header>
     <h2 class="endpoint__title">Get dashboard summary</h2>
     <p>Returns the data needed to render the home screen of the app. Always scoped to the current calendar month.</p>

@@ -31,26 +31,34 @@
                 </select>
             </label>
 
-            <label class="try-it__field try-it__field--path">
-                <span class="try-it__label">Endpoint</span>
-                <div class="try-it__path">
-                    <code class="try-it__base" data-tryit-base>{{ config('api.base_url') }}</code>
-                    <input
-                        type="text"
-                        class="try-it__input try-it__input--path"
-                        data-tryit-path
-                        value="{{ $defaultEndpoint }}"
-                        spellcheck="false"
-                        autocomplete="off"
-                        placeholder="/summary"
-                        aria-label="Endpoint path"
-                    >
-                </div>
-            </label>
+        <label class="try-it__field try-it__field--path">
+            <span class="try-it__label">Endpoint</span>
+            <div class="try-it__path">
+                <code class="try-it__base" data-tryit-base>{{ config('api.base_url') }}</code>
+                <input
+                    type="text"
+                    class="try-it__input try-it__input--path"
+                    data-tryit-path
+                    value="{{ $defaultEndpoint }}"
+                    spellcheck="false"
+                    autocomplete="off"
+                    placeholder="/summary"
+                    aria-label="Endpoint path"
+                >
+            </div>
+        </label>
+    </div>
+
+        <div class="try-it__field" data-tryit-params-wrap hidden>
+            <span class="try-it__label">Path parameters</span>
+            <div class="try-it__params" data-tryit-params></div>
         </div>
 
         <label class="try-it__field">
-            <span class="try-it__label">Bearer token</span>
+            <span class="try-it__label">
+                Bearer token
+                <span class="try-it__label-hint" data-tryit-auth-hint hidden>Required</span>
+            </span>
             <input
                 type="password"
                 class="try-it__input"

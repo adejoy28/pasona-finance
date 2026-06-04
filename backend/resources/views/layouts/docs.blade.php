@@ -42,6 +42,7 @@
 
             {{-- Right Panel for code examples (filled by @push('code-examples')) --}}
             <aside class="code-panel" id="code-panel">
+                @include('partials.try-it')
                 @stack('code-examples')
             </aside>
         </main>
