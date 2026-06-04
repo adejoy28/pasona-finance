@@ -28,10 +28,13 @@ class AccountController extends Controller
      */
     public function index(Request $request)
     {
-        $accounts = $request->user()->accounts;
-        
-        // Append the calculated 'balance' attribute to each account
-        $accounts->each(function ($account) {
+        $user = $request->user();
+        $accounts = $user->accounts;
+
+        $balances = Account::balancesFor($user->id, $accounts->pluck('id')->all());
+
+        $accounts->each(function ($account) use ($balances) {
+            $account->setAttribute('balance', $balances[$account->id] ?? 0.0);
             $account->append('balance');
         });
 

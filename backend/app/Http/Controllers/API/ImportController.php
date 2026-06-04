@@ -37,32 +37,52 @@ class ImportController extends Controller
 
         $rows = str_getcsv($request->csv_content, "\n");
         $header = str_getcsv(array_shift($rows)); // Assuming first row is header
-        
-        $preview = [];
 
+        $parsed = [];
         foreach ($rows as $row) {
             $data = str_getcsv($row);
             if (count($data) < 4) continue;
 
-            $date = $this->parseDate($data[0]);
-            $description = $data[1];
-            $amount = abs(floatval(str_replace(',', '', $data[2])));
-            $type = strtolower($data[3]) === 'cr' ? 'income' : 'expense';
+            $parsed[] = [
+                'transaction_date' => $this->parseDate($data[0]),
+                'description'      => $data[1],
+                'amount'           => abs(floatval(str_replace(',', '', $data[2]))),
+                'type'             => strtolower($data[3]) === 'cr' ? 'income' : 'expense',
+            ];
+        }
 
-            // Check for potential duplicate in DB
-            $isDuplicate = Transaction::where('user_id', $request->user()->id)
-                ->where('transaction_date', $date)
-                ->where('amount', $amount)
-                ->where('type', $type)
-                ->exists();
+        // One query for the whole batch — builds a set of (date, type, amount) keys
+        // that already exist for this user, then each preview row checks the set.
+        $existing = collect();
+        if (! empty($parsed)) {
+            $existing = Transaction::where('user_id', $request->user()->id)
+                ->where(function ($q) use ($parsed) {
+                    foreach ($parsed as $p) {
+                        $q->orWhere(function ($sub) use ($p) {
+                            $sub->where('transaction_date', $p['transaction_date'])
+                                ->where('type', $p['type'])
+                                ->where('amount', $p['amount']);
+                        });
+                    }
+                })
+                ->select(['transaction_date', 'type', 'amount'])
+                ->get();
 
+            $existing = $existing->mapWithKeys(fn ($t) => [
+                $t->transaction_date.':'.$t->type.':'.(string) $t->amount => true,
+            ]);
+        }
+
+        $preview = [];
+        foreach ($parsed as $p) {
+            $key = $p['transaction_date'].':'.$p['type'].':'.(string) $p['amount'];
             $preview[] = [
-                'transaction_date' => $date,
-                'description' => $description,
-                'amount' => $amount,
-                'type' => $type,
-                'is_duplicate' => $isDuplicate,
-                'account_id' => $request->account_id,
+                'transaction_date' => $p['transaction_date'],
+                'description'      => $p['description'],
+                'amount'           => $p['amount'],
+                'type'             => $p['type'],
+                'is_duplicate'     => $existing->has($key),
+                'account_id'       => $request->account_id,
             ];
         }
 
@@ -82,14 +102,22 @@ class ImportController extends Controller
             'transactions.*.type' => 'required|in:income,expense',
         ]);
 
-        $importedCount = 0;
-        foreach ($request->transactions as $item) {
-            $request->user()->transactions()->create($item);
-            $importedCount++;
-        }
+        $now = now();
+        $userId = $request->user()->id;
+
+        $rows = array_map(fn ($item) => array_merge($item, [
+            'user_id'    => $userId,
+            'is_synced'  => true,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]), $request->transactions);
+
+        Transaction::insert($rows);
+
+        $count = count($rows);
 
         return response()->json([
-            'message' => "Successfully imported $importedCount transactions."
+            'message' => "Successfully imported {$count} transactions."
         ]);
     }
 

@@ -66,11 +66,12 @@ class Account extends Model
     }
 
     /**
-     * Accessor for live balance calculation.
+     * Accessor for live balance calculation on a single account.
      * Balance = Starting Balance + Total Income - Total Expense - Total Transfers Out + Total Transfers In
      *
-     * Computed with a single conditional-sum query against the
-     * transactions table (4 queries down to 1 per account).
+     * Single conditional-sum query against the transactions table.
+     * For lists of accounts, use {@see self::balancesFor()} instead —
+     * it batches every account into one query and avoids the N+1 trap.
      *
      * @return float
      */
@@ -95,5 +96,69 @@ class Account extends Model
             ->first();
 
         return $this->starting_balance + (float) $row->net;
+    }
+
+    /**
+     * Compute live balances for many accounts in a single query.
+     *
+     * Returns a map of `account_id => balance`. The caller is responsible
+     * for hydrating the result onto the model collection (e.g. via
+     * `$account->setAttribute('balance', $map[$account->id])` then
+     * `$account->append('balance')`).
+     *
+     * One query regardless of account count, so it scales where the
+     * per-account accessor triggers a fresh aggregate query each time.
+     *
+     * @param  int    $userId
+     * @param  array  $accountIds
+     * @return array<int, float>
+     */
+    public static function balancesFor(int $userId, array $accountIds): array
+    {
+        if (empty($accountIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($accountIds), '?'));
+
+        $sql = "
+            SELECT account_id, SUM(net) AS net
+            FROM (
+                SELECT account_id,
+                       CASE type
+                           WHEN 'income'   THEN  amount
+                           WHEN 'expense'  THEN -amount
+                           WHEN 'transfer' THEN -amount
+                       END AS net
+                FROM transactions
+                WHERE account_id IN ({$placeholders}) AND user_id = ?
+                UNION ALL
+                SELECT to_account_id AS account_id, amount AS net
+                FROM transactions
+                WHERE to_account_id IN ({$placeholders})
+                  AND type = 'transfer'
+                  AND user_id = ?
+            ) t
+            GROUP BY account_id
+        ";
+
+        $bindings = array_merge($accountIds, [$userId], $accountIds, [$userId]);
+
+        $balances = array_fill_keys($accountIds, 0.0);
+
+        foreach (DB::select($sql, $bindings) as $row) {
+            $balances[$row->account_id] = (float) $row->net;
+        }
+
+        // Add each account's starting_balance on top of the transaction net.
+        $starters = DB::table('accounts')
+            ->whereIn('id', $accountIds)
+            ->pluck('starting_balance', 'id');
+
+        foreach ($balances as $id => $net) {
+            $balances[$id] = $net + (float) ($starters[$id] ?? 0);
+        }
+
+        return $balances;
     }
 }

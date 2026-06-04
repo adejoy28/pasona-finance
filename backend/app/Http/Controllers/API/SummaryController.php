@@ -9,6 +9,7 @@ namespace App\Http\Controllers\API;
  */
 
 use App\Http\Controllers\Controller;
+use App\Models\Account;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -32,10 +33,14 @@ class SummaryController extends Controller
         $startOfMonth = Carbon::now()->startOfMonth();
         $endOfMonth = Carbon::now()->endOfMonth();
 
-        // 1. Account Balances
+        // 1. Account Balances — single batched query instead of N+1.
         $accounts = $user->accounts;
-        $accounts->each->append('balance');
-        $totalBalance = $accounts->sum('balance');
+        $balances = Account::balancesFor($user->id, $accounts->pluck('id')->all());
+        $accounts->each(function ($account) use ($balances) {
+            $account->setAttribute('balance', $balances[$account->id] ?? 0.0);
+            $account->append('balance');
+        });
+        $totalBalance = array_sum($balances);
 
         // 2. Monthly Income vs Expense
         $monthlyIncome = $user->transactions()

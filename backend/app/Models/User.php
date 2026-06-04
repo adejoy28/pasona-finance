@@ -99,4 +99,51 @@ class User extends Authenticatable
     {
         $this->notify(new ResetPasswordNotification($token));
     }
+
+    /**
+     * Default categories that are copied to every newly created user.
+     * The copies are owned by the user (`user_id` set) so they can be
+     * edited or deleted without affecting other users.
+     */
+    public const DEFAULT_CATEGORIES = [
+        ['name' => 'Food & Groceries', 'type' => 'expense'],
+        ['name' => 'Transport', 'type' => 'expense'],
+        ['name' => 'Healthcare', 'type' => 'expense'],
+        ['name' => 'Bank Charges', 'type' => 'expense'],
+        ['name' => 'Shopping', 'type' => 'expense'],
+        ['name' => 'Entertainment', 'type' => 'expense'],
+        ['name' => 'Utilities', 'type' => 'expense'],
+        ['name' => 'Rent', 'type' => 'expense'],
+        ['name' => 'Airtime & Data', 'type' => 'expense'],
+        ['name' => 'Education', 'type' => 'expense'],
+        ['name' => 'Savings', 'type' => 'expense'],
+        ['name' => 'Tithe', 'type' => 'expense'],
+        ['name' => 'Salary', 'type' => 'income'],
+        ['name' => 'Freelance', 'type' => 'income'],
+        ['name' => 'Gifts', 'type' => 'income'],
+        ['name' => 'Investment', 'type' => 'income'],
+    ];
+
+    /**
+     * Boot the model.
+     *
+     * Whenever a new user is created, give them their own editable copy
+     * of the default categories. This runs for every creation path
+     * (registration, OAuth, factories, etc.).
+     */
+    protected static function booted(): void
+    {
+        static::created(function (User $user) {
+            $now = now();
+            $rows = array_map(fn ($c) => [
+                'user_id'    => $user->id,
+                'name'       => $c['name'],
+                'type'       => $c['type'],
+                'created_at' => $now,
+                'updated_at' => $now,
+            ], self::DEFAULT_CATEGORIES);
+
+            $user->categories()->insert($rows);
+        });
+    }
 }

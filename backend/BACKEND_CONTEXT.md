@@ -43,7 +43,7 @@ backend/
 ├── config/         api, app, auth, cache, cors, database, filesystems, logging, mail, queue, sanctum, services, session
 ├── database/
 │   ├── migrations/   (8 files: users, cache, jobs, personal_access_tokens, accounts, categories, transactions, google_id addition)
-│   ├── seeders/      DatabaseSeeder, CategorySeeder (16 default categories), UserSeeder (john/jane)
+│   ├── seeders/      DatabaseSeeder, UserSeeder (john/jane); default categories are seeded per-user via the User::created event
 │   └── factories/    UserFactory
 ├── public/        docs.css, docs.js, index.php, .htaccess
 ├── resources/
@@ -109,10 +109,10 @@ backend/
 - **Cascades on delete** with user.
 
 ### `categories`
-- Fields: `id, user_id (nullable), name, type (enum: income|expense), is_default (bool), timestamps`
+- Fields: `id, user_id, name, type (enum: income|expense), timestamps`
 - Relations: `user()` (belongsTo), `transactions()` (hasMany)
-- `is_default = true` rows are system-wide and cannot be modified or deleted (enforced both in `CategoryPolicy` and inline checks in `CategoryController`).
-- `user_id` is nullable for default categories.
+- Unique key on `(user_id, name, type)` — a user cannot have two categories with the same `(name, type)` pair. Same name across different types is allowed.
+- Every new user is seeded with a default set of categories via the `User::created` model event (see `User::DEFAULT_CATEGORIES`). The seeded rows are owned by the user and can be edited or deleted freely; duplicates are still blocked by the unique key.
 
 ### `transactions`
 - Fields: `id, user_id, account_id, to_account_id (nullable), type (enum: income|expense|transfer), category_id (nullable), amount (decimal 15,2), description, reference, transaction_date (date), is_synced (bool, default true), timestamps`
@@ -147,9 +147,9 @@ backend/
 - `destroy` (102-108): `authorize('delete')` + delete. **Cascades** to all transactions on that account (per migration FK).
 
 ### `CategoryController` (`CategoryController.php`)
-- `index` (28-35): `Category::where('is_default', true)->orWhere('user_id', $user->id)->get()` — note this uses `orWhere` without parameter grouping, so it expands to `WHERE is_default = true OR user_id = X`. Works as intended.
-- `store` (43-57): creates with `is_default = false`.
-- `show`/`update`/`destroy` (62-103): all call `authorize`, and `update`/`destroy` short-circuit with 403 if `is_default = true`.
+- `index`: returns `$request->user()->categories()->get()`.
+- `store`: validates with `Rule::unique(...)->where('user_id', ...)->where('type', ...)` and creates a category owned by the user.
+- `show`/`update`/`destroy`: all call `authorize`. Duplicate prevention is enforced by the DB unique key and the validation rule — not by a default flag.
 
 ### `TransactionController` (`TransactionController.php`)
 - `index` (30-39): eager-loads `account`, `toAccount`, `category`; orders by `transaction_date DESC, created_at DESC`; paginates 50.
