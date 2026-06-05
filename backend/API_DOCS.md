@@ -24,6 +24,7 @@ https://api.yourdomain.com/api
   - [Login](#login)
   - [Logout](#logout)
   - [Get Current User](#get-current-user)
+  - [Check Email](#check-email)
   - [Forgot Password](#forgot-password)
   - [Reset Password](#reset-password)
   - [Google OAuth](#google-oauth)
@@ -269,6 +270,41 @@ curl http://localhost:8000/api/me \
   "updated_at": "2026-06-03T12:00:00.000000Z"
 }
 ```
+
+---
+
+### Check Email
+
+Check whether an email is already registered. Used by the register and login screens to show "Sign in instead" / "Register instead" hints.
+
+```
+GET /api/auth/check-email
+```
+
+**Authentication:** Not required
+
+#### Query Parameters
+
+| Field   | Type   | Required | Description        |
+| ------- | ------ | -------- | ------------------ |
+| `email` | string | Yes      | Email to look up   |
+
+#### Example Request
+
+```bash
+curl "http://localhost:8000/api/auth/check-email?email=ada%40example.com" \
+  -H "Accept: application/json"
+```
+
+#### Response — `200 OK`
+
+```json
+{ "available": false }
+```
+
+`available` is `true` when no user with that email exists, `false` otherwise. The response shape and status code are identical for both outcomes — only the boolean differs — to make user enumeration expensive to script. Invalid input (missing or malformed email) returns `422`.
+
+**Rate limit:** `30 requests/minute` per IP.
 
 ---
 
