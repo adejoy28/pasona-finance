@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 
 /**
  * API Routes File
- * 
+ *
  * Defines all endpoints for the Pasona Finance Tracker.
  * Most routes are protected by Sanctum middleware.
  */
@@ -25,6 +25,13 @@ Route::get('/', function () {
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Email-availability probe used by the register/login screens to show
+// "Sign in instead" / "Register instead" hints. Public (a user has to
+// be able to check before signing in) and rate-limited per IP to
+// discourage scripted enumeration.
+Route::get('/auth/check-email', [AuthController::class, 'checkEmail'])
+    ->middleware('throttle:check-email');
 
 // Social Login (Google)
 Route::get('auth/google', [SocialAuthController::class, 'redirectToGoogle']);

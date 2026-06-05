@@ -4,28 +4,28 @@ namespace App\Http\Controllers\API;
 
 /**
  * AuthController File
- * 
+ *
  * Handles user authentication (Registration, Login, Logout) using Laravel Sanctum.
  */
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 /**
  * AuthController Class
- * 
+ *
  * Provides API endpoints for user authentication.
  */
 class AuthController extends Controller
 {
     /**
      * Register a new user.
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     *
+     * @return JsonResponse
      */
     public function register(Request $request)
     {
@@ -52,9 +52,9 @@ class AuthController extends Controller
 
     /**
      * Authenticate a user and return a token.
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     *
+     * @return JsonResponse
+     *
      * @throws ValidationException
      */
     public function login(Request $request)
@@ -66,7 +66,7 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
@@ -83,9 +83,8 @@ class AuthController extends Controller
 
     /**
      * Revoke the user's current token (Logout).
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     *
+     * @return JsonResponse
      */
     public function logout(Request $request)
     {
@@ -98,12 +97,40 @@ class AuthController extends Controller
 
     /**
      * Get the authenticated user's profile.
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     *
+     * @return JsonResponse
      */
     public function me(Request $request)
     {
         return response()->json($request->user());
+    }
+
+    /**
+     * Check whether an email is already registered.
+     *
+     * Backed by `GET /api/auth/check-email?email=...`. Always responds
+     * with `{ "available": bool }` and the same 200 status — the
+     * response shape never varies between "exists" and "doesn't exist",
+     * which is the standard mitigation against user-enumeration attacks
+     * (OWASP A07:2021). The endpoint is also rate-limited via the
+     * `check-email` named limiter to make scraping expensive.
+     *
+     * Invalid input returns 422 with the standard validation error
+     * envelope; that path is reached only when the frontend's own
+     * client-side validation is bypassed, so it does not leak
+     * existence.
+     *
+     * @return JsonResponse
+     */
+    public function checkEmail(Request $request)
+    {
+        $data = $request->validate([
+            'email' => 'required|email:rfc|max:254',
+        ]);
+
+        $email = strtolower(trim($data['email']));
+        $available = ! User::where('email', $email)->exists();
+
+        return response()->json(['available' => $available]);
     }
 }

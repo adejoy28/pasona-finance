@@ -27,5 +27,14 @@ class AppServiceProvider extends ServiceProvider
                 $request->user()?->id ?: $request->ip()
             );
         });
+
+        // Tighter limit for the email-availability probe on the auth
+        // screen. The frontend debounces to 500ms, so a real user fires
+        // at most a handful of requests while typing one email — 30/min
+        // is plenty for the UX. The cap exists to make scripted email
+        // enumeration (OWASP A07:2021) noticeably expensive.
+        RateLimiter::for('check-email', function (Request $request) {
+            return Limit::perMinute(30)->by($request->ip());
+        });
     }
 }
