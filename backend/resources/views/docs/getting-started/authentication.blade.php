@@ -198,6 +198,34 @@ print(response.json())";
 }',
     ])
 </section>
+
+<section class="section">
+    <h2 id="email-verification">Email verification (opt-in)</h2>
+    <p>
+        The <code>User</code> model implements <code>MustVerifyEmail</code>. A verification
+        email is queued automatically on <a href="{{ route('docs.endpoints.auth') }}#register">register</a>
+        &mdash; the response includes <code>email_verified: false</code> until the user clicks the link.
+    </p>
+    <p>
+        Verification is <strong>not required</strong> to use the API. The only endpoints that
+        return a <code>403</code> for unverified users are the <strong>sensitive bulk writers</strong>:
+        <code>POST /api/transactions/sync</code>, <code>POST /api/import/store</code>, and
+        <code>POST /api/import/kuda/store</code>. Those return
+        <code>{ "message": "Your email address is not verified.", "requires_verified_email": true }</code>
+        so the frontend can prompt the user to verify.
+    </p>
+    <p>
+        The SPA can poll <code>GET /api/email/verification-status</code> to decide whether
+        to render a &ldquo;please confirm your email&rdquo; banner without fetching the full
+        profile, and call <code>POST /api/email/verification-notification</code> (throttled
+        6/min) to resend the link.
+    </p>
+    <p>
+        Google OAuth (<code>GET /api/auth/google</code>) auto-verifies the user on first
+        login, so users who sign in with Google never see the verification banner.
+    </p>
+    <p>Full reference on the <a href="{{ route('docs.endpoints.auth') }}#email-verification">Authentication</a> page.</p>
+</section>
 @endsection
 
 @push('code-examples')

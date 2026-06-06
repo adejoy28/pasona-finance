@@ -95,7 +95,9 @@
     "id": 1,
     "name": "Jane Doe",
     "email": "[email protected]"
-  }
+  },
+  "email_verified": false,
+  "email_verified_at": null
 }',
             ])
         </div>
@@ -171,7 +173,9 @@
     "id": 1,
     "name": "Jane Doe",
     "email": "[email protected]"
-  }
+  },
+  "email_verified": false,
+  "email_verified_at": null
 }',
             ])
         </div>
@@ -223,7 +227,9 @@
   "email": "[email protected]",
   "google_id": null,
   "avatar": null,
-  "email_verified_at": null
+  "email_verified_at": "2026-06-04T09:12:33Z",
+  "reminder_time": "21:10",
+  "reminder_last_sent_at": "2026-06-05T21:10:11Z"
 }',
             ])
         </div>
@@ -445,6 +451,187 @@
 
     <h3>Response</h3>
     <p>HTTP <code>302</code> redirect. Body is empty.</p>
+</section>
+
+{{-- ─────────────────────────── ENDPOINT: Email Verification (opt-in) ─────────────────────────── --}}
+<section class="endpoint" id="email-verification">
+    <header class="endpoint__header">
+        <h2 class="endpoint__title">Email verification <span class="endpoint__pill endpoint__pill--info">opt-in</span></h2>
+    </header>
+    <p>
+        The <code>User</code> model implements <code>MustVerifyEmail</code> and a verification
+        email is queued automatically on <a href="#register">register</a>. Verification is
+        <strong>not</strong> required to use the API &mdash; unverified users can list accounts,
+        log transactions, and read summaries. The only endpoints that require a verified email
+        are the <strong>sensitive bulk writers</strong>:
+    </p>
+    <ul class="bullet-list">
+        <li><code>POST /api/transactions/sync</code> &mdash; offline batch upload</li>
+        <li><code>POST /api/import/store</code> &mdash; generic CSV import</li>
+        <li><code>POST /api/import/kuda/store</code> &mdash; Kuda bank-statement import</li>
+    </ul>
+    <p>Those routes return a <code>403</code> with <code>{ "requires_verified_email": true }</code> &mdash; see the <a href="{{ route('docs.getting-started.errors') }}#forbidden-403">Errors</a> page for the shape.</p>
+    <p>Google OAuth auto-flips <code>email_verified_at</code> on first login, so users who sign in with Google never see the verification banner.</p>
+</section>
+
+{{-- ─────────────────────────── ENDPOINT: Verify email (signed link target) ─────────────────────────── --}}
+<section class="endpoint" id="verify-email">
+    <header class="endpoint__header">
+        @include('partials.method-badge', ['method' => 'GET'])
+        <code class="endpoint__url">{{ $base }}/email/verify/<span class="path-param">{id}</span>/<span class="path-param">{hash}</span></code>
+    </header>
+    <h2 class="endpoint__title">Verify email address</h2>
+    <p>
+        The click-target of the verification email. The URL is <strong>signed</strong> and must
+        be presented exactly as it appears in the message &mdash; it is the proof that the user
+        controls the inbox. On success the server marks the address verified, fires the
+        <code>Verified</code> event, and 302-redirects to <code>FRONTEND_URL/dashboard?verified=1</code>
+        (or <code>?verified=already</code> if the address was already verified).
+    </p>
+    <p>The frontend should send users to this URL with no extra wrapping &mdash; the SPA doesn't need to call it with <code>Authorization</code> headers. Just navigate the browser.</p>
+
+    <h3>Responses</h3>
+    <div class="response-tabs" data-response-tabs>
+        <div class="response-tabs__head" role="tablist">
+            <button class="response-tabs__tab is-active" data-resp="302">302</button>
+            <button class="response-tabs__tab" data-resp="403">403</button>
+            <button class="response-tabs__tab" data-resp="404">404</button>
+        </div>
+        <div class="response-tabs__panel is-active" data-resp-panel="302">
+            @include('partials.code-block', [
+                'id'       => 'verify-302',
+                'language' => 'http',
+                'title'    => '302 Found',
+                'code'     => "HTTP/1.1 302 Found\nLocation: https://app.yourdomain.com/dashboard?verified=1",
+            ])
+        </div>
+        <div class="response-tabs__panel" data-resp-panel="403">
+            @include('partials.code-block', [
+                'id'       => 'verify-403',
+                'language' => 'http',
+                'title'    => '403 Forbidden',
+                'code'     => "HTTP/1.1 403 Forbidden\n\nInvalid or expired verification link.",
+            ])
+        </div>
+        <div class="response-tabs__panel" data-resp-panel="404">
+            @include('partials.code-block', [
+                'id'       => 'verify-404',
+                'language' => 'http',
+                'title'    => '404 Not Found',
+                'code'     => "HTTP/1.1 404 Not Found",
+            ])
+        </div>
+    </div>
+</section>
+
+{{-- ─────────────────────────── ENDPOINT: Resend verification ─────────────────────────── --}}
+<section class="endpoint" id="resend-verification">
+    <header class="endpoint__header">
+        @include('partials.method-badge', ['method' => 'POST'])
+        <code class="endpoint__url">{{ $base }}/email/verification-notification</code>
+        @include('partials.tryit-trigger', [
+            'method' => 'POST',
+            'path'   => '/email/verification-notification',
+            'auth'   => true,
+            'title'  => 'Resend verification email',
+        ])
+    </header>
+    <h2 class="endpoint__title">Resend verification email</h2>
+    <p>Queues a fresh verification email for the authenticated user. Throttled to <strong>6 requests per minute</strong> per token. The notification is sent from the <code>VerifyEmailNotification</code> class and uses the <code>VerifyEmail</code> mail template.</p>
+
+    <h3>Responses</h3>
+    <div class="response-tabs" data-response-tabs>
+        <div class="response-tabs__head" role="tablist">
+            <button class="response-tabs__tab is-active" data-resp="200">200</button>
+            <button class="response-tabs__tab" data-resp="429">429</button>
+        </div>
+        <div class="response-tabs__panel is-active" data-resp-panel="200">
+            @include('partials.code-block', [
+                'id'       => 'resend-200',
+                'language' => 'json',
+                'title'    => '200 OK',
+                'code'     => '{
+  "message": "Verification email queued.",
+  "email_verified": false,
+  "verification_sent_at": "2026-06-06T21:10:11+00:00"
+}',
+            ])
+            <p class="muted">If the user is already verified, the response short-circuits to <code>{ "message": "Email already verified.", "email_verified": true }</code>.</p>
+        </div>
+        <div class="response-tabs__panel" data-resp-panel="429">
+            @include('partials.code-block', [
+                'id'       => 'resend-429',
+                'language' => 'json',
+                'title'    => '429 Too Many Requests',
+                'code'     => '{ "message": "Too Many Attempts." }',
+            ])
+        </div>
+    </div>
+</section>
+
+{{-- ─────────────────────────── ENDPOINT: Verification status ─────────────────────────── --}}
+<section class="endpoint" id="verification-status">
+    <header class="endpoint__header">
+        @include('partials.method-badge', ['method' => 'GET'])
+        <code class="endpoint__url">{{ $base }}/email/verification-status</code>
+        @include('partials.tryit-trigger', [
+            'method' => 'GET',
+            'path'   => '/email/verification-status',
+            'auth'   => true,
+            'title'  => 'Get verification status',
+        ])
+    </header>
+    <h2 class="endpoint__title">Get verification status</h2>
+    <p>Lightweight endpoint for the SPA to decide whether to render the verification banner. Cheaper than <a href="#me"><code>/me</code></a> if you don't need the full profile.</p>
+
+    <h3>Response</h3>
+    <div class="response-tabs" data-response-tabs>
+        <div class="response-tabs__head" role="tablist">
+            <button class="response-tabs__tab is-active" data-resp="200">200</button>
+        </div>
+        <div class="response-tabs__panel is-active" data-resp-panel="200">
+            @include('partials.code-block', [
+                'id'       => 'verification-status-200',
+                'language' => 'json',
+                'title'    => '200 OK',
+                'code'     => '{
+  "email_verified": true,
+  "email": "[email protected]"
+}',
+            ])
+        </div>
+    </div>
+</section>
+
+{{-- ─────────────────────────── ENDPOINT: Check email availability ─────────────────────────── --}}
+<section class="endpoint" id="check-email">
+    <header class="endpoint__header">
+        @include('partials.method-badge', ['method' => 'GET'])
+        <code class="endpoint__url">{{ $base }}/auth/check-email?email=<span class="path-param">{email}</span></code>
+        @include('partials.tryit-trigger', [
+            'method' => 'GET',
+            'path'   => '/auth/check-email?email=[email protected]',
+            'auth'   => false,
+            'title'  => 'Check email availability',
+        ])
+    </header>
+    <h2 class="endpoint__title">Check email availability</h2>
+    <p>Public, rate-limited probe used by the register / login screens to show a &ldquo;Sign in instead&rdquo; / &ldquo;Register instead&rdquo; hint. Always responds with a <code>200</code> and the same shape &mdash; the response never reveals whether the email is registered, which is the standard mitigation against user-enumeration attacks.</p>
+
+    <h3>Response</h3>
+    <div class="response-tabs" data-response-tabs>
+        <div class="response-tabs__head" role="tablist">
+            <button class="response-tabs__tab is-active" data-resp="200">200</button>
+        </div>
+        <div class="response-tabs__panel is-active" data-resp-panel="200">
+            @include('partials.code-block', [
+                'id'       => 'check-email-200',
+                'language' => 'json',
+                'title'    => '200 OK',
+                'code'     => '{ "available": true }',
+            ])
+        </div>
+    </div>
 </section>
 @endsection
 

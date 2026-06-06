@@ -83,6 +83,11 @@
 </section>
 
 <section class="callout callout--info">
+    <strong>📬 Now with email.</strong>
+    The API ships with a complete mailing system &mdash; <a href="{{ route('docs.endpoints.auth') }}#email-verification">opt-in email verification</a>, <a href="{{ route('docs.endpoints.auth') }}#forgot-password">password reset</a>, and a <a href="{{ route('docs.guides') }}">daily transaction-logging reminder</a>. See the <a href="{{ route('docs.endpoints.auth') }}">Authentication</a> page for the full list of mail-driven endpoints.
+</section>
+
+<section class="callout callout--info">
     <strong>Need help?</strong>
     Email <a href="mailto:[email protected]">[email protected]</a> or open an issue on the project repository.
 </section>

@@ -52,6 +52,16 @@ class SocialAuthController extends Controller
                 ]);
             }
 
+            // Google has already confirmed the email address, so
+            // there is nothing to verify. Mark it verified for the
+            // benefit of any future "verified" middleware on
+            // sensitive endpoints. Existing users whose email
+            // matches a Google account are also flipped verified
+            // (idempotent — hasVerifiedEmail is a no-op when true).
+            if (! $user->hasVerifiedEmail()) {
+                $user->forceFill(['email_verified_at' => now()])->save();
+            }
+
             $token = $user->createToken('auth_token')->plainTextToken;
 
             $frontendUrl = env('FRONTEND_URL', 'http://localhost:8080');

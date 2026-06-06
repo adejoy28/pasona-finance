@@ -56,6 +56,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Frontend URL
+    |--------------------------------------------------------------------------
+    |
+    | The base URL of the Pasona SPA. Used by Mailables and Notifications
+    | to build dashboard / settings / verification deep links.
+    |
+    */
+
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:8080'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

@@ -1,39 +1,55 @@
-# 🔧 FinTrack API — Laravel Backend
+# 🔧 Pasona API — Laravel Backend
 
-The REST API powering FinTrack. Built with **Laravel 11** and **PostgreSQL**. Handles authentication, account management, transaction logging, CSV import, and financial summaries.
+The REST API powering Pasona FinTrack. Built with **Laravel 12** and **PostgreSQL**. Handles authentication, account management, transaction logging, CSV import, daily-reminder emails, password resets, and financial summaries.
 
 ---
 
 ## 📁 Folder Structure
 
 ```
-fintrack-api/
+pasona-api/                         # actually `backend/` in the repo
 ├── app/
 │   ├── Http/
 │   │   └── Controllers/
-│   │       ├── AuthController.php          # Login, register, logout
-│   │       ├── AccountController.php       # CRUD for bank/mobile/cash accounts
-│   │       ├── TransactionController.php   # CRUD for all transactions
-│   │       ├── CategoryController.php      # CRUD for expense/income categories
-│   │       ├── ImportController.php        # CSV bank statement import + duplicate check
-│   │       └── SummaryController.php       # Monthly summary + category breakdown
+│   │       ├── AuthController.php              # Login, register, logout, check-email
+│   │       ├── EmailVerificationController.php # send / verify / status
+│   │       ├── ForgotPasswordController.php
+│   │       ├── ResetPasswordController.php
+│   │       ├── SocialAuthController.php        # Google OAuth
+│   │       ├── AccountController.php           # CRUD for bank/mobile/cash accounts
+│   │       ├── TransactionController.php       # CRUD + offline batch sync
+│   │       ├── CategoryController.php          # CRUD for expense/income categories
+│   │       ├── ImportController.php            # Generic CSV import + duplicate check
+│   │       ├── KudaImportController.php        # Kuda bank-statement import
+│   │       └── SummaryController.php           # Monthly summary + category breakdown
+│   ├── Console/Commands/
+│   │   ├── BackfillDefaultCategories.php
+│   │   └── SendDailyReminders.php              # `artisan reminders:send-daily`
+│   ├── Jobs/
+│   │   ├── ProcessSync.php                     # Offline batch insert
+│   │   └── SendTransactionReminder.php         # Per-user daily nudge
+│   ├── Mail/
+│   │   └── TransactionReminderMail.php
+│   ├── Notifications/
+│   │   ├── VerifyEmailNotification.php
+│   │   └── ResetPasswordNotification.php
 │   ├── Models/
-│   │   ├── User.php
+│   │   ├── User.php                            # implements MustVerifyEmail
 │   │   ├── Account.php
 │   │   ├── Transaction.php
 │   │   └── Category.php
-│   └── Services/
-│       ├── BalanceService.php              # Calculates live account balances
-│       ├── ImportService.php               # Parses CSV and checks duplicates
-│       └── SummaryService.php             # Aggregates monthly and category totals
+│   └── Providers/AppServiceProvider.php
 ├── database/
-│   ├── migrations/                         # All table definitions
+│   ├── migrations/                             # incl. users.reminder_last_sent_at
 │   └── seeders/
 │       └── DatabaseSeeder.php
+├── resources/
+│   └── views/emails/                           # verify-email, reset-password, transaction-reminder
 ├── routes/
-│   └── api.php                             # All API route definitions
-├── .env.example                            # Environment variable template
-└── README.md                               # This file
+│   ├── api.php                                 # All API route definitions
+│   └── console.php                             # Schedule (reminders:send-daily every 5 min)
+├── .env.example                                # Environment variable template
+└── README.md                                   # This file
 ```
 
 ---
@@ -43,7 +59,7 @@ fintrack-api/
 - PHP 8.2 or higher
 - Composer 2+
 - PostgreSQL 15+
-- Laravel 11
+- Laravel 12
 
 ---
 
@@ -111,15 +127,19 @@ php artisan serve
 
 ### `users`
 
-| Column        | Type      | Description                             |
-| ------------- | --------- | --------------------------------------- |
-| id            | bigint    | Primary key                             |
-| name          | string    | User's full name                        |
-| email         | string    | Login email (unique)                    |
-| password      | string    | Hashed password                         |
-| reminder_time | time      | Daily notification time (default 21:10) |
-| created_at    | timestamp | Record creation time                    |
-| updated_at    | timestamp | Last update time                        |
+| Column                 | Type      | Description                                                                |
+| ---------------------- | --------- | -------------------------------------------------------------------------- |
+| id                     | bigint    | Primary key                                                                |
+| name                   | string    | User's full name                                                           |
+| email                  | string    | Login email (unique)                                                       |
+| email_verified_at      | timestamp | Set when the user clicks the verification link (or by Google OAuth)        |
+| password               | string    | Hashed password (nullable for OAuth-only users)                            |
+| google_id              | string    | Google account id (for OAuth linking)                                      |
+| avatar                 | string    | Avatar URL from OAuth                                                      |
+| reminder_time          | string    | Daily reminder time in `HH:MM` (default 21:10, app timezone UTC)            |
+| reminder_last_sent_at  | timestamp | Wall-clock of the last reminder send; used to dedupe                        |
+| created_at             | timestamp | Record creation time                                                       |
+| updated_at             | timestamp | Last update time                                                           |
 
 ### `accounts`
 
@@ -171,12 +191,32 @@ All routes are prefixed with `/api`. Protected routes require `Authorization: Be
 
 ### Authentication
 
-| Method | Route           | Description              |
-| ------ | --------------- | ------------------------ |
-| POST   | `/api/register` | Create a new account     |
-| POST   | `/api/login`    | Login and get token      |
-| POST   | `/api/logout`   | Invalidate current token |
-| GET    | `/api/user`     | Get current user profile |
+| Method | Route                              | Description                                                                                       |
+| ------ | ---------------------------------- | ------------------------------------------------------------------------------------------------- |
+| POST   | `/api/register`                    | Create a new account. Returns `{ access_token, token_type, user, email_verified, email_verified_at }` |
+| POST   | `/api/login`                       | Login and get token                                                                               |
+| POST   | `/api/logout`                      | Invalidate current token                                                                          |
+| GET    | `/api/me`                          | Get current user profile                                                                          |
+| GET    | `/api/auth/check-email`            | Email-availability probe (rate-limited; same response shape whether the email exists or not)      |
+| GET    | `/api/auth/google`                 | Start Google OAuth — returns `{ url }`                                                            |
+| GET    | `/api/auth/google/callback`        | Finish Google OAuth; 302-redirects to SPA with `?token=…` and flips `email_verified_at`           |
+
+### Password reset
+
+| Method | Route                       | Description                                                                  |
+| ------ | --------------------------- | ---------------------------------------------------------------------------- |
+| POST   | `/api/forgot-password`      | Queue a reset email (built-in broker; 60s throttle, 60-min token)            |
+| POST   | `/api/reset-password`       | Accepts `{ token, email, password, password_confirmation }` and updates hash |
+
+### Email verification (opt-in)
+
+| Method | Route                                                  | Auth | Description                                                                                  |
+| ------ | ------------------------------------------------------ | ---- | -------------------------------------------------------------------------------------------- |
+| GET    | `/api/email/verify/{id}/{hash}` (signed)               | —    | Click target from the email. 302-redirects to `FRONTEND_URL/dashboard?verified=1` (or `?verified=already`) |
+| POST   | `/api/email/verification-notification`                 | ✓    | Resend the verification email (throttled 6/min)                                              |
+| GET    | `/api/email/verification-status`                       | ✓    | Returns `{ email_verified, email }` for the SPA banner                                       |
+
+Sensitive bulk writers are gated by the `verified` middleware (see the **Mailing system** section below).
 
 ### Accounts
 
@@ -210,10 +250,12 @@ All routes are prefixed with `/api`. Protected routes require `Authorization: Be
 
 ### Import
 
-| Method | Route                 | Description                                      |
-| ------ | --------------------- | ------------------------------------------------ |
-| POST   | `/api/import/preview` | Parse CSV and return rows with duplicate flags   |
-| POST   | `/api/import/confirm` | Save only the non-duplicate rows to transactions |
+| Method | Route                       | Verified | Description                                                    |
+| ------ | --------------------------- | -------- | -------------------------------------------------------------- |
+| POST   | `/api/import/preview`       | —        | Parse CSV and return rows with duplicate flags                 |
+| POST   | `/api/import/store`         | ✓        | Save only the non-duplicate rows to transactions               |
+| POST   | `/api/import/kuda/preview`  | —        | Kuda-specific bank-statement preview                            |
+| POST   | `/api/import/kuda/store`    | ✓        | Kuda-specific bank-statement ingest                             |
 
 ### Summary
 
@@ -266,18 +308,19 @@ php artisan test --filter=Api
 
 ```env
 # App
-APP_NAME=FinTrack
+APP_NAME=Pasona
 APP_ENV=production
 APP_KEY=base64:...
 APP_DEBUG=false
 APP_URL=https://api.yourdomain.com
+FRONTEND_URL=https://app.yourdomain.com   # used in email links
 
 # Database
 DB_CONNECTION=pgsql
 DB_HOST=127.0.0.1
 DB_PORT=5432
-DB_DATABASE=fintrack_db
-DB_USERNAME=fintrack_user
+DB_DATABASE=pasona_db
+DB_USERNAME=pasona_user
 DB_PASSWORD=secret
 
 # Auth
@@ -285,9 +328,57 @@ SANCTUM_STATEFUL_DOMAINS=yourdomain.com
 SESSION_DRIVER=cookie
 SESSION_DOMAIN=.yourdomain.com
 
-# Queue (for import jobs)
+# Queue (for import jobs + mail)
 QUEUE_CONNECTION=database
+
+# Mail (default = log; switch to smtp/resend/postmark to send real mail)
+MAIL_MAILER=log
+MAIL_FROM_ADDRESS="hello@yourdomain.com"
+MAIL_FROM_NAME="Pasona"
+# When you switch to real mail, also set:
+# MAIL_HOST, MAIL_PORT, MAIL_SCHEME, MAIL_USERNAME, MAIL_PASSWORD
 ```
+
+---
+
+## 📬 Mailing system
+
+Three transactional emails, all queued, all Markdown templates in `resources/views/emails/`.
+
+| Email                | Class                                              | Blade template                                  | When it fires                                                                 |
+| -------------------- | -------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------- |
+| Email verification   | `App\Notifications\VerifyEmailNotification`        | `emails/verify-email.blade.php`                 | On register (non-blocking). Resendable via `POST /api/email/verification-notification` |
+| Password reset       | `App\Notifications\ResetPasswordNotification`      | `emails/reset-password.blade.php`               | On `POST /api/forgot-password` (built-in broker + 60-min token)               |
+| Daily reminder       | `App\Mail\TransactionReminderMail`                 | `emails/transaction-reminder.blade.php`         | `reminders:send-daily` artisan, scheduled every 5 min in `routes/console.php` |
+
+### Daily reminder
+
+- `routes/console.php` schedules `reminders:send-daily` `everyFiveMinutes()` with `withoutOverlapping(10) onOneServer()`.
+- The command finds users whose `reminder_time` is within ±2 min of now (split into two ranges when the window crosses midnight), then:
+  1. **Smart-skips** anyone who already logged a transaction today (toggle with `--no-smart-skip`)
+  2. **Dedupe-skips** anyone whose `reminder_last_sent_at` is today
+  3. Dispatches `App\Jobs\SendTransactionReminder` for the rest
+- The job re-checks the dedupe window at handle time and stamps `reminder_last_sent_at` after a successful send. 3 tries, 60s backoff.
+- The mailable personalises the email with the user’s own today-stats (income, expense, account count) and switches the subject between the cold-open and a “Quick gut-check” variant when the user has already logged something.
+
+```bash
+# Manual / one-shot
+php artisan reminders:send-daily --dry-run
+php artisan reminders:send-daily --user=42 --no-smart-skip
+```
+
+### Email verification
+
+- The `User` model implements `MustVerifyEmail`. Verification is **opt-in** — no global `verified` middleware is applied to the API. Users can register, log in, and log transactions immediately.
+- The only endpoints that require a verified email are the **sensitive bulk writers**: `POST /api/transactions/sync`, `POST /api/import/store`, `POST /api/import/kuda/store`. The middleware is registered as the `verified` alias in `bootstrap/app.php`; the `AuthorizationException` it throws is converted to a JSON `{ requires_verified_email: true, message }` envelope so the SPA can act.
+- `GET /api/email/verification-status` lets the SPA render a dismissible banner without a page reload.
+- Google OAuth auto-flips `email_verified_at` on first login (Google already proved the email).
+
+### Catching emails in dev
+
+`MAIL_MAILER=log` writes every email (verification, reset, reminder) to `storage/logs/laravel.log`. Open the log, copy the link, paste it in your browser — no SMTP setup needed for local development.
+
+To send real mail, switch `MAIL_MAILER` to `smtp` / `resend` / `postmark` and set the matching `MAIL_HOST/PORT/USERNAME/PASSWORD`. All three mail classes pick it up automatically — no code change.
 
 ---
 
@@ -302,11 +393,7 @@ extension=pgsql
 ```
 
 **CORS errors from frontend**
-Update `config/cors.php` to include your frontend domain:
-
-```php
-'allowed_origins' => ['https://yourdomain.com'],
-```
+Update `config/cors.php` (`allowed_origins`) or set `CORS_ALLOWED_ORIGINS` in `.env` to include your frontend domain. The defaults already include `FRONTEND_URL` and `http://localhost:8080`.
 
 **Token not working**
 Make sure your request includes the header:
@@ -315,6 +402,13 @@ Make sure your request includes the header:
 Accept: application/json
 Authorization: Bearer your-token-here
 ```
+
+**Reminder emails aren’t firing**
+Run `php artisan schedule:work` (dev) or add `* * * * * cd /path/to/backend && php artisan schedule:run` to crontab (prod). Verify the schedule is registered with `php artisan schedule:list`. Manual one-shot: `php artisan reminders:send-daily --dry-run`.
+
+**Verification email never arrives**
+- In dev with `MAIL_MAILER=log`, the message is in `storage/logs/laravel.log` — search for `Subject: Confirm your Pasona email`.
+- For real mail, check `MAIL_HOST/PORT/USERNAME/PASSWORD` and the `MAIL_FROM_ADDRESS` is on a domain you control (SPF/DKIM).
 
 ---
 

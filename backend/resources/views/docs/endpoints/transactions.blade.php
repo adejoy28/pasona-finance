@@ -245,6 +245,7 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'POST'])
         <code class="endpoint__url">{{ $base }}/transactions/sync</code>
+        <span class="endpoint__pill endpoint__pill--verified">requires verified email</span>
         @include('partials.tryit-trigger', [
             'method' => 'POST',
             'path'   => '/transactions/sync',
@@ -254,7 +255,7 @@
         ])
     </header>
     <h2 class="endpoint__title">Bulk sync (offline)</h2>
-    <p>Accepts a batch of transactions recorded offline and dispatches them to a background queue job (<code>App\Jobs\ProcessSync</code>) for processing.</p>
+    <p>Accepts a batch of transactions recorded offline and dispatches them to a background queue job (<code>App\Jobs\ProcessSync</code>) for processing. <strong>Requires a verified email</strong> &mdash; the batch-write surface is gated by the <code>verified</code> middleware so we have a way to reach the user if the import misbehaves.</p>
 
     <h3>Request body</h3>
     <div class="table-wrap">
@@ -296,13 +297,32 @@
 }',
     ])
 
-    <h3>Response</h3>
-    @include('partials.code-block', [
-        'id'       => 'sync-transactions-200',
-        'language' => 'json',
-        'title'    => '200 OK',
-        'code'     => '{ "message": "Sync process started in the background." }',
-    ])
+    <h3>Responses</h3>
+    <div class="response-tabs" data-response-tabs>
+        <div class="response-tabs__head" role="tablist">
+            <button class="response-tabs__tab is-active" data-resp="200">200</button>
+            <button class="response-tabs__tab" data-resp="403">403</button>
+        </div>
+        <div class="response-tabs__panel is-active" data-resp-panel="200">
+            @include('partials.code-block', [
+                'id'       => 'sync-transactions-200',
+                'language' => 'json',
+                'title'    => '200 OK',
+                'code'     => '{ "message": "Sync process started in the background." }',
+            ])
+        </div>
+        <div class="response-tabs__panel" data-resp-panel="403">
+            @include('partials.code-block', [
+                'id'       => 'sync-transactions-403',
+                'language' => 'json',
+                'title'    => '403 Forbidden (email not verified)',
+                'code'     => '{
+  "message": "Your email address is not verified.",
+  "requires_verified_email": true
+}',
+            ])
+        </div>
+    </div>
 </section>
 
 {{-- ─────────────────────────── ENDPOINT: Retrieve Transaction ─────────────────────────── --}}

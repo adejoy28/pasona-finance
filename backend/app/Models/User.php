@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Notifications\ResetPasswordNotification;
+use App\Notifications\VerifyEmailNotification;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -13,11 +14,18 @@ use Laravel\Sanctum\HasApiTokens;
 
 /**
  * User Model
- * 
+ *
  * Represents a user of the finance tracker. Each user owns their own accounts,
  * categories, and transactions.
+ *
+ * Implements MustVerifyEmail so Laravel auto-sends the
+ * {@see VerifyEmailNotification} on register, but no global
+ * "ensure-verified" middleware is applied to the API: only the
+ * "sensitive" routes (CSV import, transaction sync) require it. The
+ * SPA can call /api/email/verification-status to render a dismissible
+ * banner for unverified users.
  */
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
@@ -54,14 +62,15 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'email_verified_at'     => 'datetime',
+            'reminder_last_sent_at' => 'datetime',
+            'password'              => 'hashed',
         ];
     }
 
     /**
      * Get all financial accounts owned by the user.
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function accounts()
@@ -71,7 +80,7 @@ class User extends Authenticatable
 
     /**
      * Get all custom categories created by the user.
-     * 
+     *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function categories()
@@ -98,6 +107,16 @@ class User extends Authenticatable
     public function sendPasswordResetNotification($token): void
     {
         $this->notify(new ResetPasswordNotification($token));
+    }
+
+    /**
+     * Send the email verification notification using our app's
+     * notification (which points the user at the SPA confirm page
+     * rather than Laravel's default web verify route).
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailNotification);
     }
 
     /**
