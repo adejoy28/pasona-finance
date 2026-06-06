@@ -9,10 +9,12 @@ namespace App\Http\Controllers\API;
  */
 
 use App\Http\Controllers\Controller;
+use App\Mail\WelcomeMail;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -41,12 +43,23 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        // Verification is opt-in: send the link but DON'T block the
+        // response. The user can use the app immediately; the SPA
+        // will surface a banner from /api/email/verification-status.
+        $user->sendEmailVerificationNotification();
+
+        // Send the welcome email alongside the verification link.
+        // Mail::queue returns immediately; a queue worker handles the send.
+        Mail::to($user->email)->queue(new WelcomeMail($user));
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-            'user' => $user,
+            'access_token'         => $token,
+            'token_type'           => 'Bearer',
+            'user'                 => $user,
+            'email_verified'       => false,
+            'email_verified_at'    => null,
         ]);
     }
 

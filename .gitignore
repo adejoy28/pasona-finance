@@ -3,3 +3,9 @@ node_modules
 pasona-*
 .claude/settings.local.json
 frontend/frontend.zip
+backend/app/Http/Controllers/API/Import/BANKS.md
+backend/app/Http/Controllers/API/Import/JOHN AYOMIDE ADEBAYO_8163414246_20260605135756.xlsx
+backend/app/Http/Controllers/API/Import/KUDA_IMPORT_INSTRUCTIONS.md
+backend/app/Http/Controllers/API/Import/KUDA_IMPORT_SETUP.md
+backend/app/Http/Controllers/API/Import/OPAY_IMPORT_INSTRUCTIONS.md
+whatNext.md

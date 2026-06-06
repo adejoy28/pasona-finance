@@ -3,8 +3,11 @@
 use App\Http\Controllers\API\AccountController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\CategoryController;
+use App\Http\Controllers\API\EmailVerificationController;
 use App\Http\Controllers\API\ForgotPasswordController;
-use App\Http\Controllers\API\ImportController;
+use App\Http\Controllers\API\Import\ImportController;
+use App\Http\Controllers\API\Import\KudaImportController;
+use App\Http\Controllers\API\Import\OpayImportController;
 use App\Http\Controllers\API\ResetPasswordController;
 use App\Http\Controllers\API\SocialAuthController;
 use App\Http\Controllers\API\SummaryController;
@@ -41,11 +44,22 @@ Route::get('auth/google/callback', [SocialAuthController::class, 'handleGoogleCa
 Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
 Route::post('reset-password', [ResetPasswordController::class, 'reset']);
 
+// Email verification link (signed). Public — the URL itself is the
+// proof that the user clicked their own email.
+Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+    ->middleware('signed')
+    ->name('api.email.verify');
+
 // Protected Routes
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Auth
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Email verification (resend / status)
+    Route::get('/email/verification-status', [EmailVerificationController::class, 'status']);
+    Route::post('/email/verification-notification', [EmailVerificationController::class, 'send'])
+        ->middleware('throttle:6,1'); // ≤6 resends per minute
 
     // Accounts
     Route::apiResource('accounts', AccountController::class);
@@ -55,11 +69,21 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     // Transactions
     Route::apiResource('transactions', TransactionController::class);
-    Route::post('transactions/sync', [TransactionController::class, 'sync']);
+    Route::post('transactions/sync', [TransactionController::class, 'sync'])
+        ->middleware('verified'); // batch sync writes > 1 row at a time
 
-    // Import
+    // Import — large CSV / bank-statement ingest is gated by
+    // verified email so we have a way to reach the user if
+    // something goes wrong with the import.
     Route::post('import/preview', [ImportController::class, 'preview']);
-    Route::post('import/store', [ImportController::class, 'store']);
+    Route::post('import/store', [ImportController::class, 'store'])
+        ->middleware('verified');
+    Route::post('import/kuda/preview', [KudaImportController::class, 'preview']);
+    Route::post('import/kuda/store', [KudaImportController::class, 'store'])
+        ->middleware('verified');
+    Route::post('import/opay/preview', [OpayImportController::class, 'preview']);
+    Route::post('import/opay/store', [OpayImportController::class, 'store'])
+        ->middleware('verified');
 
     // Dashboard Summary
     Route::get('summary', [SummaryController::class, 'index']);

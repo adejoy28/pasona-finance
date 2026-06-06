@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\EmailPreviewController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -38,3 +39,9 @@ Route::prefix('docs')->name('docs.')->group(function () {
     Route::get('/guides', fn () => view('docs.guides'))->name('guides');
     Route::get('/changelog', fn () => view('docs.changelog'))->name('changelog');
 });
+
+// Dev-only browser preview of every email template. Disabled in production.
+if (! app()->environment('production')) {
+    Route::get('/email-preview', [EmailPreviewController::class, 'index'])->name('email-preview.index');
+    Route::get('/email-preview/{template}', [EmailPreviewController::class, 'show'])->name('email-preview.show');
+}

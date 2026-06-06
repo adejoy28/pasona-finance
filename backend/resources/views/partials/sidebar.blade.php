@@ -17,6 +17,7 @@
             <ul class="sidebar__list">
                 <li><a href="{{ route('docs.endpoints.auth') }}" class="sidebar__link {{ request()->routeIs('docs.endpoints.auth') ? 'is-active' : '' }}">
                     <span class="sidebar__resource">Authentication</span>
+                    <span class="sidebar__badge" title="Includes email verification &amp; password reset">+mail</span>
                 </a></li>
                 <li><a href="{{ route('docs.endpoints.accounts') }}" class="sidebar__link {{ request()->routeIs('docs.endpoints.accounts') ? 'is-active' : '' }}">
                     <span class="sidebar__resource">Accounts</span>

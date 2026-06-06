@@ -125,6 +125,7 @@
     <header class="endpoint__header">
         @include('partials.method-badge', ['method' => 'POST'])
         <code class="endpoint__url">{{ $base }}/import/store</code>
+        <span class="endpoint__pill endpoint__pill--verified">requires verified email</span>
         @include('partials.tryit-trigger', [
             'method' => 'POST',
             'path'   => '/import/store',
@@ -134,7 +135,7 @@
         ])
     </header>
     <h2 class="endpoint__title">Commit an import</h2>
-    <p>Persists the chosen rows from a preview as real transactions on the user's account.</p>
+    <p>Persists the chosen rows from a preview as real transactions on the user's account. <strong>Requires a verified email.</strong></p>
 
     <h3>Request body</h3>
     <div class="table-wrap">
@@ -176,13 +177,53 @@
 }',
     ])
 
-    <h3>Response</h3>
-    @include('partials.code-block', [
-        'id'       => 'import-store-200',
-        'language' => 'json',
-        'title'    => '200 OK',
-        'code'     => '{ "message": "Successfully imported 2 transactions." }',
-    ])
+    <h3>Responses</h3>
+    <div class="response-tabs" data-response-tabs>
+        <div class="response-tabs__head" role="tablist">
+            <button class="response-tabs__tab is-active" data-resp="200">200</button>
+            <button class="response-tabs__tab" data-resp="403">403</button>
+        </div>
+        <div class="response-tabs__panel is-active" data-resp-panel="200">
+            @include('partials.code-block', [
+                'id'       => 'import-store-200',
+                'language' => 'json',
+                'title'    => '200 OK',
+                'code'     => '{ "message": "Successfully imported 2 transactions." }',
+            ])
+        </div>
+        <div class="response-tabs__panel" data-resp-panel="403">
+            @include('partials.code-block', [
+                'id'       => 'import-store-403',
+                'language' => 'json',
+                'title'    => '403 Forbidden (email not verified)',
+                'code'     => '{
+  "message": "Your email address is not verified.",
+  "requires_verified_email": true
+}',
+            ])
+        </div>
+    </div>
+</section>
+
+{{-- ─────────────────────────── ENDPOINT: Kuda Preview ─────────────────────────── --}}
+<section class="endpoint" id="kuda-preview">
+    <header class="endpoint__header">
+        @include('partials.method-badge', ['method' => 'POST'])
+        <code class="endpoint__url">{{ $base }}/import/kuda/preview</code>
+    </header>
+    <h2 class="endpoint__title">Preview a Kuda bank-statement import</h2>
+    <p>Same shape as the generic <a href="#import-preview"><code>/import/preview</code></a>, but tuned for the column layout of Kuda MFB statement exports. The parser is more lenient about whitespace and the &ldquo;Dr/Cr&rdquo; column (Kuda exports use <code>D</code>/<code>C</code>).</p>
+</section>
+
+{{-- ─────────────────────────── ENDPOINT: Kuda Store ─────────────────────────── --}}
+<section class="endpoint" id="kuda-store">
+    <header class="endpoint__header">
+        @include('partials.method-badge', ['method' => 'POST'])
+        <code class="endpoint__url">{{ $base }}/import/kuda/store</code>
+        <span class="endpoint__pill endpoint__pill--verified">requires verified email</span>
+    </header>
+    <h2 class="endpoint__title">Commit a Kuda bank-statement import</h2>
+    <p>Persists the chosen rows from a Kuda preview as real transactions. <strong>Requires a verified email</strong> and a 403 with <code>requires_verified_email: true</code> is returned otherwise.</p>
 </section>
 @endsection
 

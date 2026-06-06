@@ -88,12 +88,25 @@
 
 <section class="section">
     <h2 id="forbidden-403">403 — Forbidden</h2>
+    <p>The token is valid but the user is not allowed to perform this action.</p>
     @include('partials.code-block', [
         'id'       => 'error-403',
         'language' => 'json',
         'title'    => '403 Forbidden',
         'code'     => '{
   "message": "This action is unauthorized."
+}',
+    ])
+
+    <h3>403 from the <code>verified</code> middleware</h3>
+    <p>Bulk writers (<code>/transactions/sync</code>, <code>/import/store</code>, <code>/import/kuda/store</code>) require a verified email. The response includes a hint so the SPA can show a verification banner:</p>
+    @include('partials.code-block', [
+        'id'       => 'error-403-verified',
+        'language' => 'json',
+        'title'    => '403 Forbidden (email not verified)',
+        'code'     => '{
+  "message": "Your email address is not verified.",
+  "requires_verified_email": true
 }',
     ])
 </section>

@@ -65,42 +65,49 @@ backend/
 | GET | `/` | inline closure → welcome message |
 | POST | `/register` | `AuthController@register` |
 | POST | `/login` | `AuthController@login` |
+| GET | `/auth/check-email` | `AuthController@checkEmail` |
 | GET | `/auth/google` | `SocialAuthController@redirectToGoogle` |
 | GET | `/auth/google/callback` | `SocialAuthController@handleGoogleCallback` |
 | POST | `/forgot-password` | `ForgotPasswordController@sendResetLinkEmail` |
 | POST | `/reset-password` | `ResetPasswordController@reset` |
+| GET | `/email/verify/{id}/{hash}` (signed) | `EmailVerificationController@verify` |
 
 ### Protected (`auth:sanctum`)
-| Method | URI | Controller@method |
-|---|---|---|
-| GET | `/me` | `AuthController@me` |
-| POST | `/logout` | `AuthController@logout` |
-| GET/POST/PUT/DELETE | `/accounts[/{id}]` | `AccountController` (apiResource) |
-| GET/POST/PUT/DELETE | `/categories[/{id}]` | `CategoryController` (apiResource) |
-| GET/POST/PUT/DELETE | `/transactions[/{id}]` | `TransactionController` (apiResource) |
-| POST | `/transactions/sync` | `TransactionController@sync` |
-| POST | `/import/preview` | `ImportController@preview` |
-| POST | `/import/store` | `ImportController@store` |
-| GET | `/summary` | `SummaryController@index` |
+| Method | URI | Controller@method | Extra |
+|---|---|---|---|
+| GET | `/me` | `AuthController@me` | |
+| POST | `/logout` | `AuthController@logout` | |
+| GET | `/email/verification-status` | `EmailVerificationController@status` | |
+| POST | `/email/verification-notification` | `EmailVerificationController@send` | throttle `6,1` |
+| GET/POST/PUT/DELETE | `/accounts[/{id}]` | `AccountController` (apiResource) | |
+| GET/POST/PUT/DELETE | `/categories[/{id}]` | `CategoryController` (apiResource) | |
+| GET/POST/PUT/DELETE | `/transactions[/{id}]` | `TransactionController` (apiResource) | |
+| POST | `/transactions/sync` | `TransactionController@sync` | `verified` |
+| POST | `/import/preview` | `ImportController@preview` | |
+| POST | `/import/store` | `ImportController@store` | `verified` |
+| POST | `/import/kuda/preview` | `KudaImportController@preview` | |
+| POST | `/import/kuda/store` | `KudaImportController@store` | `verified` |
+| GET | `/summary` | `SummaryController@index` | |
 
 ## 4. Authentication
-- **Sanctum personal access tokens** issued by `AuthController::register` and `AuthController::login` via `$user->createToken('auth_token')->plainTextToken`. Returned as `{ access_token, token_type: "Bearer", user }`.
+- **Sanctum personal access tokens** issued by `AuthController::register` and `AuthController::login` via `$user->createToken('auth_token')->plainTextToken`. Returned as `{ access_token, token_type: "Bearer", user, email_verified }`.
 - `auth:sanctum` middleware applied as a group on protected routes in `routes/api.php:38`.
 - **Logout** (`AuthController:90`) deletes only the current token (`currentAccessToken()->delete()`) — other sessions stay alive.
-- **Google OAuth** (`SocialAuthController`): `stateless()->redirect()->getTargetUrl()` returns a JSON `{url}` to the SPA. The callback creates a user if `email` doesn't exist (or links the Google ID to existing user by email), mints a Sanctum token, and 302-redirects to `FRONTEND_URL/login?token=...&user=...`.
-- **Password reset** uses Laravel's built-in `Password` broker:
-  - `ForgotPasswordController` calls `Password::sendResetLink($request->only('email'))` — needs `App\Notifications\ResetPasswordNotification` to be wired up (currently a stub).
-  - `ResetPasswordController` calls `Password::broker()->reset(...)` and updates via a closure.
-  - Token table is the default `password_reset_tokens`; expiry 60 min, throttle 60 sec.
+- **Google OAuth** (`SocialAuthController`): `stateless()->redirect()->getTargetUrl()` returns a JSON `{url}` to the SPA. The callback creates a user if `email` doesn't exist (or links the Google ID to existing user by email), mints a Sanctum token, **flips `email_verified_at` on the user** (Google already proved the email is theirs), and 302-redirects to `FRONTEND_URL/login?token=...`.
+- **Password reset** uses Laravel's built-in `Password` broker and our queued `ResetPasswordNotification` (Markdown template at `resources/views/emails/reset-password.blade.php`). The link points at the SPA reset form; the SPA POSTs it back to `/api/reset-password`. Throttle 60 sec, token expiry 60 min.
+- **Email verification** is OPT-IN — no global `verified` middleware is applied to the API. The user can register, log in, list accounts, and log transactions without verifying. A dismissible banner can be driven by `GET /api/email/verification-status`; resend is `POST /api/email/verification-notification` (throttled 6/min). The verify URL itself is a signed GET at `/api/email/verify/{id}/{hash}` that 302s to `FRONTEND_URL/dashboard?verified=1`.
+- The only endpoints that require `verified` are the "sensitive" bulk writers: `POST /api/transactions/sync`, `POST /api/import/store`, `POST /api/import/kuda/store`. The middleware is registered as the `verified` alias in `bootstrap/app.php`; `AuthorizationException` is converted to a JSON `{ requires_verified_email: true }` envelope for API clients.
+- `App\Notifications\VerifyEmailNotification` and `App\Notifications\ResetPasswordNotification` both implement `ShouldQueue` so SMTP never blocks an HTTP request.
 - **No policies or gates are auto-registered** for the AuthController/Social flow, but the resource controllers call `$this->authorize('view|update|delete', $model)` on show/update/destroy.
 
 ## 5. Data model
 
 ### `users`
-- Fields: `id, name, email (unique), email_verified_at, password (nullable, hashed), google_id, avatar, reminder_time (default '21:10'), remember_token, timestamps`
+- Fields: `id, name, email (unique), email_verified_at, password (nullable, hashed), google_id, avatar, reminder_time (default '21:10'), reminder_last_sent_at (nullable), remember_token, timestamps`
 - Relations: `accounts()`, `categories()`, `transactions()` — all `hasMany`
+- Implements `MustVerifyEmail`. Custom `sendEmailVerificationNotification()` dispatches `App\Notifications\VerifyEmailNotification`. Custom `sendPasswordResetNotification($token)` dispatches `App\Notifications\ResetPasswordNotification`.
 - Uses `HasApiTokens` (Sanctum), `HasFactory`, `Notifiable`
-- Casts: `email_verified_at → datetime`, `password → hashed`
+- Casts: `email_verified_at → datetime`, `reminder_last_sent_at → datetime`, `password → hashed`
 
 ### `accounts`
 - Fields: `id, user_id, name, type (enum: bank|mobile|cash), starting_balance (decimal 15,2, default 0), notes (text nullable), timestamps`
@@ -184,7 +191,21 @@ backend/
 
 ## 8. Jobs
 - **`ProcessSync`** (`app/Jobs/ProcessSync.php`): receives an array, iterates and calls `Transaction::create($data)`. No transaction wrapping, no per-row validation, no `user_id` enforcement at job level (it was stamped in the controller). No batching, no chunking — a 10k-row payload would do 10k inserts in one job run.
-- **`SendDailyReminder`** (`app/Jobs/SendDailyReminder.php`): scaffold only — the `handle()` method is a comment. The `reminder_time` column on `users` exists, so the intent is clear but the implementation isn't done.
+- **`SendTransactionReminder`** (`app/Jobs/SendTransactionReminder.php`): queues `App\Mail\TransactionReminderMail` to a single user's email, then stamps `users.reminder_last_sent_at = now()`. Re-checks the dedupe window at handle-time in case the command and another worker race. `$tries = 3`, `$backoff = 60`. `failed()` logs the user id and error.
+
+## 8.1 Mailing system
+- **Three mail classes, all queued, all Markdown templates** in `resources/views/emails/`:
+  - `verify-email.blade.php` — "Confirm your Pasona email" with the SPA confirm URL
+  - `reset-password.blade.php` — "Reset your Pasona password" with the SPA reset URL
+  - `transaction-reminder.blade.php` — "It's {reminder_time} — log today's transactions" with today's income/expense/account count baked in. Subject switches between the cold-open and a "Quick gut-check" variant when the user has already logged something today.
+- **Daily reminder flow**: `routes/console.php` schedules `reminders:send-daily` every 5 minutes (`withoutOverlapping`, `onOneServer`). The command:
+  1. Pulls users whose `reminder_time` (HH:MM, app timezone UTC) is within ±2 minutes of `now` (split into two ranges when the window crosses midnight).
+  2. Smart-skips users who already have any transaction dated today (toggle with `--no-smart-skip`).
+  3. Dedupe-skips users whose `reminder_last_sent_at` is today.
+  4. Dispatches `SendTransactionReminder` for the rest.
+  5. Logs a single summary line; supports `--dry-run` and `--user=ID` for testing.
+- The `reminder_time` field is currently in app timezone (UTC). If/when per-user timezone is added, the command's `whereBetween` should pivot on `users.timezone`.
+- Mail driver defaults to `log` (writes to `storage/logs/laravel.log`). To send real mail, set `MAIL_MAILER=smtp|resend|postmark` and the matching `MAIL_HOST/PORT/USERNAME/PASSWORD/FROM_*` — examples are commented in `.env.example`.
 
 ## 9. Import / CSV handling
 - **No `league/csv` installed** — controller uses raw `str_getcsv` with `"\n"` delimiter.
