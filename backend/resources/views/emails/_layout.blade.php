@@ -31,7 +31,7 @@
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f1f5f9;width:100%;">
     <tr>
-      <td align="center" style="padding:40px 16px;">
+      <td align="center" style="padding:20px 12px;">
 
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
 
@@ -39,7 +39,7 @@
 
           {{-- White content card --}}
           <tr>
-            <td style="background:#ffffff;border:1px solid #f1f5f9;border-top:none;border-radius:0 0 24px 24px;padding:32px 40px 32px;
+            <td style="background:#ffffff;border:1px solid #f1f5f9;border-top:none;border-radius:0 0 24px 24px;padding:24px 24px 24px;
                        box-shadow:0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05), 0 20px 25px -5px rgba(0,0,0,0.02);">
               @yield('content')
             </td>
@@ -47,7 +47,7 @@
 
           {{-- Footer --}}
           <tr>
-            <td align="center" style="padding:24px 16px 0;font-size:12px;color:#94a3b8;line-height:1.7;">
+            <td align="center" style="padding:16px 12px 0;font-size:12px;color:#94a3b8;line-height:1.7;">
               <p style="font-weight:900;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#94a3b8;margin:0 0 6px;">
                 Pasona &middot; Know your naira
               </p>
