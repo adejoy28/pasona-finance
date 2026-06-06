@@ -50,7 +50,7 @@ class VerifyEmailNotification extends Notification implements ShouldQueue
 
         return (new MailMessage)
             ->subject('Confirm your Pasona email')
-            ->markdown('emails.verify-email', [
+            ->view('emails.verify-email', [
                 'actionUrl' => $spaUrl,
                 'firstName' => explode(' ', (string) $notifiable->name)[0] ?: (string) $notifiable->name,
                 'email'     => $notifiable->getEmailForVerification(),
