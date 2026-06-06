@@ -7,7 +7,7 @@
         {{ $greeting }}, {{ $user->name }} &#x1F44B;
     </div>
 
-    <h1 style="margin:0 0 14px;font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-0.025em;color:#0f172a;">
+    <h1 style="margin:0 0 14px;font-size:24px;line-height:1.25;font-weight:800;letter-spacing:-0.02em;color:#0f172a;">
         @if ($loggedToday)
             Quick gut-check time.
         @else
@@ -15,7 +15,7 @@
         @endif
     </h1>
 
-    <p style="margin:0 0 28px;color:#64748b;font-size:15px;line-height:1.7;">
+    <p style="margin:0 0 20px;color:#64748b;font-size:14px;line-height:1.6;">
         @if ($loggedToday)
             You already wrapped up today's logging — nice. This is your friendly nudge to do a quick gut-check before the day ends. Anything missing from the <strong style="color:#0f172a;">{{ $count }} transaction{{ $count === 1 ? '' : 's' }}</strong> you logged? A tip, a taxi, that 2 a.m. order?
         @else
@@ -30,8 +30,8 @@
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:18px;">
                     <tr>
                         <td style="padding:18px;">
-                            <p style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.18em;color:#059669;margin:0 0 6px;">In today</p>
-                            <p style="font-size:22px;font-weight:800;letter-spacing:-0.02em;color:#0f172a;margin:0;line-height:1.15;">
+                            <p style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.18em;color:#059669;margin:0 0 4px;">In today</p>
+                            <p style="font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#0f172a;margin:0;line-height:1.15;">
                                 @if ($todayIncome > 0)
                                     &#8358;{{ number_format($todayIncome, 2) }}
                                 @else
@@ -47,8 +47,8 @@
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fff1f2;border:1px solid #ffe4e6;border-radius:18px;">
                     <tr>
                         <td style="padding:18px;">
-                            <p style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.18em;color:#e11d48;margin:0 0 6px;">Out today</p>
-                            <p style="font-size:22px;font-weight:800;letter-spacing:-0.02em;color:#0f172a;margin:0;line-height:1.15;">
+                            <p style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.18em;color:#e11d48;margin:0 0 4px;">Out today</p>
+                            <p style="font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#0f172a;margin:0;line-height:1.15;">
                                 @if ($todayExpense > 0)
                                     &#8358;{{ number_format($todayExpense, 2) }}
                                 @else
@@ -67,34 +67,34 @@
 
     @include('emails._button', ['url' => $addUrl, 'label' => "Log today's transactions"])
 
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;">
         <tr><td style="border-top:1px solid #e2e8f0;line-height:1px;font-size:1px;">&nbsp;</td></tr>
     </table>
 
     {{-- Three-step panel --}}
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;margin:0 0 28px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;margin:0 0 20px;">
         <tr>
-            <td style="padding:22px 24px;">
-                <p style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;color:#94a3b8;margin:0 0 14px;">Two-minute version</p>
+            <td style="padding:18px 20px;">
+                <p style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;color:#94a3b8;margin:0 0 10px;">Two-minute version</p>
 
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                        <td valign="top" style="width:40px;padding:0 14px 14px 0;">
-                            <div style="width:28px;height:28px;border-radius:9999px;background:#2563eb;color:#ffffff;font-size:12px;font-weight:800;line-height:28px;text-align:center;">1</div>
+                        <td valign="top" style="width:34px;padding:0 12px 12px 0;">
+                            <div style="width:24px;height:24px;border-radius:9999px;background:#2563eb;color:#ffffff;font-size:12px;font-weight:800;line-height:24px;text-align:center;">1</div>
                         </td>
-                        <td valign="top" style="padding:0 0 14px 0;font-size:14px;line-height:1.55;color:#334155;">Open <a href="{{ $appUrl }}" style="color:#2563eb;text-decoration:underline;">{{ $appUrl }}</a></td>
+                        <td valign="top" style="padding:0 0 12px 0;font-size:14px;line-height:1.5;color:#334155;">Open <a href="{{ $appUrl }}" style="color:#2563eb;text-decoration:underline;">{{ $appUrl }}</a></td>
                     </tr>
                     <tr>
-                        <td valign="top" style="width:40px;padding:0 14px 14px 0;">
-                            <div style="width:28px;height:28px;border-radius:9999px;background:#059669;color:#ffffff;font-size:12px;font-weight:800;line-height:28px;text-align:center;">2</div>
+                        <td valign="top" style="width:34px;padding:0 12px 12px 0;">
+                            <div style="width:24px;height:24px;border-radius:9999px;background:#059669;color:#ffffff;font-size:12px;font-weight:800;line-height:24px;text-align:center;">2</div>
                         </td>
-                        <td valign="top" style="padding:0 0 14px 0;font-size:14px;line-height:1.55;color:#334155;">Tap <strong style="color:#0f172a;">+ New transaction</strong></td>
+                        <td valign="top" style="padding:0 0 12px 0;font-size:14px;line-height:1.5;color:#334155;">Tap <strong style="color:#0f172a;">+ New transaction</strong></td>
                     </tr>
                     <tr>
-                        <td valign="top" style="width:40px;padding:0 14px 0 0;">
-                            <div style="width:28px;height:28px;border-radius:9999px;background:#d97706;color:#ffffff;font-size:12px;font-weight:800;line-height:28px;text-align:center;">3</div>
+                        <td valign="top" style="width:34px;padding:0 12px 0 0;">
+                            <div style="width:24px;height:24px;border-radius:9999px;background:#d97706;color:#ffffff;font-size:12px;font-weight:800;line-height:24px;text-align:center;">3</div>
                         </td>
-                        <td valign="top" style="padding:0;font-size:14px;line-height:1.55;color:#334155;">Pick the account, drop the amount, hit save</td>
+                        <td valign="top" style="padding:0;font-size:14px;line-height:1.5;color:#334155;">Pick the account, drop the amount, hit save</td>
                     </tr>
                 </table>
             </td>
@@ -107,9 +107,9 @@
         <strong style="color:#0f172a;">The Pasona crew</strong>
     </p>
 
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;margin:0;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin:0;">
         <tr>
-            <td style="padding:16px 20px;font-size:12px;color:#64748b;line-height:1.65;">
+            <td style="padding:14px 18px;font-size:12px;color:#64748b;line-height:1.65;">
                 Don't want these pings? Update your reminder time (or turn them off) in your <a href="{{ $settingsUrl }}" style="color:#475569;text-decoration:underline;">Pasona settings</a>.
             </td>
         </tr>

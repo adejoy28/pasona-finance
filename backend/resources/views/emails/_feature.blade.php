@@ -24,12 +24,12 @@
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;">
   <tr>
-    <td valign="top" style="width:54px;padding:0 14px 0 0;">
-      <div style="width:40px;height:40px;border-radius:14px;background:{{ $c['bg'] }};color:{{ $c['fg'] }};display:inline-block;line-height:40px;text-align:center;font-size:18px;">{!! $icon ?? '&bull;' !!}</div>
+    <td valign="top" style="width:46px;padding:0 12px 0 0;">
+      <div style="width:36px;height:36px;border-radius:12px;background:{{ $c['bg'] }};color:{{ $c['fg'] }};display:inline-block;line-height:36px;text-align:center;font-size:16px;">{!! $icon ?? '&bull;' !!}</div>
     </td>
     <td valign="top" style="padding:0;">
       <div style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 2px;line-height:1.4;">{{ $title }}</div>
-      <div style="font-size:13px;color:#64748b;line-height:1.55;margin:0;">{{ $body }}</div>
+      <div style="font-size:13px;color:#64748b;line-height:1.5;margin:0;">{{ $body }}</div>
     </td>
   </tr>
 </table>
