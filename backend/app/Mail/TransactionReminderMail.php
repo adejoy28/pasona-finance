@@ -77,7 +77,7 @@ class TransactionReminderMail extends Mailable implements ShouldQueue
             ->subject($this->loggedToday
                 ? "Quick gut-check: anything missing from today's ₦" . number_format($this->todayExpense, 2) . ' spend?'
                 : "It's {$this->reminderTime} — log today's transactions")
-            ->markdown('emails.transaction-reminder');
+            ->view('emails.transaction-reminder');
     }
 
     /**

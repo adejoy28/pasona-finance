@@ -52,8 +52,9 @@ class ResetPasswordNotification extends Notification implements ShouldQueue
 
         return (new MailMessage)
             ->subject('Reset your Pasona password')
-            ->markdown('emails.reset-password', [
-                'actionUrl' => $url,
+            ->view('emails.reset-password', [
+                'actionUrl'  => $url,
+                'notifiable' => $notifiable,
             ]);
     }
 

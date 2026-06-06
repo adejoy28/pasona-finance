@@ -6,7 +6,6 @@ use App\Mail\TransactionReminderMail;
 use App\Mail\WelcomeMail;
 use App\Models\User;
 use Illuminate\Http\Response;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\View;
 
 /**
@@ -23,8 +22,8 @@ class EmailPreviewController extends Controller
      */
     private const TEMPLATES = [
         'welcome' => [
-            'label'   => 'Welcome',
-            'view'    => 'emails.welcome',
+            'label'    => 'Welcome',
+            'view'     => 'emails.welcome',
             'mailable' => WelcomeMail::class,
         ],
         'verify-email' => [
@@ -65,11 +64,9 @@ class EmailPreviewController extends Controller
         $sample  = $this->sampleUser();
         $payload = $this->payloadFor($template, $sample);
 
-        $html = match (true) {
-            isset($config['mailable']) => $this->renderMailable($config['mailable'], $sample),
-            $template === 'reset-password' => $this->renderResetPassword($sample, $payload['actionUrl']),
-            default                    => View::make($config['view'], $payload)->render(),
-        };
+        $html = isset($config['mailable'])
+            ? $this->renderMailable($config['mailable'], $sample)
+            : View::make($config['view'], $payload)->render();
 
         return $this->chrome($template, $config['label'], $html);
     }
@@ -97,9 +94,9 @@ class EmailPreviewController extends Controller
     private function sampleUser(): User
     {
         $user = new User([
-            'name'              => 'John Adebayo',
-            'email'             => 'john@example.com',
-            'reminder_time'     => '21:10',
+            'name'          => 'John Adebayo',
+            'email'         => 'john@example.com',
+            'reminder_time' => '21:10',
         ]);
         $user->id = 1;
 
@@ -114,23 +111,31 @@ class EmailPreviewController extends Controller
         $frontend = rtrim((string) env('FRONTEND_URL', 'http://localhost:8080'), '/');
         $first    = explode(' ', $user->name)[0];
 
+        // Shared footer links (every email chrome uses these).
+        $settingsUrl    = $frontend . '/settings/notifications';
+        $unsubscribeUrl = $frontend . '/settings/notifications#unsubscribe';
+
+        $base = [
+            'settingsUrl'    => $settingsUrl,
+            'unsubscribeUrl' => $unsubscribeUrl,
+        ];
+
         return match ($template) {
-            'welcome' => [
+            'welcome' => $base + [
                 'firstName'    => $first,
                 'email'        => $user->email,
                 'dashboardUrl' => $frontend . '/dashboard',
-                'settingsUrl'  => $frontend . '/settings/notifications',
             ],
-            'verify-email' => [
+            'verify-email' => $base + [
                 'firstName' => $first,
                 'email'     => $user->email,
                 'actionUrl' => $frontend . '/verify-email/preview-token?expires=60',
             ],
-            'reset-password' => [
+            'reset-password' => $base + [
                 'notifiable' => $user,
                 'actionUrl'  => $frontend . '/reset-password/preview-token?expires=60',
             ],
-            'transaction-reminder' => [
+            'transaction-reminder' => $base + [
                 'user'          => $user,
                 'count'         => 4,
                 'loggedToday'   => true,
@@ -141,7 +146,6 @@ class EmailPreviewController extends Controller
                 'reminderTime'  => '21:10',
                 'appUrl'        => $frontend,
                 'addUrl'        => $frontend . '/transactions/new?from=reminder',
-                'settingsUrl'   => $frontend . '/settings/reminders',
             ],
         };
     }
@@ -151,22 +155,5 @@ class EmailPreviewController extends Controller
         $mailable = app($mailableClass, ['user' => $user]);
 
         return $mailable->render();
-    }
-
-    /**
-     * Reset-password is sent via a Notification wrapping a MailMessage.
-     * Render it through MailMessage so the `mail::` view components
-     * (the surrounding layout, button, subcopy) get registered.
-     */
-    private function renderResetPassword(User $user, string $actionUrl): string
-    {
-        $message = (new MailMessage)
-            ->subject('Reset your Pasona password')
-            ->markdown('emails.reset-password', [
-                'actionUrl'   => $actionUrl,
-                'notifiable'  => $user,
-            ]);
-
-        return $message->render();
     }
 }
