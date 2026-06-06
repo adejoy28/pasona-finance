@@ -17,15 +17,15 @@
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="position:relative;width:100%;">
       <tr>
-        <td style="padding:32px 40px 28px;">
+        <td style="padding:20px 32px 18px;">
 
           <table role="presentation" cellpadding="0" cellspacing="0" border="0">
             <tr>
-              <td style="vertical-align:middle;padding:0 14px 0 0;">
-                <div style="width:44px;height:44px;border-radius:12px;background:#0ea5e9;background:linear-gradient(135deg,#0ea5e9 0%,#2563eb 100%);display:inline-block;line-height:44px;text-align:center;color:#ffffff;font-weight:900;font-size:22px;letter-spacing:-0.02em;box-shadow:0 10px 25px -5px rgba(14,165,233,0.45);">P.</div>
+              <td style="vertical-align:middle;padding:0 12px 0 0;">
+                <div style="width:36px;height:36px;border-radius:10px;background:#0ea5e9;background:linear-gradient(135deg,#0ea5e9 0%,#2563eb 100%);display:inline-block;line-height:36px;text-align:center;color:#ffffff;font-weight:900;font-size:18px;letter-spacing:-0.02em;box-shadow:0 8px 20px -6px rgba(14,165,233,0.45);">P.</div>
               </td>
               <td style="vertical-align:middle;">
-                <div style="font-weight:900;font-size:20px;letter-spacing:-0.02em;color:#ffffff;line-height:1.2;">
+                <div style="font-weight:900;font-size:18px;letter-spacing:-0.02em;color:#ffffff;line-height:1.2;">
                   Pasona<span style="color:#bfdbfe;">.</span>
                 </div>
               </td>
@@ -33,7 +33,7 @@
           </table>
 
           @if ($eyebrow)
-            <div style="margin-top:18px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.18em;color:#bfdbfe;">
+            <div style="margin-top:12px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.18em;color:#bfdbfe;">
               {{ $eyebrow }}
             </div>
           @endif

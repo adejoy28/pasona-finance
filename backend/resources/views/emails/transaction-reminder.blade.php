@@ -3,77 +3,115 @@
 ])
 
 @section('content')
-    <span class="eyebrow">{{ $greeting }}, {{ $user->name }} &#x1F44B;</span>
-    <h1 class="heading">
+    <div style="display:inline-block;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.18em;color:#94a3b8;margin:0 0 14px;">
+        {{ $greeting }}, {{ $user->name }} &#x1F44B;
+    </div>
+
+    <h1 style="margin:0 0 14px;font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-0.025em;color:#0f172a;">
         @if ($loggedToday)
             Quick gut-check time.
         @else
             It's {{ $reminderTime }} &mdash; log today's transactions.
         @endif
     </h1>
-    <p class="lede">
+
+    <p style="margin:0 0 28px;color:#64748b;font-size:15px;line-height:1.7;">
         @if ($loggedToday)
-            You already wrapped up today's logging — nice. This is your friendly nudge to do a quick gut-check before the day ends. Anything missing from the <strong style="color:var(--slate-900);">{{ $count }} transaction{{ $count === 1 ? '' : 's' }}</strong> you logged? A tip, a taxi, that 2 a.m. order?
+            You already wrapped up today's logging — nice. This is your friendly nudge to do a quick gut-check before the day ends. Anything missing from the <strong style="color:#0f172a;">{{ $count }} transaction{{ $count === 1 ? '' : 's' }}</strong> you logged? A tip, a taxi, that 2 a.m. order?
         @else
-            It's <strong style="color:var(--slate-900);">{{ $reminderTime }}</strong> — your self-imposed money minute. The Pasona app isn't on the Play Store just yet, but your books don't care about that. Open the web app and log the day in under two minutes.
+            It's <strong style="color:#0f172a;">{{ $reminderTime }}</strong> — your self-imposed money minute. The Pasona app isn't on the Play Store just yet, but your books don't care about that. Open the web app and log the day in under two minutes.
         @endif
     </p>
 
-    {{-- Today's stats --}}
-    <div class="stats">
-        <div class="stat stat--emerald">
-            <p class="stat__label">In today</p>
-            <p class="stat__value">
-                @if ($todayIncome > 0)
-                    &#8358;{{ number_format($todayIncome, 2) }}
-                @else
-                    &mdash;
-                @endif
-            </p>
-            <p class="stat__sub">No income yet</p>
-        </div>
-        <div class="stat stat--rose">
-            <p class="stat__label">Out today</p>
-            <p class="stat__value">
-                @if ($todayExpense > 0)
-                    &#8358;{{ number_format($todayExpense, 2) }}
-                @else
-                    &mdash;
-                @endif
-            </p>
-            <p class="stat__sub">
-                across {{ $accountsCount }} {{ \Illuminate\Support\Str::plural('account', $accountsCount) }}
-            </p>
-        </div>
-    </div>
+    {{-- Two-up stat tiles: In today / Out today --}}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
+        <tr>
+            <td valign="top" style="width:50%;padding:0 6px 0 0;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:18px;">
+                    <tr>
+                        <td style="padding:18px;">
+                            <p style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.18em;color:#059669;margin:0 0 6px;">In today</p>
+                            <p style="font-size:22px;font-weight:800;letter-spacing:-0.02em;color:#0f172a;margin:0;line-height:1.15;">
+                                @if ($todayIncome > 0)
+                                    &#8358;{{ number_format($todayIncome, 2) }}
+                                @else
+                                    &mdash;
+                                @endif
+                            </p>
+                            <p style="font-size:12px;color:#64748b;margin:4px 0 0;">across income sources</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td valign="top" style="width:50%;padding:0 0 0 6px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fff1f2;border:1px solid #ffe4e6;border-radius:18px;">
+                    <tr>
+                        <td style="padding:18px;">
+                            <p style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.18em;color:#e11d48;margin:0 0 6px;">Out today</p>
+                            <p style="font-size:22px;font-weight:800;letter-spacing:-0.02em;color:#0f172a;margin:0;line-height:1.15;">
+                                @if ($todayExpense > 0)
+                                    &#8358;{{ number_format($todayExpense, 2) }}
+                                @else
+                                    &mdash;
+                                @endif
+                            </p>
+                            <p style="font-size:12px;color:#64748b;margin:4px 0 0;">
+                                across {{ $accountsCount }} {{ \Illuminate\Support\Str::plural('account', $accountsCount) }}
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 
     @include('emails._button', ['url' => $addUrl, 'label' => "Log today's transactions"])
 
-    <hr class="rule">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0;">
+        <tr><td style="border-top:1px solid #e2e8f0;line-height:1px;font-size:1px;">&nbsp;</td></tr>
+    </table>
 
-    <div class="panel">
-        <p class="panel__label">Two-minute version</p>
-        <div class="step step--blue">
-            <div class="step__num">1</div>
-            <div class="step__text">Open <a href="{{ $appUrl }}" style="color:var(--blue-600);text-decoration:underline;">{{ $appUrl }}</a></div>
-        </div>
-        <div class="step step--emerald">
-            <div class="step__num">2</div>
-            <div class="step__text">Tap <strong>+ New transaction</strong></div>
-        </div>
-        <div class="step step--amber">
-            <div class="step__num">3</div>
-            <div class="step__text">Pick the account, drop the amount, hit save</div>
-        </div>
-    </div>
+    {{-- Three-step panel --}}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;margin:0 0 28px;">
+        <tr>
+            <td style="padding:22px 24px;">
+                <p style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;color:#94a3b8;margin:0 0 14px;">Two-minute version</p>
 
-    <p class="signoff">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td valign="top" style="width:40px;padding:0 14px 14px 0;">
+                            <div style="width:28px;height:28px;border-radius:9999px;background:#2563eb;color:#ffffff;font-size:12px;font-weight:800;line-height:28px;text-align:center;">1</div>
+                        </td>
+                        <td valign="top" style="padding:0 0 14px 0;font-size:14px;line-height:1.55;color:#334155;">Open <a href="{{ $appUrl }}" style="color:#2563eb;text-decoration:underline;">{{ $appUrl }}</a></td>
+                    </tr>
+                    <tr>
+                        <td valign="top" style="width:40px;padding:0 14px 14px 0;">
+                            <div style="width:28px;height:28px;border-radius:9999px;background:#059669;color:#ffffff;font-size:12px;font-weight:800;line-height:28px;text-align:center;">2</div>
+                        </td>
+                        <td valign="top" style="padding:0 0 14px 0;font-size:14px;line-height:1.55;color:#334155;">Tap <strong style="color:#0f172a;">+ New transaction</strong></td>
+                    </tr>
+                    <tr>
+                        <td valign="top" style="width:40px;padding:0 14px 0 0;">
+                            <div style="width:28px;height:28px;border-radius:9999px;background:#d97706;color:#ffffff;font-size:12px;font-weight:800;line-height:28px;text-align:center;">3</div>
+                        </td>
+                        <td valign="top" style="padding:0;font-size:14px;line-height:1.55;color:#334155;">Pick the account, drop the amount, hit save</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <p style="font-size:14px;line-height:1.7;color:#475569;margin:0 0 12px;">
         Do that for the small stuff <em>now</em> and you'll never have to do the "where did all my money go" autopsy later. That's the whole game.<br><br>
         See you tomorrow,<br>
-        <strong>The Pasona crew</strong>
+        <strong style="color:#0f172a;">The Pasona crew</strong>
     </p>
 
-    <div class="subcopy">
-        Don't want these pings? Update your reminder time (or turn them off) in your <a href="{{ $settingsUrl }}">Pasona settings</a>.
-    </div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;margin:0;">
+        <tr>
+            <td style="padding:16px 20px;font-size:12px;color:#64748b;line-height:1.65;">
+                Don't want these pings? Update your reminder time (or turn them off) in your <a href="{{ $settingsUrl }}" style="color:#475569;text-decoration:underline;">Pasona settings</a>.
+            </td>
+        </tr>
+    </table>
 @endsection
