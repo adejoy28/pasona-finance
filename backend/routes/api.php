@@ -45,9 +45,10 @@ Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLinkE
 Route::post('reset-password', [ResetPasswordController::class, 'reset']);
 
 // Email verification link (signed). Public — the URL itself is the
-// proof that the user clicked their own email.
+// proof that the user clicked their own email. The controller handles
+// signature validation via hasValidSignature() and redirects to the
+// frontend on failure instead of returning a bare 403.
 Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
-    ->middleware('signed')
     ->name('api.email.verify');
 
 // Protected Routes
