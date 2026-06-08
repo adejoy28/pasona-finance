@@ -43,21 +43,21 @@ class EmailVerificationController extends Controller
      */
     public function verify(Request $request, int $id, string $hash): RedirectResponse
     {
+        $frontend = rtrim((string) env('FRONTEND_URL', 'http://localhost:8080'), '/');
+
         $user = \App\Models\User::find($id);
 
         if (! $user) {
-            abort(404);
+            return redirect($frontend . '/login?error=user_not_found');
         }
 
         if (! hash_equals(sha1($user->getEmailForVerification()), $hash)) {
-            abort(403, 'Invalid verification hash.');
+            return redirect($frontend . '/email/verify?error=invalid_hash');
         }
 
         if (! $request->hasValidSignature()) {
-            abort(403, 'Invalid or expired verification link.');
+            return redirect($frontend . '/email/verify?error=expired');
         }
-
-        $frontend = rtrim((string) env('FRONTEND_URL', 'http://localhost:8080'), '/');
 
         if ($user->hasVerifiedEmail()) {
             return redirect($frontend . '/dashboard?verified=already');

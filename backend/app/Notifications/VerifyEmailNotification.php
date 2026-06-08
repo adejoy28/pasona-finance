@@ -6,6 +6,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\URL;
 
 /**
  * Custom email-verification notification.
@@ -39,10 +40,14 @@ class VerifyEmailNotification extends Notification implements ShouldQueue
     {
         $frontend = rtrim((string) env('FRONTEND_URL', 'http://localhost:8080'), '/');
 
-        $verifyUrl = url(route('api.email.verify', [
-            'id'   => $notifiable->getKey(),
-            'hash' => sha1($notifiable->getEmailForVerification()),
-        ], false));
+        $verifyUrl = URL::temporarySignedRoute(
+            'api.email.verify',
+            now()->addMinutes(60),
+            [
+                'id'   => $notifiable->getKey(),
+                'hash' => sha1($notifiable->getEmailForVerification()),
+            ],
+        );
 
         $spaUrl = $frontend
             . '/email/verify?verify_url=' . urlencode($verifyUrl)
