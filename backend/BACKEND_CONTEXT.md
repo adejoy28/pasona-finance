@@ -70,7 +70,7 @@ backend/
 | GET | `/auth/google/callback` | `SocialAuthController@handleGoogleCallback` |
 | POST | `/forgot-password` | `ForgotPasswordController@sendResetLinkEmail` |
 | POST | `/reset-password` | `ResetPasswordController@reset` |
-| GET | `/email/verify/{id}/{hash}` (signed) | `EmailVerificationController@verify` |
+| GET | `/email/verify/{id}/{hash}` (temporarily signed) | `EmailVerificationController@verify` |
 
 ### Protected (`auth:sanctum`)
 | Method | URI | Controller@method | Extra |
@@ -95,7 +95,7 @@ backend/
 - **Logout** (`AuthController:90`) deletes only the current token (`currentAccessToken()->delete()`) — other sessions stay alive.
 - **Google OAuth** (`SocialAuthController`): `stateless()->redirect()->getTargetUrl()` returns a JSON `{url}` to the SPA. The callback creates a user if `email` doesn't exist (or links the Google ID to existing user by email), mints a Sanctum token, **flips `email_verified_at` on the user** (Google already proved the email is theirs), and 302-redirects to `FRONTEND_URL/login?token=...`.
 - **Password reset** uses Laravel's built-in `Password` broker and our queued `ResetPasswordNotification` (Markdown template at `resources/views/emails/reset-password.blade.php`). The link points at the SPA reset form; the SPA POSTs it back to `/api/reset-password`. Throttle 60 sec, token expiry 60 min.
-- **Email verification** is OPT-IN — no global `verified` middleware is applied to the API. The user can register, log in, list accounts, and log transactions without verifying. A dismissible banner can be driven by `GET /api/email/verification-status`; resend is `POST /api/email/verification-notification` (throttled 6/min). The verify URL itself is a signed GET at `/api/email/verify/{id}/{hash}` that 302s to `FRONTEND_URL/dashboard?verified=1`.
+- **Email verification** is OPT-IN — no global `verified` middleware is applied to the API. The user can register, log in, list accounts, and log transactions without verifying. A dismissible banner can be driven by `GET /api/email/verification-status`; resend is `POST /api/email/verification-notification` (throttled 6/min). The verify URL is a `URL::temporarySignedRoute()` with 60-min expiry at `GET /api/email/verify/{id}/{hash}`. On success it 302s to `FRONTEND_URL/dashboard?verified=1`; on failure it redirects to `FRONTEND_URL/email/verify?error=expired|invalid_hash` instead of returning a bare 403. The SPA `/email/verify` route renders friendly error pages for each failure mode.
 - The only endpoints that require `verified` are the "sensitive" bulk writers: `POST /api/transactions/sync`, `POST /api/import/store`, `POST /api/import/kuda/store`. The middleware is registered as the `verified` alias in `bootstrap/app.php`; `AuthorizationException` is converted to a JSON `{ requires_verified_email: true }` envelope for API clients.
 - `App\Notifications\VerifyEmailNotification` and `App\Notifications\ResetPasswordNotification` both implement `ShouldQueue` so SMTP never blocks an HTTP request.
 - **No policies or gates are auto-registered** for the AuthController/Social flow, but the resource controllers call `$this->authorize('view|update|delete', $model)` on show/update/destroy.
@@ -246,7 +246,34 @@ backend/
 - Other: `guides`, `changelog`, `sdks` (the last still exists from previous work even though the user wanted no SDK references anywhere — flagged earlier).
 - Assets: `public/css/docs.css` and `public/js/docs.js` (vanilla JS, no Vite output needed at runtime).
 
-## 14. Noteworthy issues / things to know
+## 14. Scalability to-fix (1000 concurrent users)
+
+### P0 — Must fix before scaling
+
+- **No caching on summary/accounts** — `SummaryController` and `AccountController` recalculate balances, income, expense totals from scratch on every request. Add Redis + `Cache::remember()` with 1–2min TTL.
+- **`ProcessSync` per-row SELECT+INSERT** — `app/Jobs/ProcessSync.php` runs a duplicate-check SELECT + INSERT per row. Batch with single `WHERE IN` + `Transaction::insert()`, chunk to 100.
+- **Missing index on `transactions.to_account_id`** — used in `balancesFor()` and `TransactionController::index()`. Full table scan as data grows.
+
+### P1 — High priority
+
+- **No payload limits on sync/import** — `TransactionController::sync()` and all import endpoints accept unbounded arrays/files. Add `max:5000` on arrays, `max:10240` on file uploads.
+- **`BaseImportController::fetchExisting()` OR-where explosion** — builds 500-OR-group SQL from CSV rows. PostgreSQL may refuse to plan. Batch OR groups or use reference-based dedup.
+- **No IP rate limits on login/register/forgot-password** — `AppServiceProvider.php` only throttles the API group at 60/min. Add `Limit::perMinute(5)` per IP for auth endpoints.
+- **`SummaryController::category_breakdown` eager-loads per group row** — replace `->with('category')` with a JOIN to eliminate extra query.
+
+### P2 — Medium priority
+
+- **Missing index on `transactions.reference`** — used by `OpayImportController::fetchExisting()`. Add `$table->index('reference')`.
+- **Sanctum token expiry & cleanup** — 7-day expiry with no garbage collection. Set shorter expiry + scheduled purge job for `personal_access_tokens`.
+- **`AccountController` unique validation extra query** — `Rule::unique` fires a SELECT before the DB constraint catches it. Consider removing validation and catching `QueryException` with code `23505`.
+
+### P3 — Low priority
+
+- **`ImportController::parseDate()` silently defaults to today** — on parse failure, corrupts transaction dates. Log warning and return sentinel.
+- **Duplicate `GOOGLE_CLIENT_ID` in `.env`** — lines 58-62 have duplicates. Clean up.
+- **Database `sslmode` should be `require` for Supabase** — `config/database.php:99` defaults to `prefer`, should be `require`.
+
+## 15. Noteworthy issues / things to know
 - **`Account::getBalanceAttribute`** issues 4 queries per call → O(4N) on the summary endpoint. With many accounts this is the obvious performance hotspot.
 - **`ImportController::parseDate`** silently coerces unparseable dates to today.
 - **`ImportController::store`** doesn't wrap inserts in a DB transaction — a single failure mid-loop leaves partial data.

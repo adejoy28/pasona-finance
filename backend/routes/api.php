@@ -55,6 +55,7 @@ Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 've
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Auth
     Route::get('/me', [AuthController::class, 'me']);
+    Route::patch('/me', [AuthController::class, 'updateProfile']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // Email verification (resend / status)
