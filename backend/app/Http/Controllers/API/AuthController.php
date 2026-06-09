@@ -119,6 +119,36 @@ class AuthController extends Controller
     }
 
     /**
+     * Update the authenticated user's profile.
+     *
+     * Accepts one or both fields. Only the provided fields are saved.
+     * Setting reminder_time to null disables daily email reminders.
+     *
+     * @return JsonResponse
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'reminder_time' => 'sometimes|nullable|regex:/^([01]\d|2[0-3]):[0-5]\d$/',
+        ]);
+
+        $user = $request->user();
+
+        if (array_key_exists('name', $data)) {
+            $user->name = $data['name'];
+        }
+
+        if (array_key_exists('reminder_time', $data)) {
+            $user->reminder_time = $data['reminder_time'];
+        }
+
+        $user->save();
+
+        return response()->json($user);
+    }
+
+    /**
      * Check whether an email is already registered.
      *
      * Backed by `GET /api/auth/check-email?email=...`. Always responds

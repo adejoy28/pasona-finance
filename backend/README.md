@@ -210,11 +210,11 @@ All routes are prefixed with `/api`. Protected routes require `Authorization: Be
 
 ### Email verification (opt-in)
 
-| Method | Route                                                  | Auth | Description                                                                                  |
-| ------ | ------------------------------------------------------ | ---- | -------------------------------------------------------------------------------------------- |
-| GET    | `/api/email/verify/{id}/{hash}` (signed)               | —    | Click target from the email. 302-redirects to `FRONTEND_URL/dashboard?verified=1` (or `?verified=already`) |
-| POST   | `/api/email/verification-notification`                 | ✓    | Resend the verification email (throttled 6/min)                                              |
-| GET    | `/api/email/verification-status`                       | ✓    | Returns `{ email_verified, email }` for the SPA banner                                       |
+| Method | Route                                                                | Auth | Description                                                                                                                  |
+| ------ | -------------------------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/email/verify/{id}/{hash}` (temporarily signed, 60 min expiry)  | —    | Click target from the email. 302-redirects to `FRONTEND_URL/dashboard?verified=1` on success, or `FRONTEND_URL/email/verify?error=expired\|invalid_hash` on failure |
+| POST   | `/api/email/verification-notification`                               | ✓    | Resend the verification email (throttled 6/min)                                                                              |
+| GET    | `/api/email/verification-status`                                     | ✓    | Returns `{ email_verified, email }` for the SPA banner                                                                       |
 
 Sensitive bulk writers are gated by the `verified` middleware (see the **Mailing system** section below).
 
@@ -373,6 +373,15 @@ php artisan reminders:send-daily --user=42 --no-smart-skip
 - The only endpoints that require a verified email are the **sensitive bulk writers**: `POST /api/transactions/sync`, `POST /api/import/store`, `POST /api/import/kuda/store`. The middleware is registered as the `verified` alias in `bootstrap/app.php`; the `AuthorizationException` it throws is converted to a JSON `{ requires_verified_email: true, message }` envelope so the SPA can act.
 - `GET /api/email/verification-status` lets the SPA render a dismissible banner without a page reload.
 - Google OAuth auto-flips `email_verified_at` on first login (Google already proved the email).
+
+#### Verification flow
+
+1. The notification generates a **temporarily signed URL** (`URL::temporarySignedRoute`) with a 60-minute expiry — the URL includes `?expires=...&signature=...` query params.
+2. The email link points at the SPA (`{FRONTEND_URL}/email/verify?verify_url=...`), which then redirects the browser to the signed backend URL.
+3. Backend validates the signature via `$request->hasValidSignature()`. On success, `email_verified_at` is set and the browser is redirected to `{FRONTEND_URL}/dashboard?verified=1`.
+4. On failure (expired link, invalid hash, user not found), the backend **redirects to the frontend with a descriptive `?error=` param** instead of returning a bare 403 — the SPA shows a friendly error page with a "Sign in" button.
+5. The SPA `/email/verify` route renders appropriate error pages for: expired links, invalid hashes, and generic failures. No authentication is required to access this page (users clicking the link from email may not be logged in).
+6. The dashboard handles `?verified=1` (success), `?verified=already` (already verified), and `?verified=error` (generic failure) toasts.
 
 ### Catching emails in dev
 

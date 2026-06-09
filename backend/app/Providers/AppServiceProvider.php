@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Event;
@@ -25,6 +26,25 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Block destructive commands unless explicitly allowed via env.
+        // Set DESTRUCTIVE_COMMANDS_ALLOWED=true in .env to run rollbacks,
+        // fresh, wipe, etc. against the configured database. This prevents
+        // accidental data loss (e.g. an AI agent running migrate:rollback
+        // against Supabase when the .env points at production).
+        Event::listen(CommandStarting::class, function (CommandStarting $event) {
+            $destructive = [
+                'migrate:rollback',
+                'migrate:fresh',
+                'migrate:refresh',
+                'db:wipe',
+            ];
+            if (in_array($event->command, $destructive) && ! env('DESTRUCTIVE_COMMANDS_ALLOWED', false)) {
+                throw new \RuntimeException(
+                    'Destructive commands are blocked. Set DESTRUCTIVE_COMMANDS_ALLOWED=true in .env to enable.'
+                );
+            }
+        });
+
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by(
                 $request->user()?->id ?: $request->ip()

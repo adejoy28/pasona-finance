@@ -27,3 +27,13 @@ Schedule::command('reminders:send-daily')
     ->withoutOverlapping(10)
     ->onOneServer()
     ->runInBackground();
+
+/**
+ * Daily database backup at 04:00 UTC (low-traffic window).
+ * Keeps the last 7 backups — older ones are pruned automatically
+ * by the command's --prune flag (add when implemented).
+ */
+Schedule::command('db:backup')
+    ->dailyAt('04:00')
+    ->withoutOverlapping()
+    ->runInBackground();

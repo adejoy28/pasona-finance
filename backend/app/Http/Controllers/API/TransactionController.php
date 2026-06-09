@@ -29,13 +29,20 @@ class TransactionController extends Controller
      */
     public function index(Request $request)
     {
-        $transactions = $request->user()->transactions()
+        $query = $request->user()->transactions()
             ->with(['account', 'toAccount', 'category'])
             ->orderBy('transaction_date', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->paginate(50);
+            ->orderBy('created_at', 'desc');
 
-        return response()->json($transactions);
+        if ($request->filled('account_id')) {
+            $id = (int) $request->input('account_id');
+            $query->where(function ($q) use ($id) {
+                $q->where('account_id', $id)
+                  ->orWhere('to_account_id', $id);
+            });
+        }
+
+        return response()->json($query->paginate(50));
     }
 
     /**
