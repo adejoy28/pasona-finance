@@ -103,7 +103,7 @@ backend/
 ## 5. Data model
 
 ### `users`
-- Fields: `id, name, email (unique), email_verified_at, password (nullable, hashed), google_id, avatar, reminder_time (default '21:10'), reminder_last_sent_at (nullable), remember_token, timestamps`
+- Fields: `id, name, email (unique), email_verified_at, password (nullable, hashed), google_id, avatar, reminder_time (default '21:10'), timezone (default 'Africa/Lagos'), reminder_last_sent_at (nullable), remember_token, timestamps`
 - Relations: `accounts()`, `categories()`, `transactions()` — all `hasMany`
 - Implements `MustVerifyEmail`. Custom `sendEmailVerificationNotification()` dispatches `App\Notifications\VerifyEmailNotification`. Custom `sendPasswordResetNotification($token)` dispatches `App\Notifications\ResetPasswordNotification`.
 - Uses `HasApiTokens` (Sanctum), `HasFactory`, `Notifiable`
@@ -199,12 +199,12 @@ backend/
   - `reset-password.blade.php` — "Reset your Pasona password" with the SPA reset URL
   - `transaction-reminder.blade.php` — "It's {reminder_time} — log today's transactions" with today's income/expense/account count baked in. Subject switches between the cold-open and a "Quick gut-check" variant when the user has already logged something today.
 - **Daily reminder flow**: `routes/console.php` schedules `reminders:send-daily` every 5 minutes (`withoutOverlapping`, `onOneServer`). The command:
-  1. Pulls users whose `reminder_time` (HH:MM, app timezone UTC) is within ±2 minutes of `now` (split into two ranges when the window crosses midnight).
+  1. Pulls users whose `reminder_time` (HH:MM, app timezone `Africa/Lagos`, UTC+1) is within ±2 minutes of `now` (split into two ranges when the window crosses midnight).
   2. Smart-skips users who already have any transaction dated today (toggle with `--no-smart-skip`).
   3. Dedupe-skips users whose `reminder_last_sent_at` is today.
   4. Dispatches `SendTransactionReminder` for the rest.
   5. Logs a single summary line; supports `--dry-run` and `--user=ID` for testing.
-- The `reminder_time` field is currently in app timezone (UTC). If/when per-user timezone is added, the command's `whereBetween` should pivot on `users.timezone`.
+- The `reminder_time` field is in the user's own timezone (stored in `users.timezone`, default `Africa/Lagos`). The `SendDailyReminders` command groups users by timezone and compares `reminder_time` against each group's local `now()`. Timestamps (`created_at`, `updated_at`, `email_verified_at`) are stored as UTC in the database (Laravel default).
 - Mail driver defaults to `log` (writes to `storage/logs/laravel.log`). To send real mail, set `MAIL_MAILER=smtp|resend|postmark` and the matching `MAIL_HOST/PORT/USERNAME/PASSWORD/FROM_*` — examples are commented in `.env.example`.
 
 ## 9. Import / CSV handling
