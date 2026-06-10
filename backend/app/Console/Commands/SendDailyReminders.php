@@ -10,9 +10,9 @@ use Illuminate\Support\Carbon;
 
 /**
  * Scan users whose `reminder_time` matches the current 5-minute
- * window, smart-skip those who already logged a transaction today,
- * dedupe via `reminder_last_sent_at`, and dispatch a
- * {@see SendTransactionReminder} job for the rest.
+ * window in their own timezone, smart-skip those who already logged
+ * a transaction today, dedupe via `reminder_last_sent_at`, and
+ * dispatch a {@see SendTransactionReminder} job for the rest.
  *
  * Run by the scheduler (see routes/console.php). The window is
  * ±2 minutes so a 5-minute tick will always hit each reminder_time
@@ -33,63 +33,106 @@ class SendDailyReminders extends Command
         {--dry-run : Show what would be queued without dispatching}
         {--window=2 : Time-match window in minutes (± this many minutes from now)}';
 
-    protected $description = 'Queue daily transaction-logging reminders for users whose reminder_time matches now.';
+    protected $description = 'Queue daily transaction-logging reminders for users whose reminder_time matches now in their timezone.';
 
     public function handle(): int
     {
-        $now          = Carbon::now();
+        $now          = Carbon::now('UTC');
         $windowMin    = max(0, (int) $this->option('window'));
         $smartSkip    = ! $this->option('no-smart-skip');
         $dryRun       = (bool) $this->option('dry-run');
         $singleUserId = $this->option('user') !== null ? (int) $this->option('user') : null;
 
-        $query = User::query()->whereNotNull('email');
+        $queued = 0;
+        $skippedSmart = 0;
+        $skippedDedupe = 0;
 
         if ($singleUserId) {
-            $query->whereKey($singleUserId);
+            $user = User::find($singleUserId);
+            if (! $user) {
+                $this->error("User #{$singleUserId} not found.");
+                return self::FAILURE;
+            }
+            $result = $this->processUsers(collect([$user]), $now, $windowMin, $smartSkip, $dryRun);
+            $queued = $result['queued'];
+            $skippedSmart = $result['skipped_smart'];
+            $skippedDedupe = $result['skipped_dedupe'];
         } else {
-            // reminder_time is "HH:MM" in the app's timezone.
-            // Match any time within ±$windowMin minutes of now.
-            $from = $now->copy()->subMinutes($windowMin)->format('H:i');
-            $to   = $now->copy()->addMinutes($windowMin)->format('H:i');
+            // Group users by timezone so we compare each user's
+            // reminder_time against their own local time.
+            $timezones = User::query()
+                ->whereNotNull('email')
+                ->select('timezone')
+                ->distinct()
+                ->pluck('timezone');
 
-            // The simple WHERE reminder_time BETWEEN ... misses
-            // wrap-around windows (e.g. 23:58 ↔ 00:02). Split into
-            // two ranges when the window crosses midnight.
-            if ($from <= $to) {
-                $query->whereBetween('reminder_time', [$from, $to]);
-            } else {
-                $query->where(function ($q) use ($from, $to) {
-                    $q->where('reminder_time', '>=', $from)
-                      ->orWhere('reminder_time', '<=', $to);
-                });
+            foreach ($timezones as $tz) {
+                $tzNow = Carbon::now($tz);
+                $from = $tzNow->copy()->subMinutes($windowMin)->format('H:i');
+                $to   = $tzNow->copy()->addMinutes($windowMin)->format('H:i');
+
+                $query = User::query()
+                    ->whereNotNull('email')
+                    ->where('timezone', $tz);
+
+                if ($from <= $to) {
+                    $query->whereBetween('reminder_time', [$from, $to]);
+                } else {
+                    $query->where(function ($q) use ($from, $to) {
+                        $q->where('reminder_time', '>=', $from)
+                          ->orWhere('reminder_time', '<=', $to);
+                    });
+                }
+
+                $users = $query->get();
+                if ($users->isEmpty()) {
+                    continue;
+                }
+
+                $this->line(sprintf(
+                    '  [%s] %d candidate(s) at %s (window ±%d min)',
+                    $tz,
+                    $users->count(),
+                    $tzNow->format('H:i'),
+                    $windowMin,
+                ));
+
+                $result = $this->processUsers($users, $now, $windowMin, $smartSkip, $dryRun);
+                $queued += $result['queued'];
+                $skippedSmart += $result['skipped_smart'];
+                $skippedDedupe += $result['skipped_dedupe'];
             }
         }
 
-        $users = $query->get();
         $this->info(sprintf(
-            'Found %d candidate user(s) at %s (window ±%d min, smart-skip=%s).',
-            $users->count(),
-            $now->format('Y-m-d H:i'),
-            $windowMin,
-            $smartSkip ? 'on' : 'off'
+            'Done. queued=%d, smart-skipped=%d, dedupe-skipped=%d.',
+            $queued,
+            $skippedSmart,
+            $skippedDedupe
         ));
 
-        if ($users->isEmpty()) {
-            return self::SUCCESS;
-        }
+        return self::SUCCESS;
+    }
 
+    /**
+     * @param \Illuminate\Support\Collection<int, \App\Models\User> $users
+     * @return array{queued: int, skipped_smart: int, skipped_dedupe: int}
+     */
+    private function processUsers($users, Carbon $now, int $windowMin, bool $smartSkip, bool $dryRun): array
+    {
         $today = $now->toDateString();
 
+        $userIds = $users->pluck('id');
+
         $usersWithTx = Transaction::query()
-            ->whereIn('user_id', $users->pluck('id'))
+            ->whereIn('user_id', $userIds)
             ->whereDate('transaction_date', $today)
             ->distinct()
             ->pluck('user_id')
             ->flip();
 
         $alreadySentToday = User::query()
-            ->whereIn('id', $users->pluck('id'))
+            ->whereIn('id', $userIds)
             ->whereDate('reminder_last_sent_at', $today)
             ->pluck('id')
             ->flip();
@@ -110,20 +153,17 @@ class SendDailyReminders extends Command
             }
 
             if ($dryRun) {
-                $this->line("  would queue: user #{$user->id} ({$user->email}) at {$user->reminder_time}");
+                $this->line("  would queue: user #{$user->id} ({$user->email}) at {$user->reminder_time} [{$user->timezone}]");
             } else {
                 SendTransactionReminder::dispatch($user->id);
             }
             $queued++;
         }
 
-        $this->info(sprintf(
-            'Done. queued=%d, smart-skipped=%d, dedupe-skipped=%d.',
-            $queued,
-            $skippedSmart,
-            $skippedDedupe
-        ));
-
-        return self::SUCCESS;
+        return [
+            'queued' => $queued,
+            'skipped_smart' => $skippedSmart,
+            'skipped_dedupe' => $skippedDedupe,
+        ];
     }
 }

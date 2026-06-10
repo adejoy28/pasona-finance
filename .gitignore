@@ -9,3 +9,5 @@ backend/app/Http/Controllers/API/Import/KUDA_IMPORT_INSTRUCTIONS.md
 backend/app/Http/Controllers/API/Import/KUDA_IMPORT_SETUP.md
 backend/app/Http/Controllers/API/Import/OPAY_IMPORT_INSTRUCTIONS.md
 whatNext.md
+backend/public/img/local-10.1.0-windows.exe
+backend/AGENTS.md

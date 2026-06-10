@@ -136,7 +136,8 @@ php artisan serve
 | password               | string    | Hashed password (nullable for OAuth-only users)                            |
 | google_id              | string    | Google account id (for OAuth linking)                                      |
 | avatar                 | string    | Avatar URL from OAuth                                                      |
-| reminder_time          | string    | Daily reminder time in `HH:MM` (default 21:10, app timezone UTC)            |
+| reminder_time          | string    | Daily reminder time in `HH:MM` (user's local timezone)                             |
+| timezone               | string    | IANA timezone (default `Africa/Lagos`); reminder matches user's local clock        |
 | reminder_last_sent_at  | timestamp | Wall-clock of the last reminder send; used to dedupe                        |
 | created_at             | timestamp | Record creation time                                                       |
 | updated_at             | timestamp | Last update time                                                           |
@@ -354,7 +355,7 @@ Three transactional emails, all queued, all Markdown templates in `resources/vie
 ### Daily reminder
 
 - `routes/console.php` schedules `reminders:send-daily` `everyFiveMinutes()` with `withoutOverlapping(10) onOneServer()`.
-- The command finds users whose `reminder_time` is within ±2 min of now (split into two ranges when the window crosses midnight), then:
+- The command groups users by their `timezone` column (default `Africa/Lagos`), computes `now()` per timezone group, and matches `reminder_time` within ±2 min of their local time (split into two ranges when the window crosses midnight), then:
   1. **Smart-skips** anyone who already logged a transaction today (toggle with `--no-smart-skip`)
   2. **Dedupe-skips** anyone whose `reminder_last_sent_at` is today
   3. Dispatches `App\Jobs\SendTransactionReminder` for the rest

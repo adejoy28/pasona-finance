@@ -42,6 +42,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'google_id',
         'avatar',
         'reminder_time',
+        'timezone',
     ];
 
     /**

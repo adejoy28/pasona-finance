@@ -35,12 +35,14 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
+            'timezone' => 'sometimes|string|max:64',
         ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'timezone' => $request->timezone ?? 'Africa/Lagos',
         ]);
 
         // Verification is opt-in: send the link but DON'T block the
@@ -130,7 +132,8 @@ class AuthController extends Controller
     {
         $data = $request->validate([
             'name' => 'sometimes|required|string|max:255',
-            'reminder_time' => 'sometimes|nullable|regex:/^([01]\d|2[0-3]):[0-5]\d$/',
+            'reminder_time' => ['sometimes', 'nullable', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
+            'timezone' => 'sometimes|string|max:64',
         ]);
 
         $user = $request->user();
@@ -141,6 +144,10 @@ class AuthController extends Controller
 
         if (array_key_exists('reminder_time', $data)) {
             $user->reminder_time = $data['reminder_time'];
+        }
+
+        if (array_key_exists('timezone', $data)) {
+            $user->timezone = $data['timezone'];
         }
 
         $user->save();
