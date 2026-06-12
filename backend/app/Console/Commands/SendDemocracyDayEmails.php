@@ -58,13 +58,19 @@ class SendDemocracyDayEmails extends Command
         $sent = 0;
         $failed = 0;
 
-        $query->each(function (User $user) use (&$sent, &$failed) {
+        $query->each(function (User $user) use (&$sent, &$failed, $total) {
             try {
                 Mail::to($user->email, $user->name)
                     ->send(new DemocracyDayMail());
 
                 $sent++;
                 $this->line("  ✓ {$user->email}");
+
+                // Rate-limit: max 5 req/s (Resend tier limit). A 250ms sleep
+                // keeps us under 4 req/s with headroom.
+                if ($sent < $total) {
+                    usleep(250_000);
+                }
             } catch (\Throwable $e) {
                 $failed++;
                 Log::error("Failed to send Democracy Day email to {$user->email}: {$e->getMessage()}");
