@@ -62,6 +62,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/users/{user}', [AdminController::class, 'showUser'])->name('users.show');
         Route::post('/users/{user}/update', [AdminController::class, 'updateUser'])->name('users.update');
         Route::post('/users/{user}/send-reset-link', [AdminController::class, 'sendResetLink'])->name('users.send-reset-link');
+        Route::post('/users/{user}/verify-email', [AdminController::class, 'verifyEmail'])->name('users.verify-email');
         Route::post('/users/{user}/set-password', [AdminController::class, 'setPassword'])->name('users.set-password');
         Route::post('/users/{user}/impersonate', [AdminController::class, 'impersonateUser'])->name('users.impersonate');
         Route::post('/users/{user}/delete', [AdminController::class, 'deleteUser'])->name('users.delete');

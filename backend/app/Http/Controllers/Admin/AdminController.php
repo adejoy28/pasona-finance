@@ -213,6 +213,23 @@ class AdminController extends Controller
         return back()->with('success', 'User profile updated.');
     }
 
+    public function verifyEmail(int $id): RedirectResponse
+    {
+        $user = User::withTrashed()->findOrFail($id);
+
+        if (! $user->email) {
+            return back()->with('error', 'User has no email address.');
+        }
+
+        if ($user->hasVerifiedEmail()) {
+            return back()->with('error', 'Email is already verified.');
+        }
+
+        $user->sendEmailVerificationNotification();
+
+        return back()->with('success', 'Verification email sent.');
+    }
+
     public function sendResetLink(int $id): RedirectResponse
     {
         $user = User::withTrashed()->findOrFail($id);
