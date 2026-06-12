@@ -24,10 +24,17 @@ class ResetPasswordController extends Controller
 
         $status = Password::broker()->reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
-            function (User $user, string $password) {
+            function (?User $user, string $password) {
+                if (!$user) {
+                    return;
+                }
+
                 $user->forceFill([
-                    'password' => Hash::make($password)
-                ])->setRememberToken(null)->save();
+                    'password' => Hash::make($password),
+                ]);
+
+                $user->setRememberToken(null);
+                $user->save();
             }
         );
 
