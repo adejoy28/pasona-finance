@@ -13,6 +13,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 /**
  * TransactionController Class
@@ -61,15 +63,23 @@ class TransactionController extends Controller
         }
 
         $validated = $request->validate([
-            'account_id' => 'required|exists:accounts,id',
-            'to_account_id' => 'nullable|exists:accounts,id',
+            'account_id' => [
+                'required',
+                Rule::exists('accounts', 'id')->where('user_id', $request->user()->id),
+            ],
+            'to_account_id' => [
+                'nullable',
+                'required_if:type,transfer',
+                'different:account_id',
+                Rule::exists('accounts', 'id')->where('user_id', $request->user()->id),
+            ],
             'type' => 'required|in:income,expense,transfer',
             'category_id' => 'nullable|exists:categories,id',
             'amount' => 'required|numeric',
             'description' => 'nullable|string|max:255',
             'reference' => 'nullable|string|max:255',
             'transaction_date' => 'required|date',
-            'force' => 'nullable|boolean', // If true, skip duplicate check
+            'force' => 'nullable|boolean',
         ]);
 
         // Duplicate Detection Logic
@@ -99,13 +109,35 @@ class TransactionController extends Controller
      */
     public function sync(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'transactions' => 'required|array',
-            'transactions.*.account_id' => 'required|exists:accounts,id',
+            'transactions.*.account_id' => [
+                'required',
+                Rule::exists('accounts', 'id')->where('user_id', $request->user()->id),
+            ],
             'transactions.*.type' => 'required|in:income,expense,transfer',
+            'transactions.*.to_account_id' => [
+                'nullable',
+                Rule::exists('accounts', 'id')->where('user_id', $request->user()->id),
+            ],
             'transactions.*.amount' => 'required|numeric',
             'transactions.*.transaction_date' => 'required|date',
         ]);
+
+        $validator->after(function ($v) use ($request) {
+            foreach ($request->transactions as $i => $t) {
+                $type = $t['type'] ?? '';
+                if ($type === 'transfer') {
+                    if (empty($t['to_account_id'])) {
+                        $v->errors()->add("transactions.{$i}.to_account_id", 'Destination account is required for transfers.');
+                    } elseif ((int) $t['to_account_id'] === (int) $t['account_id']) {
+                        $v->errors()->add("transactions.{$i}.to_account_id", 'Source and destination accounts must be different.');
+                    }
+                }
+            }
+        });
+
+        $validated = $validator->validate();
 
         $transactions = collect($request->transactions)->map(function ($item) use ($request) {
             $item['user_id'] = $request->user()->id;
@@ -138,8 +170,17 @@ class TransactionController extends Controller
         $this->authorize('update', $transaction);
 
         $validated = $request->validate([
-            'account_id' => 'sometimes|required|exists:accounts,id',
-            'to_account_id' => 'nullable|exists:accounts,id',
+            'account_id' => [
+                'sometimes',
+                'required',
+                Rule::exists('accounts', 'id')->where('user_id', $request->user()->id),
+            ],
+            'to_account_id' => [
+                'nullable',
+                'required_if:type,transfer',
+                'different:account_id',
+                Rule::exists('accounts', 'id')->where('user_id', $request->user()->id),
+            ],
             'type' => 'sometimes|required|in:income,expense,transfer',
             'category_id' => 'nullable|exists:categories,id',
             'amount' => 'sometimes|required|numeric',
