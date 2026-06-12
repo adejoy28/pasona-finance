@@ -61,7 +61,7 @@ class SendDemocracyDayEmails extends Command
         $query->each(function (User $user) use (&$sent, &$failed, $total) {
             try {
                 Mail::to($user->email, $user->name)
-                    ->send(new DemocracyDayMail());
+                    ->send(new DemocracyDayMail($user->id));
 
                 $sent++;
                 $this->line("  ✓ {$user->email}");

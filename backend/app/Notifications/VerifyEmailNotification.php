@@ -59,7 +59,11 @@ class VerifyEmailNotification extends Notification implements ShouldQueue
                 'actionUrl' => $spaUrl,
                 'firstName' => explode(' ', (string) $notifiable->name)[0] ?: (string) $notifiable->name,
                 'email'     => $notifiable->getEmailForVerification(),
-            ]);
+            ])
+            ->withSymfonyMessage(function ($message) use ($notifiable) {
+                $message->getHeaders()->addTextHeader('X-Email-Type', 'verify-email');
+                $message->getHeaders()->addTextHeader('X-User-Id', (string) $notifiable->getKey());
+            });
     }
 
     /**

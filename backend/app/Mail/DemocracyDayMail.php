@@ -12,7 +12,7 @@ class DemocracyDayMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public function __construct() {}
+    public function __construct(public ?int $userId = null) {}
 
     public function envelope(): Envelope
     {
@@ -36,5 +36,16 @@ class DemocracyDayMail extends Mailable
                 'unsubscribeUrl' => $frontend . '/settings/notifications#unsubscribe',
             ],
         );
+    }
+
+    public function build(): self
+    {
+        return $this->withSymfonyMessage(function ($message) {
+            $headers = $message->getHeaders();
+            $headers->addTextHeader('X-Email-Type', 'democracy-day');
+            if ($this->userId) {
+                $headers->addTextHeader('X-User-Id', (string) $this->userId);
+            }
+        });
     }
 }

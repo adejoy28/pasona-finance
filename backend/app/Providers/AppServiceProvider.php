@@ -2,13 +2,17 @@
 
 namespace App\Providers;
 
+use App\Models\EmailLog;
+use Carbon\Carbon;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Http\Request;
+use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Symfony\Component\Mime\Address;
 use TijsVerkoyen\CssToInlineStyles\CssToInlineStyles;
 
 class AppServiceProvider extends ServiceProvider
@@ -61,6 +65,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->registerMailCssInliner();
+        $this->registerMailLogger();
     }
 
     /**
@@ -100,6 +105,36 @@ class AppServiceProvider extends ServiceProvider
                 // Never let the inliner break a send — log and ship the
                 // original HTML. The user gets an unstyled-but-readable
                 // email, which is still better than a failed send.
+                report($e);
+            }
+        });
+    }
+
+    private function registerMailLogger(): void
+    {
+        Event::listen(MessageSent::class, function (MessageSent $event): void {
+            try {
+                $message = $event->message;
+                $headers = $message->getHeaders();
+
+                $type = $headers->get('X-Email-Type')?->getBody() ?? 'unknown';
+                $userId = $headers->get('X-User-Id')?->getBody();
+
+                $to = $message->getTo();
+                $recipientEmail = $to ? collect($to)->first(fn () => true)?->getAddress() : null;
+
+                if (! $recipientEmail) {
+                    return;
+                }
+
+                EmailLog::create([
+                    'user_id'         => $userId ? (int) $userId : null,
+                    'email_type'      => $type,
+                    'recipient_email' => $recipientEmail,
+                    'subject'         => $message->getSubject(),
+                    'sent_at'         => Carbon::now(),
+                ]);
+            } catch (\Throwable $e) {
                 report($e);
             }
         });

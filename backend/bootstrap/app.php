@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // instead of redirecting to a web route.
         $middleware->alias([
             'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+            'admin'    => \App\Http\Middleware\AdminMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
