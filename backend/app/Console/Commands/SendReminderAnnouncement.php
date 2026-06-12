@@ -66,6 +66,8 @@ class SendReminderAnnouncement extends Command
                 ], function ($message) use ($user) {
                     $message->to($user->email, $user->name)
                             ->subject('Daily reminders are now live on Pasona');
+                    $message->getHeaders()->addTextHeader('X-Email-Type', 'reminder-announcement');
+                    $message->getHeaders()->addTextHeader('X-User-Id', (string) $user->id);
                 });
 
                 $user->reminder_announced_at = now();

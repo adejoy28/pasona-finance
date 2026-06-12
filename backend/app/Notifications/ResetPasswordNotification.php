@@ -55,7 +55,11 @@ class ResetPasswordNotification extends Notification implements ShouldQueue
             ->view('emails.reset-password', [
                 'actionUrl'  => $url,
                 'notifiable' => $notifiable,
-            ]);
+            ])
+            ->withSymfonyMessage(function ($message) use ($notifiable) {
+                $message->getHeaders()->addTextHeader('X-Email-Type', 'reset-password');
+                $message->getHeaders()->addTextHeader('X-User-Id', (string) $notifiable->getKey());
+            });
     }
 
     /**

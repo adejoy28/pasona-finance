@@ -73,6 +73,8 @@ class SendDueAnnouncements extends Command
                     Mail::send($announcement->template, $vars, function ($message) use ($user, $announcement) {
                         $message->to($user->email, $user->name)
                                 ->subject($announcement->subject);
+                        $message->getHeaders()->addTextHeader('X-Email-Type', 'announcement');
+                        $message->getHeaders()->addTextHeader('X-User-Id', (string) $user->id);
                     });
 
                     $announcement->markDelivered($user);

@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\EmailPreviewController;
+use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
@@ -46,6 +48,28 @@ if (! app()->environment('production')) {
     Route::get('/email-preview', [EmailPreviewController::class, 'index'])->name('email-preview.index');
     Route::get('/email-preview/{template}', [EmailPreviewController::class, 'show'])->name('email-preview.show');
 }
+
+// Admin Panel — session-based auth with is_admin flag
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/login', [AdminController::class, 'login'])->name('login');
+    Route::post('/login', [AdminController::class, 'authenticate'])->name('authenticate');
+
+    Route::middleware([AdminMiddleware::class])->group(function () {
+        Route::post('/logout', [AdminController::class, 'logout'])->name('logout');
+        Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
+
+        Route::get('/users', [AdminController::class, 'users'])->name('users');
+        Route::get('/users/{user}', [AdminController::class, 'showUser'])->name('users.show');
+        Route::post('/users/{user}/update', [AdminController::class, 'updateUser'])->name('users.update');
+        Route::post('/users/{user}/send-reset-link', [AdminController::class, 'sendResetLink'])->name('users.send-reset-link');
+        Route::post('/users/{user}/set-password', [AdminController::class, 'setPassword'])->name('users.set-password');
+        Route::post('/users/{user}/impersonate', [AdminController::class, 'impersonateUser'])->name('users.impersonate');
+        Route::post('/users/{user}/delete', [AdminController::class, 'deleteUser'])->name('users.delete');
+        Route::post('/users/{user}/restore', [AdminController::class, 'restoreUser'])->name('users.restore');
+
+        Route::get('/emails', [AdminController::class, 'emails'])->name('emails');
+    });
+});
 
 // Admin broadcast trigger — visit this URL in your browser to send an announcement.
 // Protect with ADMIN_KEY in .env. Example:

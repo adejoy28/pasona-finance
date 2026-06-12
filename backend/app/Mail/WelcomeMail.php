@@ -32,4 +32,13 @@ class WelcomeMail extends Mailable
             ],
         );
     }
+
+    public function build(): self
+    {
+        return $this->withSymfonyMessage(function ($message) {
+            $headers = $message->getHeaders();
+            $headers->addTextHeader('X-Email-Type', 'welcome');
+            $headers->addTextHeader('X-User-Id', (string) $this->user->id);
+        });
+    }
 }
