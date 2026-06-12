@@ -153,6 +153,7 @@ class AuthController extends Controller
             'name' => 'sometimes|required|string|max:255',
             'reminder_time' => ['sometimes', 'nullable', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
             'timezone' => 'sometimes|string|max:64',
+            'password' => 'sometimes|required|string|min:8|confirmed',
         ]);
 
         $user = $request->user();
@@ -167,6 +168,10 @@ class AuthController extends Controller
 
         if (array_key_exists('timezone', $data)) {
             $user->timezone = $data['timezone'];
+        }
+
+        if (array_key_exists('password', $data)) {
+            $user->password = Hash::make($data['password']);
         }
 
         $user->save();

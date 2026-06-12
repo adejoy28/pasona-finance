@@ -77,7 +77,12 @@ class TransactionReminderMail extends Mailable implements ShouldQueue
             ->subject($this->loggedToday
                 ? "Quick gut-check: anything missing from today's ₦" . number_format($this->todayExpense, 2) . ' spend?'
                 : "It's {$this->reminderTime} — log today's transactions")
-            ->view('emails.transaction-reminder');
+            ->view('emails.transaction-reminder')
+            ->withSymfonyMessage(function ($message) {
+                $headers = $message->getHeaders();
+                $headers->addTextHeader('X-Email-Type', 'reminder');
+                $headers->addTextHeader('X-User-Id', (string) $this->user->id);
+            });
     }
 
     /**
