@@ -35,9 +35,12 @@ class SocialAuthController extends Controller
         try {
             $googleUser = Socialite::driver('google')->stateless()->user();
 
-            $user = User::where('email', $googleUser->getEmail())->first();
+            $user = User::withTrashed()->where('email', $googleUser->getEmail())->first();
 
             if ($user) {
+                if ($user->trashed()) {
+                    $user->restore();
+                }
                 $user->update([
                     'google_id' => $googleUser->getId(),
                     'avatar' => $googleUser->getAvatar(),

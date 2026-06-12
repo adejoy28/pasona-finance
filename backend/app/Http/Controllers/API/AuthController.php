@@ -33,17 +33,31 @@ class AuthController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+            'email' => 'required|string|email|max:255|unique:users,email,NULL,id,deleted_at,NULL',
             'password' => 'required|string|min:8|confirmed',
             'timezone' => 'sometimes|string|max:64',
         ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'timezone' => $request->timezone ?? 'Africa/Lagos',
-        ]);
+        // If the email belongs to a soft-deleted account, restore it
+        // instead of failing. The user is clearly the owner (they know
+        // the password), so this is a "welcome back" path.
+        $trashed = User::onlyTrashed()->where('email', $request->email)->first();
+        if ($trashed) {
+            $trashed->restore();
+            $trashed->update([
+                'name' => $request->name,
+                'password' => Hash::make($request->password),
+                'timezone' => $request->timezone ?? 'Africa/Lagos',
+            ]);
+            $user = $trashed;
+        } else {
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'timezone' => $request->timezone ?? 'Africa/Lagos',
+            ]);
+        }
 
         // Verification is opt-in: send the link but DON'T block the
         // response. The user can use the app immediately; the SPA
@@ -79,12 +93,17 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::withTrashed()->where('email', $request->email)->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
+        }
+
+        // Restore a previously soft-deleted account on successful login.
+        if ($user->trashed()) {
+            $user->restore();
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -153,6 +172,29 @@ class AuthController extends Controller
         $user->save();
 
         return response()->json($user);
+    }
+
+    /**
+     * Delete (soft-delete) the authenticated user and all related data.
+     *
+     * Revokes all API tokens, then soft-deletes transactions, accounts,
+     * categories, and finally the user themselves.  Sanctum's auth
+     * automatically rejects requests from soft-deleted users because the
+     * `SoftDeletes` global scope makes `find()` return null.
+     *
+     * @return JsonResponse
+     */
+    public function destroy(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $user->tokens()->delete();
+        $user->transactions()->delete();
+        $user->accounts()->delete();
+        $user->categories()->delete();
+        $user->delete();
+
+        return response()->json(['message' => 'Account deleted']);
     }
 
     /**

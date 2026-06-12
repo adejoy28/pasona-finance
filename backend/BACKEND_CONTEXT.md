@@ -32,7 +32,9 @@ backend/
 │   │   ├── User.php
 │   │   ├── Account.php
 │   │   ├── Category.php
-│   │   └── Transaction.php
+│   │   ├── Transaction.php
+│   │   ├── Announcement.php
+│   │   └── AnnouncementUser.php
 │   ├── Notifications/
 │   │   └── ResetPasswordNotification.php   (only used if you wire it up)
 │   ├── Policies/
@@ -42,7 +44,7 @@ backend/
 │   └── Providers/AppServiceProvider.php
 ├── config/         api, app, auth, cache, cors, database, filesystems, logging, mail, queue, sanctum, services, session
 ├── database/
-│   ├── migrations/   (8 files: users, cache, jobs, personal_access_tokens, accounts, categories, transactions, google_id addition)
+│   ├── migrations/   (11 files: +timezone, +reminder_announced_at, +announcements, +announcement_user)
 │   ├── seeders/      DatabaseSeeder, UserSeeder (john/jane); default categories are seeded per-user via the User::created event
 │   └── factories/    UserFactory
 ├── public/        docs.css, docs.js, index.php, .htaccess
@@ -53,7 +55,7 @@ backend/
 ├── routes/
 │   ├── api.php
 │   ├── web.php        (the docs site lives here)
-│   └── console.php
+│   └── console.php   (schedule: reminders, backup, announcements:send-due every minute)
 └── tests/Feature, tests/Unit (placeholders only)
 ```
 
@@ -103,11 +105,11 @@ backend/
 ## 5. Data model
 
 ### `users`
-- Fields: `id, name, email (unique), email_verified_at, password (nullable, hashed), google_id, avatar, reminder_time (default '21:10'), timezone (default 'Africa/Lagos'), reminder_last_sent_at (nullable), remember_token, timestamps`
-- Relations: `accounts()`, `categories()`, `transactions()` — all `hasMany`
+- Fields: `id, name, email (unique), email_verified_at, password (nullable, hashed), google_id, avatar, reminder_time (default '21:10'), timezone (default 'Africa/Lagos'), reminder_last_sent_at (nullable), reminder_announced_at (nullable), remember_token, timestamps`
+- Relations: `accounts()`, `categories()`, `transactions()` — all `hasMany`; `announcements()` — `belongsToMany`
 - Implements `MustVerifyEmail`. Custom `sendEmailVerificationNotification()` dispatches `App\Notifications\VerifyEmailNotification`. Custom `sendPasswordResetNotification($token)` dispatches `App\Notifications\ResetPasswordNotification`.
 - Uses `HasApiTokens` (Sanctum), `HasFactory`, `Notifiable`
-- Casts: `email_verified_at → datetime`, `reminder_last_sent_at → datetime`, `password → hashed`
+- Casts: `email_verified_at → datetime`, `reminder_last_sent_at → datetime`, `reminder_announced_at → datetime`, `password → hashed`
 
 ### `accounts`
 - Fields: `id, user_id, name, type (enum: bank|mobile|cash), starting_balance (decimal 15,2, default 0), notes (text nullable), timestamps`
@@ -194,7 +196,13 @@ backend/
 - **`SendTransactionReminder`** (`app/Jobs/SendTransactionReminder.php`): queues `App\Mail\TransactionReminderMail` to a single user's email, then stamps `users.reminder_last_sent_at = now()`. Re-checks the dedupe window at handle-time in case the command and another worker race. `$tries = 3`, `$backoff = 60`. `failed()` logs the user id and error.
 
 ## 8.1 Mailing system
-- **Three mail classes, all queued, all Markdown templates** in `resources/views/emails/`:
+- **Announcement system** — generic broadcast email tool for feature announcements. Create & schedule announcements from the CLI; the scheduler worker sends them:
+  - `announcement:schedule` — schedule a broadcast email. Usage:
+    - `php artisan announcement:schedule reminder-announcement --at="2026-06-11 18:00" --subject="Daily reminders are now live"`
+    - `php artisan announcement:schedule account-deletion --at="2026-06-12 10:00" --template="emails.account-deletion" --subject="Account deletion is here"`
+  - `announcements:send-due` — picks up due announcements every minute and mails them to users who haven't received that announcement yet. Tracks delivery in `announcement_user` pivot table.
+  - Tables: `announcements` (name, subject, template, template_vars, scheduled_at, sent_at), `announcement_user` (announcement_id, user_id, delivered_at)
+- **Five mail templates** in `resources/views/emails/`:
   - `verify-email.blade.php` — "Confirm your Pasona email" with the SPA confirm URL
   - `reset-password.blade.php` — "Reset your Pasona password" with the SPA reset URL
   - `transaction-reminder.blade.php` — "It's {reminder_time} — log today's transactions" with today's income/expense/account count baked in. Subject switches between the cold-open and a "Quick gut-check" variant when the user has already logged something today.

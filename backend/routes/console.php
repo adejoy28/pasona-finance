@@ -37,3 +37,20 @@ Schedule::command('db:backup')
     ->dailyAt('04:00')
     ->withoutOverlapping()
     ->runInBackground();
+
+/**
+ * Broadcast announcement worker.
+ *
+ * Checks the announcements table every minute for scheduled-at timestamps
+ * that are due. When found, it mails the Blade template to every user who
+ * hasn't already received it.
+ *
+ * To schedule an announcement:
+ *   php artisan announcement:schedule reminder-announcement --at="2026-06-11 18:00" --subject="Daily reminders are now live"
+ *   php artisan announcement:schedule account-deletion    --at="2026-06-12 10:00" --subject="Account deletion is now available"
+ */
+Schedule::command('announcements:send-due')
+    ->everyMinute()
+    ->withoutOverlapping(5)
+    ->onOneServer()
+    ->runInBackground();

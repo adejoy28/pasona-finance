@@ -68,6 +68,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Admin Secret Key
+    |--------------------------------------------------------------------------
+    |
+    | Used to protect the /admin/announce/* trigger URLs. Set a random string
+    | in .env as ADMIN_KEY and append ?key=... when visiting the URL.
+    |
+    */
+
+    'admin_key' => env('ADMIN_KEY'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
