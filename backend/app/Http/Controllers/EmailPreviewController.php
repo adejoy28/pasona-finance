@@ -26,6 +26,10 @@ class EmailPreviewController extends Controller
             'view'     => 'emails.welcome',
             'mailable' => WelcomeMail::class,
         ],
+        'reminder-announcement' => [
+            'label' => 'Reminder announcement',
+            'view'  => 'emails.reminder-announcement',
+        ],
         'verify-email' => [
             'label' => 'Verify email',
             'view'  => 'emails.verify-email',
@@ -38,6 +42,10 @@ class EmailPreviewController extends Controller
             'label'    => 'Transaction reminder',
             'view'     => 'emails.transaction-reminder',
             'mailable' => TransactionReminderMail::class,
+        ],
+        'democracy-day' => [
+            'label' => 'Democracy Day',
+            'view'  => 'emails.democracy_day',
         ],
     ];
 
@@ -121,6 +129,10 @@ class EmailPreviewController extends Controller
         ];
 
         return match ($template) {
+            'reminder-announcement' => $base + [
+                'firstName' => $first,
+                'settingsUrl' => $frontend . '/settings',
+            ],
             'welcome' => $base + [
                 'firstName'    => $first,
                 'email'        => $user->email,
@@ -147,6 +159,7 @@ class EmailPreviewController extends Controller
                 'appUrl'        => $frontend,
                 'addUrl'        => $frontend . '/transactions/new?from=reminder',
             ],
+            'democracy-day' => $base,
         };
     }
 

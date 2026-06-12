@@ -56,6 +56,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Auth
     Route::get('/me', [AuthController::class, 'me']);
     Route::patch('/me', [AuthController::class, 'updateProfile']);
+    Route::delete('/me', [AuthController::class, 'destroy']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // Email verification (resend / status)

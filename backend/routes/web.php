@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\EmailPreviewController;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -45,3 +46,35 @@ if (! app()->environment('production')) {
     Route::get('/email-preview', [EmailPreviewController::class, 'index'])->name('email-preview.index');
     Route::get('/email-preview/{template}', [EmailPreviewController::class, 'show'])->name('email-preview.show');
 }
+
+// Admin broadcast trigger — visit this URL in your browser to send an announcement.
+// Protect with ADMIN_KEY in .env. Example:
+//   https://your-site.com/admin/announce/reminder-announcement?key=your-secret
+Route::get('/admin/announce/{name}', function (string $name) {
+    $expected = config('app.admin_key');
+    if (! $expected || request('key') !== $expected) {
+        abort(404);
+    }
+
+    $template = "emails.{$name}";
+    if (! view()->exists($template)) {
+        return response("Template '{$template}' not found.", 404);
+    }
+
+    $frontend = rtrim((string) env('FRONTEND_URL', 'http://localhost:8080'), '/');
+
+    // Schedule + send immediately
+    Artisan::call('announcement:schedule', [
+        'name'      => $name,
+        '--at'      => now()->toDateTimeString(),
+        '--subject' => request('subject', 'New update from Pasona'),
+        '--template'=> $template,
+        '--vars'    => request('vars'),
+    ]);
+
+    Artisan::call('announcements:send-due');
+
+    $sent = Artisan::output();
+
+    return response("<h2>Announcement sent!</h2><pre>{$sent}</pre>");
+})->name('admin.announce');

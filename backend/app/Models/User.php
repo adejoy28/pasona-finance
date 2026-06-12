@@ -7,6 +7,8 @@ use App\Notifications\VerifyEmailNotification;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -28,7 +30,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -43,6 +45,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'avatar',
         'reminder_time',
         'timezone',
+        'reminder_announced_at',
     ];
 
     /**
@@ -63,9 +66,10 @@ class User extends Authenticatable implements MustVerifyEmail
     protected function casts(): array
     {
         return [
-            'email_verified_at'     => 'datetime',
-            'reminder_last_sent_at' => 'datetime',
-            'password'              => 'hashed',
+            'email_verified_at'      => 'datetime',
+            'reminder_last_sent_at'  => 'datetime',
+            'reminder_announced_at'  => 'datetime',
+            'password'               => 'hashed',
         ];
     }
 
@@ -143,6 +147,13 @@ class User extends Authenticatable implements MustVerifyEmail
         ['name' => 'Gifts', 'type' => 'income'],
         ['name' => 'Investment', 'type' => 'income'],
     ];
+
+    public function announcements(): BelongsToMany
+    {
+        return $this->belongsToMany(Announcement::class)
+            ->withPivot('delivered_at')
+            ->using(AnnouncementUser::class);
+    }
 
     /**
      * Boot the model.
