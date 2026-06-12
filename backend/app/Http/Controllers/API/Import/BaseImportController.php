@@ -24,6 +24,8 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 abstract class BaseImportController extends Controller
 {
@@ -43,20 +45,42 @@ abstract class BaseImportController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $userId = $request->user()->id;
+
+        $validator = Validator::make($request->all(), [
             'transactions'                        => 'required|array|min:1',
-            'transactions.*.account_id'           => 'required|exists:accounts,id',
+            'transactions.*.account_id'           => [
+                'required',
+                Rule::exists('accounts', 'id')->where('user_id', $userId),
+            ],
             'transactions.*.transaction_date'     => 'required|date',
             'transactions.*.amount'               => 'required|numeric|min:0',
             'transactions.*.type'                 => 'required|in:income,expense,transfer',
-            'transactions.*.to_account_id'        => 'nullable|exists:accounts,id',
+            'transactions.*.to_account_id'        => [
+                'nullable',
+                Rule::exists('accounts', 'id')->where('user_id', $userId),
+            ],
             'transactions.*.description'          => 'nullable|string|max:255',
             'transactions.*.category_id'          => 'nullable|exists:categories,id',
             'transactions.*.reference'            => 'nullable|string|max:255',
         ]);
 
-        $userId = $request->user()->id;
-        $now    = now();
+        $validator->after(function ($v) use ($request) {
+            foreach ($request->transactions as $i => $t) {
+                $type = $t['type'] ?? '';
+                if ($type === 'transfer') {
+                    if (empty($t['to_account_id'])) {
+                        $v->errors()->add("transactions.{$i}.to_account_id", 'Destination account is required for transfers.');
+                    } elseif ((int) $t['to_account_id'] === (int) $t['account_id']) {
+                        $v->errors()->add("transactions.{$i}.to_account_id", 'Source and destination accounts must be different.');
+                    }
+                }
+            }
+        });
+
+        $validator->validate();
+
+        $now = now();
 
         $rows = array_map(fn ($item) => array_merge($item, [
             'user_id'    => $userId,

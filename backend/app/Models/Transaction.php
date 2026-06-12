@@ -22,6 +22,8 @@ class Transaction extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $appends = ['display_label'];
+
     /**
      * Attributes that are mass assignable.
      * 
@@ -92,6 +94,23 @@ class Transaction extends Model
      * (e.g. legitimate retries) can pass `force` at the controller level
      * or simply not call this helper.
      */
+    public function getDisplayLabelAttribute(): string
+    {
+        if ($this->type === 'transfer') {
+            $from = $this->relationLoaded('account') ? $this->account->name : '?';
+            $to = $this->relationLoaded('toAccount') ? $this->toAccount->name : '?';
+            return "{$from} → {$to}";
+        }
+
+        $label = ucfirst($this->type);
+
+        if ($this->description) {
+            $label .= ": {$this->description}";
+        }
+
+        return $label;
+    }
+
     public static function isPotentialDuplicate(
         int $userId,
         string $transactionDate,
