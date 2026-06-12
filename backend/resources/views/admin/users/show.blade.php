@@ -60,6 +60,12 @@
                         <span style="font-size:0.75rem;color:#64748b;margin-left:0.375rem;">{{ $user->email_verified_at->format('M j, Y g:i A') }}</span>
                     @else
                         <span class="badge badge-warning">Unverified</span>
+                        <form method="POST" action="{{ route('admin.users.verify-email', $user->id) }}" class="inline" style="margin-top:0.5rem;">
+                            @csrf
+                            <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Send verification email to {{ $user->email }}?')">
+                                Send Verification Email
+                            </button>
+                        </form>
                     @endif
                 </dd>
                 <dt>Status</dt>
