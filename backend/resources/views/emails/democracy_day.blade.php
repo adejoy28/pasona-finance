@@ -17,8 +17,8 @@
 
             {{-- HERO --}}
             <tr>
-              <td background="{{ asset('img/national-flag.webp') }}"
-                style="background-color:#1e3a8a;background-image:url('{{ asset('img/national-flag.webp') }}');background-size:cover;background-position:center;color:#ffffff;border-radius:24px 24px 0 0;padding:0;">
+              <td background="{{ asset('img/national-flag.jpg') }}"
+                style="background-color:#1e3a8a;background-image:url('{{ asset('img/national-flag.jpg') }}');background-size:cover;background-position:center;color:#ffffff;border-radius:24px 24px 0 0;padding:0;">
 
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;background-color:rgba(30,58,138,0.72);border-radius:24px 24px 0 0;">
                   <tr>
