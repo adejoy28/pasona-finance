@@ -56,17 +56,17 @@
             <tbody>
                 @forelse ($logs as $log)
                     <tr>
-                        <td><span class="badge badge-active">{{ $log->email_type }}</span></td>
-                        <td>{{ $log->recipient_email }}</td>
-                        <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ $log->subject }}</td>
-                        <td>
+                        <td data-label="Type"><span class="badge badge-active">{{ $log->email_type }}</span></td>
+                        <td data-label="Recipient">{{ $log->recipient_email }}</td>
+                        <td data-label="Subject" style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ $log->subject }}</td>
+                        <td data-label="User">
                             @if ($log->user)
                                 <a href="{{ route('admin.users.show', $log->user->id) }}">{{ $log->user->name }}</a>
                             @else
                                 <span class="badge badge-neutral">&mdash;</span>
                             @endif
                         </td>
-                        <td style="font-size:0.8125rem;color:#94a3b8;">{{ $log->sent_at->diffForHumans() }}</td>
+                        <td data-label="Sent" style="font-size:0.8125rem;color:#94a3b8;">{{ $log->sent_at->diffForHumans() }}</td>
                     </tr>
                 @empty
                     <tr><td colspan="5" style="text-align:center;color:#64748b;padding:2rem;">No emails logged yet.</td></tr>
