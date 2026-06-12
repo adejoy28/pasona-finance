@@ -246,12 +246,12 @@
                         <table>
                             <thead><tr><th>Type</th><th>Sent</th></tr></thead>
                             <tbody>
-                                @foreach ($emailLogs as $log)
-                                    <tr>
-                                        <td><span class="badge badge-active">{{ $log->email_type }}</span></td>
-                                        <td style="font-size:0.8125rem;color:#94a3b8;">{{ $log->sent_at->diffForHumans() }}</td>
-                                    </tr>
-                                @endforeach
+                            @foreach ($emailLogs as $log)
+                                <tr>
+                                    <td data-label="Type"><span class="badge badge-active">{{ $log->email_type }}</span></td>
+                                    <td data-label="Sent" style="font-size:0.8125rem;color:#94a3b8;">{{ $log->sent_at->diffForHumans() }}</td>
+                                </tr>
+                            @endforeach
                             </tbody>
                         </table>
                     </div>

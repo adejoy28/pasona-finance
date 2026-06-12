@@ -63,17 +63,17 @@
             <tbody>
                 @forelse ($recentUsers as $user)
                     <tr>
-                        <td>{{ $user->name }}</td>
-                        <td>{{ $user->email }}</td>
-                        <td>
+                        <td data-label="Name">{{ $user->name }}</td>
+                        <td data-label="Email">{{ $user->email }}</td>
+                        <td data-label="Verified">
                             @if ($user->hasVerifiedEmail())
                                 <span class="badge badge-success">Verified</span>
                             @else
                                 <span class="badge badge-warning">Unverified</span>
                             @endif
                         </td>
-                        <td>{{ $user->created_at->diffForHumans() }}</td>
-                        <td><a href="{{ route('admin.users.show', $user->id) }}">View</a></td>
+                        <td data-label="Joined">{{ $user->created_at->diffForHumans() }}</td>
+                        <td data-label="Action"><a href="{{ route('admin.users.show', $user->id) }}">View</a></td>
                     </tr>
                 @empty
                     <tr><td colspan="5" style="text-align:center;color:#64748b;padding:2rem;">No users yet.</td></tr>

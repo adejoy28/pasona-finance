@@ -54,38 +54,38 @@
             <tbody>
                 @forelse ($users as $user)
                     <tr>
-                        <td>{{ $user->name }}</td>
-                        <td>{{ $user->email }}</td>
-                        <td>
+                        <td data-label="Name">{{ $user->name }}</td>
+                        <td data-label="Email">{{ $user->email }}</td>
+                        <td data-label="Verified">
                             @if ($user->hasVerifiedEmail())
                                 <span class="badge badge-success">Yes</span>
                             @else
                                 <span class="badge badge-warning">No</span>
                             @endif
                         </td>
-                        <td>
+                        <td data-label="Admin">
                             @if ($user->is_admin)
                                 <span class="badge badge-success">Yes</span>
                             @else
                                 <span class="badge badge-neutral">No</span>
                             @endif
                         </td>
-                        <td>
+                        <td data-label="Last Active">
                             @if ($user->last_transaction_date)
                                 <span class="badge badge-active">{{ \Carbon\Carbon::parse($user->last_transaction_date)->diffForHumans() }}</span>
                             @else
                                 <span class="badge badge-neutral">Never</span>
                             @endif
                         </td>
-                        <td>{{ $user->created_at->format('M j, Y') }}</td>
-                        <td>
+                        <td data-label="Joined">{{ $user->created_at->format('M j, Y') }}</td>
+                        <td data-label="Status">
                             @if ($user->trashed())
                                 <span class="badge badge-danger">Deleted</span>
                             @else
                                 <span class="badge badge-success">Active</span>
                             @endif
                         </td>
-                        <td><a href="{{ route('admin.users.show', $user->id) }}">View</a></td>
+                        <td data-label="Action"><a href="{{ route('admin.users.show', $user->id) }}">View</a></td>
                     </tr>
                 @empty
                     <tr><td colspan="8" style="text-align:center;color:#64748b;padding:2rem;">No users found.</td></tr>
