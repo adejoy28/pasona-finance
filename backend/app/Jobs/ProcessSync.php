@@ -8,6 +8,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use App\Models\Transaction;
 
 class ProcessSync implements ShouldQueue
@@ -53,6 +54,17 @@ class ProcessSync implements ShouldQueue
 
                 Transaction::insert($inserts);
             });
+        }
+
+        // Bust caches for all affected users. ProcessSync handles bulk
+        // offline sync which may span multiple users (though typically
+        // one). Each user's account balances and monthly summary are now
+        // stale and must be recomputed on next request.
+        $userIds = array_unique(array_column($this->transactions, 'user_id'));
+        $monthKey = now()->format('Y-m');
+        foreach ($userIds as $uid) {
+            Cache::forget("user:{$uid}:accounts:balances");
+            Cache::forget("user:{$uid}:summary:{$monthKey}");
         }
     }
 

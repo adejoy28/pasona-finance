@@ -45,6 +45,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'avatar',
         'reminder_time',
         'timezone',
+        'currency',
         'reminder_announced_at',
     ];
 

@@ -34,7 +34,7 @@ class AppServiceProvider extends ServiceProvider
         // Set DESTRUCTIVE_COMMANDS_ALLOWED=true in .env to run rollbacks,
         // fresh, wipe, etc. against the configured database. This prevents
         // accidental data loss (e.g. an AI agent running migrate:rollback
-        // against Supabase when the .env points at production).
+        // against production when the .env points at the live database).
         Event::listen(CommandStarting::class, function (CommandStarting $event) {
             $destructive = [
                 'migrate:rollback',

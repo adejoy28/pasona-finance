@@ -12,6 +12,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -97,6 +98,12 @@ class TransactionController extends Controller
         }
 
         $transaction = $request->user()->transactions()->create($validated);
+
+        // Bust account balances (this transaction affects the source account's
+        // balance) and summary cache (monthly income/expense totals change).
+        $userId = $request->user()->id;
+        Cache::forget("user:{$userId}:accounts:balances");
+        Cache::forget("user:{$userId}:summary:" . now()->format('Y-m'));
 
         return response()->json($transaction, 201);
     }
@@ -191,6 +198,11 @@ class TransactionController extends Controller
 
         $transaction->update($validated);
 
+        // Bust both caches — amount/type/account changes affect balances and summary.
+        $userId = $request->user()->id;
+        Cache::forget("user:{$userId}:accounts:balances");
+        Cache::forget("user:{$userId}:summary:" . now()->format('Y-m'));
+
         return response()->json($transaction);
     }
 
@@ -201,6 +213,11 @@ class TransactionController extends Controller
     {
         $this->authorize('delete', $transaction);
         $transaction->delete();
+
+        // Bust both caches — balance returns to pre-transaction state.
+        $userId = $transaction->user_id;
+        Cache::forget("user:{$userId}:accounts:balances");
+        Cache::forget("user:{$userId}:summary:" . now()->format('Y-m'));
 
         return response()->json(null, 204);
     }
