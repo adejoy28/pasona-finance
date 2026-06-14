@@ -23,6 +23,7 @@ use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -96,6 +97,9 @@ abstract class BaseImportController extends Controller
             }
         });
 
+        Cache::forget("user:{$userId}:accounts:balances");
+        Cache::forget("user:{$userId}:summary:" . now()->format('Y-m'));
+
         return response()->json([
             'message' => 'Successfully imported ' . count($rows) . ' transactions.',
         ], 201);
@@ -104,6 +108,9 @@ abstract class BaseImportController extends Controller
     /**
      * Build the preview response: dedupe → decorate → return.
      * Subclasses call this from their public preview() after validating input.
+     *
+     * Passes the target account_id to fetchExisting() so the duplicate
+     * fingerprint includes the account — matching Transaction::isPotentialDuplicate().
      */
     protected function buildPreviewResponse(Request $request, array $rows)
     {
@@ -111,7 +118,8 @@ abstract class BaseImportController extends Controller
             return response()->json(['message' => 'No valid transactions found in file.'], 422);
         }
 
-        $existing = $this->fetchExisting($rows, $request->user()->id);
+        $accountId = (int) $request->account_id;
+        $existing = $this->fetchExisting($rows, $request->user()->id, $accountId);
 
         $preview = array_map(
             fn ($row) => $this->decoratePreviewRow($row, $existing, $request),
@@ -124,25 +132,34 @@ abstract class BaseImportController extends Controller
     /**
      * Add account_id + duplicate flag to a preview row.
      * Override to add bank-specific fields (e.g. transfer_suggestion).
+     *
+     * The duplicate key now includes account_id so that the same amount
+     * on a different account is NOT flagged as a duplicate — matching
+     * the manual-entry behaviour in TransactionController::store.
      */
     protected function decoratePreviewRow(array $row, Collection $existing, Request $request): array
     {
-        return array_merge($row, [
-            'account_id'   => $request->account_id,
-            'is_duplicate' => $existing->has($this->duplicateKey($row)),
+        $rowWithAccount = array_merge($row, ['account_id' => $request->account_id]);
+
+        return array_merge($rowWithAccount, [
+            'is_duplicate' => $existing->has($this->duplicateKey($rowWithAccount)),
         ]);
     }
 
     /**
      * Build a lookup set of existing transactions for duplicate detection.
-     * Key format: "YYYY-MM-DD:type:amount"
      *
-     * One query for the whole batch — builds a set of (date, type, amount) keys
-     * that already exist for this user, then each preview row checks the set.
+     * Key format: "YYYY-MM-DD:type:amount:account_id"
+     *
+     * One query for the whole batch — builds a set of (date, type, amount, account_id)
+     * keys that already exist for this user+account, then each preview row
+     * checks the set. This matches Transaction::isPotentialDuplicate() which
+     * uses (user_id, transaction_date, type, amount, account_id).
      */
-    protected function fetchExisting(array $parsed, int $userId): Collection
+    protected function fetchExisting(array $parsed, int $userId, int $accountId): Collection
     {
         $existing = Transaction::where('user_id', $userId)
+            ->where('account_id', $accountId)
             ->where(function ($q) use ($parsed) {
                 foreach ($parsed as $p) {
                     $q->orWhere(function ($sub) use ($p) {
@@ -152,20 +169,23 @@ abstract class BaseImportController extends Controller
                     });
                 }
             })
-            ->select(['transaction_date', 'type', 'amount'])
+            ->select(['transaction_date', 'type', 'amount', 'account_id'])
             ->get();
 
         return $existing->mapWithKeys(
-            fn ($t) => [$this->duplicateKey($t) => true]
+            fn ($t) => [$this->duplicateKey($t->toArray()) => true]
         );
     }
 
     /**
      * Build the duplicate-detection key for a row or Transaction model.
+     *
+     * Includes account_id so that the same amount on a different account
+     * is not treated as a duplicate — aligning with Transaction::isPotentialDuplicate().
      */
     protected function duplicateKey(array $row): string
     {
-        return $row['transaction_date'].':'.$row['type'].':'.(string) $row['amount'];
+        return $row['transaction_date'].':'.$row['type'].':'.(string) $row['amount'].':'.(string) ($row['account_id'] ?? '');
     }
 
     /**

@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
 /**
@@ -23,60 +24,76 @@ class SummaryController extends Controller
 {
     /**
      * Get the dashboard summary data.
-     * 
+     *
+     * Cached for 60 seconds under "user:{id}:summary:{YYYY-MM}". The key
+     * includes the current month so it auto-rolls on month boundary. TTL
+     * is short (60s) because the summary is the highest-latency read in
+     * the app (3 aggregate queries + accounts list) but changes frequently
+     * during active use. Cache is busted on every transaction/account write.
+     *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function index(Request $request)
     {
         $user = $request->user();
-        $startOfMonth = Carbon::now()->startOfMonth();
-        $endOfMonth = Carbon::now()->endOfMonth();
+        $monthKey = now()->format('Y-m');
+        $key = "user:{$user->id}:summary:{$monthKey}";
 
-        // 1. Account Balances — single batched query instead of N+1.
-        $accounts = $user->accounts;
-        $balances = Account::balancesFor($user->id, $accounts->pluck('id')->all());
-        $accounts->each(function ($account) use ($balances) {
-            $account->setAttribute('balance', $balances[$account->id] ?? 0.0);
-            $account->append('balance');
-        });
-        $totalBalance = array_sum($balances);
+        // Cache the entire summary payload. On cache miss, runs 4 queries:
+        // accounts list, balances batch, monthly income sum, monthly expense sum,
+        // plus the category breakdown. On hit, returns instantly.
+        $payload = Cache::remember($key, now()->addSeconds(60), function () use ($user) {
+            $startOfMonth = Carbon::now()->startOfMonth();
+            $endOfMonth = Carbon::now()->endOfMonth();
 
-        // 2. Monthly Income vs Expense
-        $monthlyIncome = $user->transactions()
-            ->where('type', 'income')
-            ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
-            ->sum('amount');
-
-        $monthlyExpense = $user->transactions()
-            ->where('type', 'expense')
-            ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
-            ->sum('amount');
-
-        // 3. Category Breakdown (Expenses)
-        $categoryBreakdown = $user->transactions()
-            ->where('type', 'expense')
-            ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
-            ->select('category_id', \DB::raw('SUM(amount) as total'))
-            ->groupBy('category_id')
-            ->with('category')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'category_name' => $item->category ? $item->category->name : 'Uncategorized',
-                    'total' => $item->total,
-                ];
+            // 1. Account Balances — single batched query instead of N+1.
+            $accounts = $user->accounts;
+            $balances = Account::balancesFor($user->id, $accounts->pluck('id')->all());
+            $accounts->each(function ($account) use ($balances) {
+                $account->setAttribute('balance', $balances[$account->id] ?? 0.0);
+                $account->append('balance');
             });
+            $totalBalance = array_sum($balances);
 
-        return response()->json([
-            'total_balance' => $totalBalance,
-            'accounts' => $accounts,
-            'monthly_summary' => [
-                'income' => $monthlyIncome,
-                'expense' => $monthlyExpense,
-                'net' => $monthlyIncome - $monthlyExpense,
-            ],
-            'category_breakdown' => $categoryBreakdown,
-        ]);
+            // 2. Monthly Income vs Expense
+            $monthlyIncome = $user->transactions()
+                ->where('type', 'income')
+                ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
+                ->sum('amount');
+
+            $monthlyExpense = $user->transactions()
+                ->where('type', 'expense')
+                ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
+                ->sum('amount');
+
+            // 3. Category Breakdown (Expenses)
+            $categoryBreakdown = $user->transactions()
+                ->where('type', 'expense')
+                ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
+                ->select('category_id', \DB::raw('SUM(amount) as total'))
+                ->groupBy('category_id')
+                ->with('category')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'category_name' => $item->category ? $item->category->name : 'Uncategorized',
+                        'total' => $item->total,
+                    ];
+                });
+
+            return [
+                'total_balance' => $totalBalance,
+                'accounts' => $accounts,
+                'monthly_summary' => [
+                    'income' => $monthlyIncome,
+                    'expense' => $monthlyExpense,
+                    'net' => $monthlyIncome - $monthlyExpense,
+                ],
+                'category_breakdown' => $categoryBreakdown,
+            ];
+        });
+
+        return response()->json($payload);
     }
 }

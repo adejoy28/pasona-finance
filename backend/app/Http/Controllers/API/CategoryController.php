@@ -11,6 +11,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 
 /**
@@ -22,13 +23,25 @@ class CategoryController extends Controller
 {
     /**
      * List all categories for the user (including default system categories).
-     * 
+     *
+     * Cached for 1 hour under "user:{id}:categories". The cache is busted
+     * explicitly on every write (store/update/destroy) so stale data is
+     * never served after a mutation.
+     *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function index(Request $request)
     {
-        $categories = $request->user()->categories()->get();
+        $user = $request->user();
+
+        // Cache::remember returns the cached value or executes the closure,
+        // stores the result, and returns it. TTL is 1 hour.
+        $categories = Cache::remember(
+            "user:{$user->id}:categories",
+            now()->addHour(),
+            fn () => $user->categories()->get()
+        );
 
         return response()->json($categories);
     }
@@ -57,6 +70,11 @@ class CategoryController extends Controller
             'name' => $validated['name'],
             'type' => $validated['type'],
         ]);
+
+        // Bust category cache (list changed) and summary cache (category
+        // breakdown may have changed if this category already had transactions).
+        Cache::forget("user:{$request->user()->id}:categories");
+        Cache::forget("user:{$request->user()->id}:summary:" . now()->format('Y-m'));
 
         return response()->json($category, 201);
     }
@@ -93,6 +111,9 @@ class CategoryController extends Controller
 
         $category->update($validated);
 
+        // Bust category cache — the name/type may have changed.
+        Cache::forget("user:{$request->user()->id}:categories");
+
         return response()->json($category);
     }
 
@@ -104,6 +125,10 @@ class CategoryController extends Controller
         $this->authorize('delete', $category);
 
         $category->delete();
+
+        // Bust both caches — category list shrinks and summary breakdown changes.
+        Cache::forget("user:{$category->user_id}:categories");
+        Cache::forget("user:{$category->user_id}:summary:" . now()->format('Y-m'));
 
         return response()->json(null, 204);
     }

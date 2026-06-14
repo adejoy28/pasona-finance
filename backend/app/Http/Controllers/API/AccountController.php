@@ -11,6 +11,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 
 /**
@@ -22,20 +23,32 @@ class AccountController extends Controller
 {
     /**
      * List all accounts for the authenticated user with their calculated balances.
-     * 
+     *
+     * Cached for 1 hour under "user:{id}:accounts:balances". The cache
+     * includes both the account list and their computed balances so the
+     * dashboard can render in a single round-trip. Cache is busted on
+     * every write: account CRUD (this controller) and transaction writes
+     * (TransactionController, ImportController, ProcessSync job) because
+     * transactions change account balances.
+     *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function index(Request $request)
     {
         $user = $request->user();
-        $accounts = $user->accounts;
+        $key = "user:{$user->id}:accounts:balances";
 
-        $balances = Account::balancesFor($user->id, $accounts->pluck('id')->all());
-
-        $accounts->each(function ($account) use ($balances) {
-            $account->setAttribute('balance', $balances[$account->id] ?? 0.0);
-            $account->append('balance');
+        // Cache the entire accounts-with-balances payload. The closure
+        // runs only on cache miss — typically once per hour per user.
+        $accounts = Cache::remember($key, now()->addHour(), function () use ($user) {
+            $accounts = $user->accounts;
+            $balances = Account::balancesFor($user->id, $accounts->pluck('id')->all());
+            $accounts->each(function ($account) use ($balances) {
+                $account->setAttribute('balance', $balances[$account->id] ?? 0.0);
+                $account->append('balance');
+            });
+            return $accounts;
         });
 
         return response()->json($accounts);
@@ -57,11 +70,17 @@ class AccountController extends Controller
                 Rule::unique('accounts', 'name')->where('user_id', $request->user()->id),
             ],
             'type' => 'required|in:bank,mobile,cash',
+            'currency' => 'required|string|size:3|alpha:alpha',
             'starting_balance' => 'required|numeric',
             'notes' => 'nullable|string',
         ]);
 
         $account = $request->user()->accounts()->create($validated);
+
+        // Bust accounts cache (new account added) and summary cache
+        // (total_balance changes when a new account with starting_balance appears).
+        Cache::forget("user:{$request->user()->id}:accounts:balances");
+        Cache::forget("user:{$request->user()->id}:summary:" . now()->format('Y-m'));
 
         return response()->json($account, 201);
     }
@@ -101,11 +120,16 @@ class AccountController extends Controller
                     ->ignore($account->id),
             ],
             'type' => 'sometimes|required|in:bank,mobile,cash',
+            'currency' => 'sometimes|required|string|size:3|alpha:alpha',
             'starting_balance' => 'sometimes|required|numeric',
             'notes' => 'nullable|string',
         ]);
 
         $account->update($validated);
+
+        // Bust accounts cache (name/type/balance changed) and summary cache.
+        Cache::forget("user:{$request->user()->id}:accounts:balances");
+        Cache::forget("user:{$request->user()->id}:summary:" . now()->format('Y-m'));
 
         return response()->json($account);
     }
@@ -120,6 +144,10 @@ class AccountController extends Controller
     {
         $this->authorize('delete', $account);
         $account->delete();
+
+        // Bust both caches — account removed, total_balance and list change.
+        Cache::forget("user:{$account->user_id}:accounts:balances");
+        Cache::forget("user:{$account->user_id}:summary:" . now()->format('Y-m'));
 
         return response()->json(null, 204);
     }
