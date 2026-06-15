@@ -5,6 +5,7 @@
 - **Laravel Sanctum 4** — bearer-token API auth (no SPA cookie flow currently)
 - **Laravel Socialite 5** — Google OAuth
 - **SQLite** for local dev / **PostgreSQL** configured (the `.env` is set to `pgsql` pointing at a local PostgreSQL instance at `127.0.0.1:5432`)
+- **Cache driver:** `redis` via `predis/predis` (pure-PHP, no extension required). Falls back to `file` on shared cPanel. `failover` store configured as `['redis', 'file']`.
 - **Queue driver: `database`** (uses the `jobs` table, processed by `php artisan queue:listen`)
 - **Mail driver: `resend`** (Resend API via `RESEND_API_KEY`; `config/mail.php` defaults to `log` as fallback)
 - **Frontend assets:** Vite, but the actual docs site ships pre-built CSS/JS in `public/css/docs.css` and `public/js/docs.js` (no live Vite serving needed)
@@ -158,7 +159,7 @@ Only registered when `APP_ENV !== 'production'`. Previews: welcome, verify-email
 ## 5. Data model
 
 ### `users`
-- Fields: `id, name, email (unique), email_verified_at, password (nullable, hashed), google_id, avatar, reminder_time (default '21:10'), timezone (default 'Africa/Lagos'), reminder_last_sent_at (nullable), reminder_announced_at (nullable), is_admin (bool, default false), remember_token, timestamps`
+- Fields: `id, name, email (unique), email_verified_at, password (nullable, hashed), google_id, avatar, reminder_time (default '21:10'), timezone (default 'Africa/Lagos'), currency (varchar(3), default 'NGN'), reminder_last_sent_at (nullable), reminder_announced_at (nullable), is_admin (bool, default false), remember_token, timestamps`
 - Soft deletes: `deleted_at` (nullable)
 - Relations: `accounts()`, `categories()`, `transactions()` — all `hasMany`; `announcements()` — `belongsToMany`
 - Implements `MustVerifyEmail`. Custom `sendEmailVerificationNotification()` dispatches `App\Notifications\VerifyEmailNotification`. Custom `sendPasswordResetNotification($token)` dispatches `App\Notifications\ResetPasswordNotification`.
@@ -168,12 +169,12 @@ Only registered when `APP_ENV !== 'production'`. Previews: welcome, verify-email
 - `is_admin` grants access to the admin panel (`/admin/*`). No API-level admin roles exist.
 
 ### `accounts`
-- Fields: `id, user_id, name, type (enum: bank|mobile|cash), starting_balance (decimal 15,2, default 0), notes (text nullable), timestamps`
+- Fields: `id, user_id, name, type (enum: bank|mobile|cash), currency (varchar(3), default 'NGN'), starting_balance (decimal 15,2, default 0), notes (text nullable), timestamps`
 - Soft deletes: `deleted_at` (nullable)
 - Relations: `user()` (belongsTo), `transactions()` (hasMany), `receivedTransfers()` (hasMany via `to_account_id`)
 - Unique key on `(user_id, name)` — enforced via migration `2026_06_04_120000`.
 - **Batched balance accessor `balancesFor()`** at `Account.php:117`: runs a single UNION ALL query for all accounts (debits from source + credits to destination), then adds `starting_balance`. Replaces the old per-account N+1 accessor.
-- **Legacy accessor `getBalanceAttribute()`** still exists at `Account.php:79` for single-account views (`show()` endpoint). Issues 4 queries per call.
+- **Legacy accessor `getBalanceAttribute()`** still exists at `Account.php:79` for single-account views (`show()` endpoint). Runs 1 query per call (optimized from 4 in earlier version).
 - **Cascades on delete** with user.
 
 ### `categories`
@@ -216,6 +217,7 @@ Only registered when `APP_ENV !== 'production'`. Previews: welcome, verify-email
 - Common rules:
   - `name` → `required|string|max:255`
   - `type` → `required|in:...` (enum-validated)
+  - `currency` → `required|string|size:3|alpha:alpha` (3-letter ISO 4217 code; required on account create, optional on update)
   - `starting_balance` / `amount` → `required|numeric`
   - `email` → `required|email|unique:users` (register only; uses `Rule::unique()->ignore()` for updates)
   - `password` → `required|string|min:8|confirmed`
@@ -234,33 +236,34 @@ Only registered when `APP_ENV !== 'production'`. Previews: welcome, verify-email
 - `login` (93-117): validates credentials (supports `withTrashed()`), restores trashed accounts on success, mints token, returns `{access_token, token_type, user}`.
 - `logout` (125-133): deletes only the current token.
 - `me` (141-144): returns `$request->user()`.
-- `updateProfile` (153-187): validates optional fields (`name`, `reminder_time`, `timezone`, `password`), saves only provided fields. Setting `reminder_time` to null disables daily reminders.
+- `updateProfile` (153-187): validates optional fields (`name`, `reminder_time`, `timezone`, `currency`, `password`), saves only provided fields. Setting `reminder_time` to null disables daily reminders.
 - `destroy` (195-208): soft-deletes everything — revokes tokens → transactions → accounts → categories → user.
 - `checkEmail` (219-236): validates email, returns `{ available: bool }`. Rate-limited per IP via `check-email` named limiter (30/min). Always returns same 200 shape to prevent user enumeration.
 
 ### `AccountController` (`AccountController.php`)
-- `index` (29-40): `$user->accounts` + `Account::balancesFor()` (single batched query) + appends `balance` to each. **No pagination** — could become large.
-- `store` (48-60): validates with `Rule::unique('accounts', 'name')->where('user_id', ...)` and creates account owned by user. Returns 201.
-- `show` (68-73): `authorize('view')` + appends `balance` (uses per-account `getBalanceAttribute()` accessor).
-- `update` (81-97): `authorize('update')` + validates optional fields with unique-ignore rule.
-- `destroy` (104-110): `authorize('delete')` + soft-delete. **Cascades** to all transactions on that account (per migration FK).
+- `index` (29-46): **Cached** for 1h under `user:{id}:accounts:balances`. Returns `$user->accounts` + `Account::balancesFor()` (single batched query) + appends `balance` to each. Cache busted on every account/transaction write. **No pagination** — could become large.
+- `store` (54-74): validates with `Rule::unique('accounts', 'name')->where('user_id', ...)` and `currency` (`required|string|size:3|alpha:alpha`). Creates account owned by user. Busts accounts + summary cache. Returns 201.
+- `show` (82-87): `authorize('view')` + appends `balance` (uses per-account `getBalanceAttribute()` accessor).
+- `update` (95-122): `authorize('update')` + validates optional fields including `currency` with unique-ignore rule. Busts accounts + summary cache.
+- `destroy` (128-140): `authorize('delete')` + soft-delete. Busts accounts + summary cache. **Cascades** to all transactions on that account (per migration FK).
 
 ### `CategoryController` (`CategoryController.php`)
-- `index`: returns `$request->user()->categories()->get()`.
-- `store`: validates with `Rule::unique('categories', 'name')->where('user_id', ...)->where('type', ...)` and creates category owned by the user. Returns 201.
-- `show`/`update`/`destroy`: all call `authorize`. Duplicate prevention is enforced by the DB unique key and the validation rule — not by a default flag.
+- `index`: **Cached** for 1h under `user:{id}:categories`. Returns `$request->user()->categories()->get()`. Cache busted on store/update/destroy.
+- `store`: validates with `Rule::unique('categories', 'name')->where('user_id', ...)->where('type', ...)` and creates category owned by the user. Busts categories + summary cache. Returns 201.
+- `show`/`update`/`destroy`: all call `authorize`. `update` and `destroy` bust categories cache; `destroy` also busts summary cache. Duplicate prevention is enforced by the DB unique key and the validation rule — not by a default flag.
 
 ### `TransactionController` (`TransactionController.php`)
 - `index` (32-48): eager-loads `account`, `toAccount`, `category`; orders by `transaction_date DESC, created_at DESC`; paginates 50. Supports `account_id` filter (shows both source and destination transactions for the account).
-- `store` (56-102):
+- `store` (56-106):
   - Returns 403 if user has zero accounts.
   - Validates `account_id` and `to_account_id` with ownership-scoped `Rule::exists`.
   - Validates `to_account_id` is `required_if:type,transfer`, `different:account_id`.
   - Duplicate detection at 85-92: same user + same date + same type + same amount + same `account_id` ⇒ returns 409 `{message: "Potential duplicate detected.", is_duplicate: true}`. Bypass with `"force": true`.
-- `sync` (110-154): uses `Validator::make` with `after()` callbacks for per-row transfer validation. Stamps `user_id` and `is_synced = true` on every row, then `ProcessSync::dispatch($transactions)`. The job runs asynchronously.
+  - **Busts accounts + summary cache** after successful create.
+- `sync` (110-154): uses `Validator::make` with `after()` callbacks for per-row transfer validation. Stamps `user_id` and `is_synced = true` on every row, then `ProcessSync::dispatch($transactions)`. The job runs asynchronously and busts caches per affected user.
 - `show` (159-163): eager-loads relations.
-- `update` (168-194): validates with ownership-scoped rules + transfer validation.
-- `destroy` (200-206): `authorize` + soft-delete.
+- `update` (168-203): validates with ownership-scoped rules + transfer validation. Busts accounts + summary cache.
+- `destroy` (200-219): `authorize` + soft-delete. Busts accounts + summary cache.
 
 ### `ImportController` (`Import/ImportController.php`)
 - Extends `BaseImportController`. Implements `parseRows()` for generic CSV format.
@@ -279,18 +282,19 @@ Only registered when `APP_ENV !== 'production'`. Previews: welcome, verify-email
 
 ### `BaseImportController` (`Import/BaseImportController.php`)
 - Abstract base class for all import controllers.
-- `store` (46-91): validates with ownership-scoped `Rule::exists`, `Validator::after()` for per-row transfer checks (`required_if:type,transfer`, `different:account_id`). Wraps inserts in `DB::transaction` with 100-row chunks.
-- `buildPreviewResponse` (84-98): deduplicates → decorates → returns preview.
-- `fetchExisting` (119-137): builds a lookup set of `(date, type, amount)` keys in a single query, then each preview row checks the set.
+- `store` (46-105): validates with ownership-scoped `Rule::exists`, `Validator::after()` for per-row transfer checks (`required_if:type,transfer`, `different:account_id`). Wraps inserts in `DB::transaction` with 100-row chunks. **Busts accounts + summary cache** per affected user after insert.
+- `buildPreviewResponse` (112-126): deduplicates → decorates → returns preview. Passes `account_id` to `fetchExisting()` for unified fingerprint.
+- `fetchExisting` (147-165): builds a lookup set of `(date, type, amount, account_id)` keys in a single query (filtered by `account_id`), then each preview row checks the set. **Now matches `Transaction::isPotentialDuplicate()`** — same 5-column fingerprint.
+- `duplicateKey` (170-173): builds `"YYYY-MM-DD:type:amount:account_id"` string key. Includes `account_id` so the same amount on a different account is not flagged.
 - `parseDate` (182-197): wraps `Carbon::parse` in try/catch, **logs warning and falls back to today's date** on failure (known data corruption risk — documented in `KUDA_IMPORT_SETUP.md`).
 
 ### `SummaryController` (`SummaryController.php`)
 - `index` (29-81):
+  - **Cached** for 60s under `user:{id}:summary:{YYYY-MM}`. Key includes month for auto-roll. Cache busted on every transaction/account/category write.
   - `accounts` — collects all, uses `Account::balancesFor()` (single batched query), sums to `totalBalance`.
   - `monthly_summary.income` / `.expense` — single SUM queries scoped to current calendar month.
   - `monthly_summary.net = income - expense`.
   - `category_breakdown` — `groupBy('category_id')` joined with category, falls back to `"Uncategorized"` when `category_id` is null.
-- No caching; recalculated on every dashboard load.
 
 ### `SocialAuthController` (`SocialAuthController.php`)
 - `redirectToGoogle` (17-22): returns `{url: ...}` JSON — frontend navigates the user.
@@ -322,7 +326,7 @@ Only registered when `APP_ENV !== 'production'`. Previews: welcome, verify-email
 - Previews: welcome, verify-email, reset-password, transaction-reminder, reminder-announcement, democracy-day.
 
 ## 8. Jobs
-- **`ProcessSync`** (`app/Jobs/ProcessSync.php`): receives an array, validates `user_id` presence on each row, chunks to 100, wraps each chunk in `DB::transaction`. `uniqueInBatch()` deduplicates within the batch. `filterExistingInDb()` runs a single bulk SELECT to exclude existing transactions. Bulk `Transaction::insert()` for performance.
+- **`ProcessSync`** (`app/Jobs/ProcessSync.php`): receives an array, validates `user_id` presence on each row, chunks to 100, wraps each chunk in `DB::transaction`. `uniqueInBatch()` deduplicates within the batch. `filterExistingInDb()` runs a single bulk SELECT to exclude existing transactions. Bulk `Transaction::insert()` for performance. **Busts accounts + summary cache** per affected user after all chunks are inserted.
 - **`SendTransactionReminder`** (`app/Jobs/SendTransactionReminder.php`): queues `App\Mail\TransactionReminderMail` to a single user's email, then stamps `users.reminder_last_sent_at = now()`. Re-checks the dedupe window at handle-time in case the command and another worker race. `$tries = 3`, `$backoff = 60`. `failed()` logs the user id and error.
 
 ## 8.1 Mailing system
@@ -364,7 +368,7 @@ Only registered when `APP_ENV !== 'production'`. Previews: welcome, verify-email
 - Time window: current calendar month (`Carbon::now()->startOfMonth()` → `endOfMonth()`).
 - **All accounts loaded via `Account::balancesFor()`** — single batched UNION ALL query instead of per-account N+1. Adds `starting_balance` in PHP.
 - `category_breakdown` runs a grouped `select(category_id, SUM(amount))` then maps. Null `category_id` rows produce a row with `category_name = "Uncategorized"`.
-- No caching; recalculated on every dashboard load.
+- **Cached** for 60s under `user:{id}:summary:{YYYY-MM}`. Cache busted on every transaction/account/category write. On cache miss, runs 4 queries (accounts, balances, income sum, expense sum) plus category breakdown.
 
 ## 11. Config (key points)
 - **`config/api.php`**: `base_url` → `env('API_BASE_URL', '/api')`, `name` → `env('API_DISPLAY_NAME', 'Pasona Finance Tracker API')`, `version` → `v1`. Surfaced in docs via `config('api.base_url')`.
@@ -379,6 +383,7 @@ Only registered when `APP_ENV !== 'production'`. Previews: welcome, verify-email
 ## 12. `.env` (current values)
 - `APP_ENV=local`, `APP_DEBUG=true`
 - `DB_CONNECTION=pgsql` → **Local PostgreSQL** at `127.0.0.1:5432` (database: `pasona_finance`)
+- `CACHE_DRIVER=file` (local dev); `.env.example` defaults to `CACHE_STORE=redis` with `REDIS_CLIENT=predis`
 - `QUEUE_CONNECTION=database`
 - `MAIL_MAILER=resend` → **Resend API** with `RESEND_API_KEY` set
 - `SESSION_DRIVER=database`
@@ -388,7 +393,7 @@ Only registered when `APP_ENV !== 'production'`. Previews: welcome, verify-email
 - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` set; `GOOGLE_REDIRECT_URL=http://localhost:8000/api/auth/google/callback`
 - `GOOGLE_CLIENT_ID` is duplicated on lines 59 and 62 (known cleanup item)
 
-## 13. Migrations (23 files)
+## 13. Migrations (25 files)
 | File | Purpose |
 |---|---|
 | `0001_01_01_000000_create_users_table.php` | Core users table |
@@ -414,6 +419,8 @@ Only registered when `APP_ENV !== 'production'`. Previews: welcome, verify-email
 | `2026_06_10_125552_create_announcement_user_table.php` | Announcement-user pivot |
 | `2026_06_12_162918_add_is_admin_to_users_table.php` | Admin flag on users |
 | `2026_06_12_164927_create_email_logs_table.php` | Email log tracking |
+| `2026_06_14_081756_add_currency_to_accounts_table.php` | Currency on accounts (default NGN) |
+| `2026_06_14_081756_add_currency_to_users_table.php` | Currency on users (default NGN) |
 
 ## 14. Docs site (Blade, not React)
 - All docs pages live under `resources/views/docs/` and are served by `routes/web.php` (no auth required).
@@ -428,7 +435,7 @@ Only registered when `APP_ENV !== 'production'`. Previews: welcome, verify-email
 
 ### P0 — Must fix before scaling
 
-- **No caching on summary/accounts** — `SummaryController` and `AccountController` recalculate balances, income, expense totals from scratch on every request. Add Redis + `Cache::remember()` with 1–2min TTL.
+- **No caching on summary/accounts** — FIXED: `Cache::remember()` with user-scoped keys. Categories cached 1h, accounts cached 1h, summary cached 60s (month-scoped key). Cache busted on every write across all controllers and the ProcessSync job.
 - **`ProcessSync` per-row SELECT+INSERT** — FIXED: `app/Jobs/ProcessSync.php` now uses `uniqueInBatch()` + `filterExistingInDb()` for bulk dedup, then `Transaction::insert()` in 100-row chunks within `DB::transaction`.
 - **Missing index on `transactions.to_account_id`** — FIXED: added in migration `2026_06_08_074748`.
 
@@ -455,9 +462,12 @@ Only registered when `APP_ENV !== 'production'`. Previews: welcome, verify-email
 - **`ResetPasswordNotification` is a stub** — FIXED: fully implemented with Blade template and SPA URL builder.
 
 ## 16. Noteworthy issues / things to know
-- **`Account::getBalanceAttribute`** issues 4 queries per call → used only in `AccountController::show()`. The list endpoints (`index`, `SummaryController`) use `Account::balancesFor()` (single batched query).
+- **`Account::getBalanceAttribute`** now runs 1 query per call (optimized from 4). Used only in `AccountController::show()`. The list endpoints (`index`, `SummaryController`) use `Account::balancesFor()` (single batched query).
+- **Caching layer** — Three cache keys per user: `user:{id}:categories` (1h), `user:{id}:accounts:balances` (1h), `user:{id}:summary:{YYYY-MM}` (60s). All busted on write. `predis/predis` installed for Redis; `file` fallback for cPanel. Failover store: `['redis', 'file']`.
+- **Multi-currency support** — `currency` column (varchar(3), default 'NGN') on both `accounts` and `users`. Validated as `required|string|size:3|alpha:alpha` on account create; optional on update and profile update. Frontend sends/reads it with NGN fallback.
+- **Unified duplicate detection** — `BaseImportController::duplicateKey()` now includes `account_id`, matching `Transaction::isPotentialDuplicate()`. Same amount on a different account is not flagged as duplicate.
 - **`BaseImportController::parseDate`** silently coerces unparseable dates to today — logs warning but still imports. Known data corruption risk.
-- **`ProcessSync` job** now has proper transaction wrapping, chunking, and dedup (both in-batch and against DB).
+- **`ProcessSync` job** now has proper transaction wrapping, chunking, and dedup (both in-batch and against DB). Busts caches per affected user after insert.
 - **`ResetPasswordNotification`** is fully implemented with custom Blade template, SPA URL builder, and queued delivery.
 - **`VerifyEmailNotification`** is fully implemented with custom Blade template, SPA URL builder, and queued delivery. Both notifications add `X-Email-Type` and `X-User-Id` headers for mail logging.
 - **Test coverage is zero** — only `ExampleTest` placeholders. 3 pre-existing test failures (auth status codes, redirect).

@@ -52,7 +52,7 @@ if (! app()->environment('production')) {
 // Admin Panel — session-based auth with is_admin flag
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AdminController::class, 'login'])->name('login');
-    Route::post('/login', [AdminController::class, 'authenticate'])->name('authenticate');
+    Route::post('/login', [AdminController::class, 'authenticate'])->middleware('throttle:5,1')->name('authenticate');
 
     Route::middleware([AdminMiddleware::class])->group(function () {
         Route::post('/logout', [AdminController::class, 'logout'])->name('logout');

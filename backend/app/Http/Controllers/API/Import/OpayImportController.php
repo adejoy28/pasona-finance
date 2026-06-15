@@ -37,7 +37,7 @@ class OpayImportController extends BaseImportController
     public function preview(Request $request)
     {
         $request->validate([
-            'file'       => 'required|file|mimes:xlsx,xls',
+            'file'       => 'required|file|mimes:xlsx,xls|max:5120',
             'account_id' => 'required|exists:accounts,id',
         ]);
 

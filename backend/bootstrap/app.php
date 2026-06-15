@@ -14,7 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->prepend(\Illuminate\Http\Middleware\HandleCors::class);
+        $middleware->prepend(
+            \Illuminate\Http\Middleware\HandleCors::class,
+            \Illuminate\Http\Middleware\TrustHosts::class,
+        );
 
         // Alias Laravel's "ensure email is verified" middleware so it
         // can be referenced as `verified` in routes/api.php. The
