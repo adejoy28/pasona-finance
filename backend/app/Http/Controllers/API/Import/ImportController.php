@@ -28,7 +28,7 @@ class ImportController extends BaseImportController
     public function preview(Request $request)
     {
         $request->validate([
-            'csv_content' => 'required|string',
+            'csv_content' => 'required|string|max:100000',
             'account_id'  => 'required|exists:accounts,id',
         ]);
 

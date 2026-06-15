@@ -36,7 +36,7 @@ class AdminController extends Controller
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
 
-                return back()->withErrors(['email' => 'These credentials do not have admin access.'])->onlyInput('email');
+                return back()->withErrors(['email' => 'The provided credentials do not match our records.'])->onlyInput('email');
             }
 
             $request->session()->regenerate();
@@ -78,7 +78,7 @@ class AdminController extends Controller
             );
 
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = addcslashes($request->search, '%_');
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%");
@@ -103,7 +103,7 @@ class AdminController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = addcslashes($request->search, '%_');
             $query->where('recipient_email', 'like', "%{$search}%");
         }
 

@@ -71,7 +71,7 @@ class SocialAuthController extends Controller
             return redirect("{$frontendUrl}/login?token={$token}");
         } catch (Exception $e) {
             $frontendUrl = env('FRONTEND_URL', 'http://localhost:8080');
-            return redirect("{$frontendUrl}/login?error=" . urlencode('Google authentication failed: ' . $e->getMessage()));
+            return redirect("{$frontendUrl}/login?error=" . urlencode('Google authentication failed. Please try again.'));
         }
     }
 }
