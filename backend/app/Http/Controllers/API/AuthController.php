@@ -199,6 +199,7 @@ class AuthController extends Controller
         $user = $request->user();
 
         $user->tokens()->delete();
+        $user->pushSubscriptions()->delete();
         $user->transactions()->delete();
         $user->accounts()->delete();
         $user->categories()->delete();
