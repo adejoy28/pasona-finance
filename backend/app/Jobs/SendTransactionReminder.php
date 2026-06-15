@@ -11,6 +11,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Minishlink\WebPush\WebPush;
+use Minishlink\WebPush\Subscription;
 
 /**
  * Send the daily "log today's transactions" reminder to one user.
@@ -59,7 +61,79 @@ class SendTransactionReminder implements ShouldQueue
 
         Mail::to($user->email)->send(new TransactionReminderMail($user));
 
+        $this->sendPushNotification($user);
+
         $user->forceFill(['reminder_last_sent_at' => now()])->save();
+    }
+
+    private function sendPushNotification(User $user): void
+    {
+        $subscriptions = $user->pushSubscriptions;
+
+        if ($subscriptions->isEmpty()) {
+            return;
+        }
+
+        $vapidPublicKey = config('services.vapid.public_key');
+        $vapidPrivateKey = config('services.vapid.private_key');
+        $vapidSubject = config('services.vapid.subject');
+
+        if (! $vapidPublicKey || ! $vapidPrivateKey) {
+            return;
+        }
+
+        try {
+            $auth = [
+                'VAPID' => [
+                    'subject' => $vapidSubject,
+                    'publicKey' => $vapidPublicKey,
+                    'privateKey' => $vapidPrivateKey,
+                ],
+            ];
+
+            $webPush = new WebPush($auth);
+
+            $payload = json_encode([
+                'title' => 'Time to log your expenses',
+                'body' => "Daily reminder for {$user->reminder_time}. Tap to record today's spending.",
+                'icon' => '/icons/icon-192x192.svg',
+                'data' => ['url' => '/'],
+                'vibrate' => [200, 100, 200],
+            ]);
+
+            foreach ($subscriptions as $sub) {
+                $webPush->queueNotification(
+                    Subscription::create([
+                        'endpoint' => $sub->endpoint,
+                        'publicKey' => $sub->p256dh,
+                        'authToken' => $sub->auth,
+                    ]),
+                    $payload,
+                );
+            }
+
+            $results = $webPush->flush();
+            foreach ($results as $result) {
+                if (! $result->isSuccess()) {
+                    Log::warning('Push notification failed', [
+                        'user_id' => $user->id,
+                        'endpoint' => $result->getEndpoint(),
+                        'reason' => $result->getReason(),
+                    ]);
+
+                    if ($result->isSubscriptionExpired()) {
+                        $user->pushSubscriptions()
+                            ->where('endpoint', $result->getEndpoint())
+                            ->delete();
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('SendPushNotification failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     public function failed(\Throwable $e): void

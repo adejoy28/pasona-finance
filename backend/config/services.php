@@ -37,8 +37,14 @@ return [
 
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
-        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'client_secret' => env('GOOGLE_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URL'),
+    ],
+
+    'vapid' => [
+        'public_key'  => env('VAPID_PUBLIC_KEY'),
+        'private_key' => env('VAPID_PRIVATE_KEY'),
+        'subject'     => env('VAPID_SUBJECT', 'mailto:support@pasona.app'),
     ],
 
 ];

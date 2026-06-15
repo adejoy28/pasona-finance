@@ -10,6 +10,7 @@ use App\Http\Controllers\API\Import\KudaImportController;
 use App\Http\Controllers\API\Import\OpayImportController;
 use App\Http\Controllers\API\ResetPasswordController;
 use App\Http\Controllers\API\SocialAuthController;
+use App\Http\Controllers\API\PushSubscriptionController;
 use App\Http\Controllers\API\SummaryController;
 use App\Http\Controllers\API\TransactionController;
 use Illuminate\Support\Facades\Route;
@@ -87,6 +88,10 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('import/opay/preview', [OpayImportController::class, 'preview']);
     Route::post('import/opay/store', [OpayImportController::class, 'store'])
         ->middleware('verified');
+
+    // Push Subscriptions
+    Route::post('push/subscriptions', [PushSubscriptionController::class, 'store']);
+    Route::delete('push/subscriptions', [PushSubscriptionController::class, 'destroy']);
 
     // Dashboard Summary
     Route::get('summary', [SummaryController::class, 'index']);
