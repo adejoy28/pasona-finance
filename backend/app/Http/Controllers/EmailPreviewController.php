@@ -47,6 +47,10 @@ class EmailPreviewController extends Controller
             'label' => 'Democracy Day',
             'view'  => 'emails.democracy_day',
         ],
+        'streak-notification' => [
+            'label' => 'Streak notification',
+            'view'  => 'emails.streak-notification',
+        ],
     ];
 
     public function index(): Response
@@ -160,6 +164,14 @@ class EmailPreviewController extends Controller
                 'addUrl'        => $frontend . '/transactions/new?from=reminder',
             ],
             'democracy-day' => $base,
+            'streak-notification' => $base + [
+                'firstName'            => $first,
+                'currentStreak'        => 5,
+                'longestStreak'        => 12,
+                'transactionsThisWeek' => 18,
+                'activeDaysLast30'     => 22,
+                'dashboardUrl'         => $frontend . '/dashboard',
+            ],
         };
     }
 

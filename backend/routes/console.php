@@ -54,3 +54,16 @@ Schedule::command('announcements:send-due')
     ->withoutOverlapping(5)
     ->onOneServer()
     ->runInBackground();
+
+/**
+ * Weekly streak notification.
+ *
+ * Sends a streak report email to active users every Monday at 09:00 UTC
+ * with their current streak, longest streak, and recent activity stats.
+ * Includes a prompt to reply with feedback or blockers.
+ */
+Schedule::command('streak:notify')
+    ->weeklyOn(1, '09:00')
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->runInBackground();
