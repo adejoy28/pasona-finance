@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Mail\WelcomeMail;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Laravel\Socialite\Facades\Socialite;
-use Illuminate\Support\Facades\Auth;
 use Exception;
 
 class SocialAuthController extends Controller
@@ -53,6 +54,8 @@ class SocialAuthController extends Controller
                     'avatar' => $googleUser->getAvatar(),
                     'password' => null, // No password for social login
                 ]);
+
+                Mail::to($user->email)->queue(new WelcomeMail($user));
             }
 
             // Google has already confirmed the email address, so
