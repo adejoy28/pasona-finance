@@ -47,6 +47,14 @@ class User extends Authenticatable implements MustVerifyEmail
         'timezone',
         'currency',
         'reminder_announced_at',
+        'streak_notified_at',
+    ];
+
+    /**
+     * Model-level defaults applied for every new User instance.
+     */
+    protected $attributes = [
+        'reminder_time' => '21:10',
     ];
 
     /**
@@ -70,6 +78,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at'      => 'datetime',
             'reminder_last_sent_at'  => 'datetime',
             'reminder_announced_at'  => 'datetime',
+            'streak_notified_at'     => 'datetime',
             'password'               => 'hashed',
         ];
     }
