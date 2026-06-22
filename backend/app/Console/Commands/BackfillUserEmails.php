@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Mail\WelcomeMail;
+use App\Models\EmailLog;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
@@ -15,6 +16,7 @@ class BackfillUserEmails extends Command
         {--user= : Restrict to a single user (id or email)}
         {--since= : Only users created on/after this date (YYYY-MM-DD)}
         {--skip-verified : Skip users whose email_verified_at is set (welcome only — verify already auto-skips them)}
+        {--skip-sent : Skip users who already have an email_logs entry for this type}
         {--chunk=100 : Number of users to process per chunk}
         {--dry-run : Show what would happen without dispatching}';
 
@@ -30,6 +32,7 @@ class BackfillUserEmails extends Command
 
         $dryRun       = (bool) $this->option('dry-run');
         $skipVerified = (bool) $this->option('skip-verified');
+        $skipSent     = (bool) $this->option('skip-sent');
         $chunkSize    = max(1, (int) $this->option('chunk'));
         $userOpt      = $this->option('user');
         $since        = $this->option('since');
@@ -47,6 +50,18 @@ class BackfillUserEmails extends Command
 
         if ($since) {
             $query->where('created_at', '>=', $since);
+        }
+
+        if ($skipSent) {
+            $emailTypes = match ($type) {
+                'welcome' => ['welcome'],
+                'verify'  => ['verify'],
+                'both'    => ['welcome', 'verify'],
+            };
+            $alreadySentUserIds = EmailLog::whereIn('email_type', $emailTypes)
+                ->pluck('user_id')
+                ->unique();
+            $query->whereNotIn('id', $alreadySentUserIds);
         }
 
         $total = (clone $query)->count();
