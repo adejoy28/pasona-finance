@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
 
 abstract class BaseImportController extends Controller
 {
@@ -62,7 +63,10 @@ abstract class BaseImportController extends Controller
                 Rule::exists('accounts', 'id')->where('user_id', $userId),
             ],
             'transactions.*.description'          => 'nullable|string|max:255',
-            'transactions.*.category_id'          => 'nullable|exists:categories,id',
+            'transactions.*.category_id'          => [
+                'nullable',
+                Rule::exists('categories', 'id')->where('user_id', $userId),
+            ],
             'transactions.*.reference'            => 'nullable|string|max:255',
         ]);
 
@@ -83,7 +87,7 @@ abstract class BaseImportController extends Controller
 
         $now = now();
 
-        $rows = array_map(fn ($item) => array_merge($item, [
+        $rows = array_map(fn($item) => array_merge($item, [
             'user_id'    => $userId,
             'is_synced'  => true,
             'created_at' => $now,
@@ -122,7 +126,7 @@ abstract class BaseImportController extends Controller
         $existing = $this->fetchExisting($rows, $request->user()->id, $accountId);
 
         $preview = array_map(
-            fn ($row) => $this->decoratePreviewRow($row, $existing, $request),
+            fn($row) => $this->decoratePreviewRow($row, $existing, $request),
             $rows
         );
 
@@ -173,7 +177,7 @@ abstract class BaseImportController extends Controller
             ->get();
 
         return $existing->mapWithKeys(
-            fn ($t) => [$this->duplicateKey($t->toArray()) => true]
+            fn($t) => [$this->duplicateKey($t->toArray()) => true]
         );
     }
 
@@ -185,7 +189,7 @@ abstract class BaseImportController extends Controller
      */
     protected function duplicateKey(array $row): string
     {
-        return $row['transaction_date'].':'.$row['type'].':'.(string) $row['amount'].':'.(string) ($row['account_id'] ?? '');
+        return $row['transaction_date'] . ':' . $row['type'] . ':' . (string) $row['amount'] . ':' . (string) ($row['account_id'] ?? '');
     }
 
     /**
@@ -211,7 +215,7 @@ abstract class BaseImportController extends Controller
         try {
             return Carbon::parse(trim((string) $value))->format('Y-m-d');
         } catch (\Exception $e) {
-            \Log::warning(static::class . ': unparseable date', ['value' => $value]);
+            Log::warning(static::class . ': unparseable date', ['value' => $value]);
             return Carbon::now()->format('Y-m-d');
         }
     }
