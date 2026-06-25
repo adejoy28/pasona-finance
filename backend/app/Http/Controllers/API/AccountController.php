@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Account;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
@@ -143,11 +144,18 @@ class AccountController extends Controller
     public function destroy(Account $account)
     {
         $this->authorize('delete', $account);
-        $account->delete();
+
+        $userId = $account->user_id;
+
+        DB::transaction(function () use ($account) {
+            $account->transactions()->delete();
+            $account->receivedTransfers()->delete();
+            $account->delete();
+        });
 
         // Bust both caches — account removed, total_balance and list change.
-        Cache::forget("user:{$account->user_id}:accounts:balances");
-        Cache::forget("user:{$account->user_id}:summary:" . now()->format('Y-m'));
+        Cache::forget("user:{$userId}:accounts:balances");
+        Cache::forget("user:{$userId}:summary:" . now()->format('Y-m'));
 
         return response()->json(null, 204);
     }

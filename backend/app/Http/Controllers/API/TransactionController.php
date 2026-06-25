@@ -75,7 +75,10 @@ class TransactionController extends Controller
                 Rule::exists('accounts', 'id')->where('user_id', $request->user()->id),
             ],
             'type' => 'required|in:income,expense,transfer',
-            'category_id' => 'nullable|exists:categories,id',
+            'category_id' => [
+                'nullable',
+                Rule::exists('categories', 'id')->where('user_id', $request->user()->id),
+            ],
             'amount' => 'required|numeric',
             'description' => 'nullable|string|max:255',
             'reference' => 'nullable|string|max:255',
@@ -126,6 +129,10 @@ class TransactionController extends Controller
             'transactions.*.to_account_id' => [
                 'nullable',
                 Rule::exists('accounts', 'id')->where('user_id', $request->user()->id),
+            ],
+            'transactions.*.category_id' => [
+                'nullable',
+                Rule::exists('categories', 'id')->where('user_id', $request->user()->id),
             ],
             'transactions.*.amount' => 'required|numeric',
             'transactions.*.transaction_date' => 'required|date',
@@ -189,7 +196,10 @@ class TransactionController extends Controller
                 Rule::exists('accounts', 'id')->where('user_id', $request->user()->id),
             ],
             'type' => 'sometimes|required|in:income,expense,transfer',
-            'category_id' => 'nullable|exists:categories,id',
+            'category_id' => [
+                'nullable',
+                Rule::exists('categories', 'id')->where('user_id', $request->user()->id),
+            ],
             'amount' => 'sometimes|required|numeric',
             'description' => 'nullable|string|max:255',
             'reference' => 'nullable|string|max:255',

@@ -86,6 +86,7 @@ class Account extends Model
                 $q->where('account_id', $id)
                   ->orWhere('to_account_id', $id);
             })
+            ->whereNull('deleted_at')
             ->selectRaw("
                 COALESCE(SUM(CASE
                     WHEN account_id   = ? AND type = 'income'   THEN  amount
@@ -133,13 +134,14 @@ class Account extends Model
                            WHEN 'transfer' THEN -amount
                        END AS net
                 FROM transactions
-                WHERE account_id IN ({$placeholders}) AND user_id = ?
+                WHERE account_id IN ({$placeholders}) AND user_id = ? AND deleted_at IS NULL
                 UNION ALL
                 SELECT to_account_id AS account_id, amount AS net
                 FROM transactions
                 WHERE to_account_id IN ({$placeholders})
                   AND type = 'transfer'
                   AND user_id = ?
+                  AND deleted_at IS NULL
             ) t
             GROUP BY account_id
         ";
