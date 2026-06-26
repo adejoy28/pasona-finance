@@ -43,7 +43,7 @@ class EmailVerificationController extends Controller
      */
     public function verify(Request $request, int $id, string $hash): RedirectResponse
     {
-        $frontend = rtrim((string) env('FRONTEND_URL', 'http://localhost:8080'), '/');
+        $frontend = rtrim((string) config('app.frontend_url'), '/');
 
         $user = \App\Models\User::find($id);
 
