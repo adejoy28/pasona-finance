@@ -53,7 +53,8 @@ class SendDailyReminders extends Command
                 $this->error("User #{$singleUserId} not found.");
                 return self::FAILURE;
             }
-            $result = $this->processUsers(collect([$user]), $now, $windowMin, $smartSkip, $dryRun);
+            $tzStartOfDay = Carbon::now($user->timezone)->startOfDay();
+            $result = $this->processUsers(collect([$user]), $tzStartOfDay, $smartSkip, $dryRun);
             $queued = $result['queued'];
             $skippedSmart = $result['skipped_smart'];
             $skippedDedupe = $result['skipped_dedupe'];
@@ -97,7 +98,8 @@ class SendDailyReminders extends Command
                     $windowMin,
                 ));
 
-                $result = $this->processUsers($users, $now, $windowMin, $smartSkip, $dryRun);
+                $tzStartOfDay = $tzNow->copy()->startOfDay();
+                $result = $this->processUsers($users, $tzStartOfDay, $smartSkip, $dryRun);
                 $queued += $result['queued'];
                 $skippedSmart += $result['skipped_smart'];
                 $skippedDedupe += $result['skipped_dedupe'];
@@ -118,15 +120,15 @@ class SendDailyReminders extends Command
      * @param \Illuminate\Support\Collection<int, \App\Models\User> $users
      * @return array{queued: int, skipped_smart: int, skipped_dedupe: int}
      */
-    private function processUsers($users, Carbon $now, int $windowMin, bool $smartSkip, bool $dryRun): array
+    private function processUsers($users, Carbon $tzStartOfDay, bool $smartSkip, bool $dryRun): array
     {
-        $today = $now->toDateString();
+        $today = $tzStartOfDay->toDateString();
 
         $userIds = $users->pluck('id');
 
         $usersWithTx = Transaction::query()
             ->whereIn('user_id', $userIds)
-            ->whereDate('transaction_date', $today)
+            ->where('created_at', '>=', $tzStartOfDay)
             ->distinct()
             ->pluck('user_id')
             ->flip();
