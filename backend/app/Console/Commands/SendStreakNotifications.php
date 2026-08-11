@@ -15,7 +15,7 @@ class SendStreakNotifications extends Command
         {--force : Send regardless of last notification time}
         {--days=7 : Minimum days since last notification}';
 
-    protected $description = 'Send weekly streak notification emails to active users.';
+    protected $description = 'Send weekly streak notification emails with monthly recap to active users.';
 
     public function handle(): int
     {
@@ -69,16 +69,22 @@ class SendStreakNotifications extends Command
                 $firstName = explode(' ', (string) $user->name)[0] ?: (string) $user->name;
 
                 Mail::send('emails.streak-notification', [
-                    'firstName'            => $firstName,
-                    'currentStreak'        => $stats['currentStreak'],
-                    'longestStreak'        => $stats['longestStreak'],
-                    'transactionsThisWeek' => $stats['transactionsThisWeek'],
-                    'activeDaysLast30'     => $stats['activeDaysLast30'],
-                    'dashboardUrl'         => $frontend . '/dashboard',
-                    'settingsUrl'          => $frontend . '/settings/notifications',
+                    'firstName'             => $firstName,
+                    'currentStreak'         => $stats['currentStreak'],
+                    'longestStreak'         => $stats['longestStreak'],
+                    'transactionsThisWeek'  => $stats['transactionsThisWeek'],
+                    'activeDaysLast30'      => $stats['activeDaysLast30'],
+                    'monthName'             => $stats['monthName'],
+                    'transactionsThisMonth' => $stats['transactionsThisMonth'],
+                    'activeDaysThisMonth'   => $stats['activeDaysThisMonth'],
+                    'monthIncome'           => $stats['monthIncome'],
+                    'monthExpense'          => $stats['monthExpense'],
+                    'daysInMonth'           => $stats['daysInMonth'],
+                    'dashboardUrl'          => $frontend . '/dashboard',
+                    'settingsUrl'           => $frontend . '/settings/notifications',
                 ], function ($message) use ($user) {
                     $message->to($user->email, $user->name)
-                            ->subject('Your weekly streak report from Pasona');
+                            ->subject('Your weekly & monthly recap from Pasona');
                     $message->getHeaders()->addTextHeader('X-Email-Type', 'streak-notification');
                     $message->getHeaders()->addTextHeader('X-User-Id', (string) $user->id);
                 });
@@ -134,11 +140,38 @@ class SendStreakNotifications extends Command
             ->distinct('transaction_date')
             ->count('transaction_date');
 
+        $monthStart = now()->startOfMonth();
+
+        $transactionsThisMonth = $user->transactions()
+            ->where('transaction_date', '>=', $monthStart)
+            ->count();
+
+        $activeDaysThisMonth = $user->transactions()
+            ->where('transaction_date', '>=', $monthStart)
+            ->distinct('transaction_date')
+            ->count('transaction_date');
+
+        $monthIncome = (float) $user->transactions()
+            ->where('transaction_date', '>=', $monthStart)
+            ->where('type', 'income')
+            ->sum('amount');
+
+        $monthExpense = (float) $user->transactions()
+            ->where('transaction_date', '>=', $monthStart)
+            ->where('type', 'expense')
+            ->sum('amount');
+
         return [
-            'currentStreak'        => $currentStreak,
-            'longestStreak'        => $longestStreak,
-            'transactionsThisWeek' => $transactionsThisWeek,
-            'activeDaysLast30'     => $activeDaysLast30,
+            'currentStreak'         => $currentStreak,
+            'longestStreak'         => $longestStreak,
+            'transactionsThisWeek'  => $transactionsThisWeek,
+            'activeDaysLast30'      => $activeDaysLast30,
+            'monthName'             => now()->translatedFormat('F'),
+            'transactionsThisMonth' => $transactionsThisMonth,
+            'activeDaysThisMonth'   => $activeDaysThisMonth,
+            'monthIncome'           => $monthIncome,
+            'monthExpense'          => $monthExpense,
+            'daysInMonth'           => now()->daysInMonth,
         ];
     }
 }

@@ -37,16 +37,25 @@ class SummaryController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $monthKey = now()->format('Y-m');
+        $from = $request->input('from');
+        $to = $request->input('to');
+
+        if ($from && $to) {
+            $startOfMonth = Carbon::parse($from)->startOfDay();
+            $endOfMonth = Carbon::parse($to)->endOfDay();
+            $monthKey = Carbon::parse($from)->format('Y-m');
+        } else {
+            $startOfMonth = Carbon::now()->startOfMonth();
+            $endOfMonth = Carbon::now()->endOfMonth();
+            $monthKey = now()->format('Y-m');
+        }
+
         $key = "user:{$user->id}:summary:{$monthKey}";
 
         // Cache the entire summary payload. On cache miss, runs 4 queries:
         // accounts list, balances batch, monthly income sum, monthly expense sum,
         // plus the category breakdown. On hit, returns instantly.
-        $payload = Cache::remember($key, now()->addSeconds(60), function () use ($user) {
-            $startOfMonth = Carbon::now()->startOfMonth();
-            $endOfMonth = Carbon::now()->endOfMonth();
-
+        $payload = Cache::remember($key, now()->addSeconds(60), function () use ($user, $startOfMonth, $endOfMonth) {
             // 1. Account Balances — single batched query instead of N+1.
             $accounts = $user->accounts;
             $balances = Account::balancesFor($user->id, $accounts->pluck('id')->all());

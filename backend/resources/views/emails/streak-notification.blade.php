@@ -1,5 +1,5 @@
 @extends('emails._layout', [
-    'eyebrow' => 'Streak report',
+    'eyebrow' => 'Streak & recap',
 ])
 
 @section('content')
@@ -15,9 +15,11 @@
         Consistency is how money stories get told. Here's how you've been tracking your finances this week.
     </p>
 
+    {{-- Weekly stats --}}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;margin:0 0 20px;">
         <tr>
             <td style="padding:20px;">
+                <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;color:#94a3b8;margin:0 0 12px;text-align:center;">This week</div>
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tr>
                         <td align="center" style="padding:0 8px 16px;width:50%;">
@@ -45,7 +47,7 @@
     </table>
 
     @if ($currentStreak > 0)
-        <p style="font-size:14px;line-height:1.6;color:#475569;margin:0 0 16px;">
+        <p style="font-size:14px;line-height:1.6;color:#475569;margin:0 0 20px;">
             @if ($currentStreak >= $longestStreak && $longestStreak > 0)
                 You're on your <strong style="color:#0f172a;">longest streak ever</strong> &mdash; {{ $currentStreak }} days and counting. Keep the momentum going!
             @elseif ($currentStreak > 3)
@@ -55,10 +57,41 @@
             @endif
         </p>
     @else
-        <p style="font-size:14px;line-height:1.6;color:#475569;margin:0 0 16px;">
+        <p style="font-size:14px;line-height:1.6;color:#475569;margin:0 0 20px;">
             You haven't logged a transaction today yet. A quick entry takes less than a minute &mdash; even the small purchases add up to a meaningful picture.
         </p>
     @endif
+
+    {{-- Monthly recap --}}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;margin:0 0 20px;">
+        <tr>
+            <td style="padding:20px;">
+                <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;color:#94a3b8;margin:0 0 12px;text-align:center;">{{ $monthName }} recap</div>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td align="center" style="padding:0 8px 16px;width:50%;">
+                            <div style="font-size:28px;font-weight:800;color:#059669;line-height:1;">{{ $monthIncome }}</div>
+                            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;margin-top:4px;">Income</div>
+                        </td>
+                        <td align="center" style="padding:0 8px 16px;width:50%;">
+                            <div style="font-size:28px;font-weight:800;color:#e11d48;line-height:1;">{{ $monthExpense }}</div>
+                            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;margin-top:4px;">Expenses</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding:16px 8px 0;width:50%;border-top:1px solid #e2e8f0;">
+                            <div style="font-size:24px;font-weight:800;color:#0f172a;line-height:1;">{{ $transactionsThisMonth }}</div>
+                            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;margin-top:4px;">Transactions</div>
+                        </td>
+                        <td align="center" style="padding:16px 8px 0;width:50%;border-top:1px solid #e2e8f0;">
+                            <div style="font-size:24px;font-weight:800;color:#0f172a;line-height:1;">{{ $activeDaysThisMonth }} / {{ $daysInMonth }}</div>
+                            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;margin-top:4px;">Active days</div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 
     @include('emails._button', ['url' => $dashboardUrl, 'label' => 'Log a transaction'])
 
