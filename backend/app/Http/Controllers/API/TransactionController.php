@@ -45,7 +45,22 @@ class TransactionController extends Controller
             });
         }
 
-        return response()->json($query->paginate(50));
+        if ($request->filled('from')) {
+            $query->where('transaction_date', '>=', $request->input('from'));
+        }
+
+        if ($request->filled('to')) {
+            $query->where('transaction_date', '<=', $request->input('to'));
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->input('type'));
+        }
+
+        $perPage = (int) $request->input('per_page', 50);
+        $perPage = min(max(1, $perPage), 500);
+
+        return response()->json($query->paginate($perPage));
     }
 
     /**
