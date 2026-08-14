@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Pasona Finance</string>
+    <string name="title_activity_main">Pasona Finance</string>
+    <string name="package_name">com.pasona.finance</string>
+    <string name="custom_url_scheme">com.pasona.finance</string>
+</resources>

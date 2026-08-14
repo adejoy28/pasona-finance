@@ -1,0 +1,44 @@
+appId: com.pasona.desktop
+productName: Pasona Finance
+copyright: Copyright © 2026 Adebayo Systems
+
+directories:
+  output: release
+
+files:
+  - dist/**/*
+  - electron/**/*
+  - package.json
+
+extraResources:
+  - from: ../pasona-finance/backend
+    to: backend
+    filter:
+      - "**/*"
+      - "**/.env*"
+      - "!**/node_modules/**"
+      - "!**/.git/**"
+      - "!**/.gitignore"
+      - "!**/tests/**"
+      - "!**/storage/framework/cache/**"
+      - "!**/storage/logs/*"
+      - "!**/storage/framework/sessions/*"
+      - "!**/storage/framework/views/*"
+      - "!**/.phpunit.result.cache"
+
+win:
+  target:
+    - nsis
+    - portable
+  icon: public/favicon.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  deleteAppDataOnUninstall: false
+
+artifactName: "${productName}-${version}-${arch}.${ext}"
+
+# The Laravel app is bundled above (extraResources -> resources/backend); the
+# PHP binary itself is not — PHP must be installed and on PATH at runtime.

@@ -1,0 +1,128 @@
+### Frontend .gitignore for pasona-finance frontend
+# Ignore node modules and logs
+/node_modules/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+/dist/
+/build/
+/www/
+/public/build/
+/android/**/build/
+/android/app/build/
+/electron/dist/
+
+# Capacitor / Android
+/android/.gradle/
+/android/.cxx/
+/android/.idea/
+/android/local.properties
+
+# Ignore environment files (keep example)
+.env*
+!.env.example
+
+# Secrets, keystores and signing files
+*.keystore
+*.jks
+*.pem
+secrets/
+
+# IDEs and editors
+/.idea/
+/.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# System files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Coverage and test output
+/coverage/
+.nyc_output/
+/.nyc_output/
+
+# TypeScript / build artifacts
+/lib/
+/tsconfig.tsbuildinfo
+
+# Temporary and misc
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# Electron builder artifacts
+/dist-electron/
+/release/
+
+# Optional: ignore pnpm store (local caching)
+/.pnpm-store/
+# Dependencies
+node_modules/
+
+# Vite build output
+dist/
+dev-dist/
+
+# Electron build output (electron-builder -> release/)
+release/
+dist-electron/
+
+# Environment files (keep only .env.example)
+.env*
+.env.local
+.env.production
+.env.development
+.env.staging
+.env.android
+.env.electron
+.env.*.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+build-android.log
+build-apk.log
+build-log.txt
+
+# Android / Capacitor build artifacts
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/capacitor-cordova-android-plugins/
+*.apk
+*.aab
+*.aars
+*.class
+
+# Editor / IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.iml
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Misc
+*.tsbuildinfo
+.eslintcache
+.cache/
