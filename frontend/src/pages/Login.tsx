@@ -174,147 +174,201 @@ export function Login() {
   const emailLooksValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
   return (
-    <AuthShell title="Sign in to Pasona" subtitle="Welcome back">
-      <div ref={formRef} className="space-y-5">
-        <GoogleButton />
-
-        <div className="flex items-center gap-3 my-[22px]">
-          <div className="flex-1 h-px bg-cream-200" />
-          <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-ink-faint whitespace-nowrap">
-            or continue with email
-          </span>
-          <div className="flex-1 h-px bg-cream-200" />
+    <div className="relative h-[100dvh] w-full grid grid-cols-1 md:grid-cols-12 bg-[#030712] font-sans overflow-hidden z-10">
+      
+      {/* Left Column (Promotional) */}
+      <div className="hidden md:flex md:col-span-5 lg:col-span-4 bg-gradient-to-b from-[#0a1b39] to-[#040c1b] p-12 lg:p-16 flex-col justify-between relative overflow-hidden border-r border-white/[0.06] h-full">
+        {/* Subtle glow in the promotional area */}
+        <div className="absolute top-[-20%] left-[-20%] w-[100%] h-[100%] rounded-full bg-blue-500/10 blur-[100px] pointer-events-none" />
+        
+        <div className="relative z-10">
+          <img src="/img/brand-name-logo-light.png" alt="Pasona" className="h-7 w-auto object-contain" />
         </div>
 
-        {error && (
-          <div
-            role="alert"
-            className="flex gap-2.5 items-start bg-rose-soft border border-[#e8bcb8] rounded-[14px] px-3.5 py-3 mb-[18px] text-[#8f332c] text-[13.5px] font-semibold leading-snug"
-          >
-            {error}
-          </div>
-        )}
+        <div className="relative z-10 my-auto py-8">
+          <h2 className="font-display font-medium text-[2.75rem] leading-[1.15] text-white tracking-[-0.02em]">
+            Precision in <span className="text-[#3b82f6]">every transaction.</span>
+          </h2>
+          <p className="mt-4 text-[#8c93b0] text-[14.5px] font-medium leading-relaxed max-w-[340px]">
+            Track every naira with clarity — accounts, budgets and insights in one calm place.
+          </p>
+        </div>
 
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-faint z-10 peer-focus:text-navy-700 transition-colors" />
-              <input
-                type="email"
-                id="login-email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onBlur={() => setEmailTouched(true)}
-                placeholder=" "
-                className={authInputClass}
-                autoComplete="email"
-              />
-              <label htmlFor="login-email" className={authLabelClass}>
-                Email Address
-              </label>
-              {emailLooksValid && emailExists === true && (
-                <Check
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald"
-                  aria-hidden
-                />
-              )}
-            </div>
-            {emailTouched && emailLooksValid && emailExists === false && (
-              <div className="flex items-center justify-between gap-2.5 bg-amber-soft border border-[#e6c078] rounded-xl px-3 py-2.5 -mt-1 mb-4 text-[12.5px] font-bold text-amber-deep">
-                <span>No account with this email.</span>
-                <button
-                  type="button"
-                  onClick={goToRegister}
-                  className="inline-flex items-center gap-1.5 bg-navy-700 text-white rounded-full px-3 py-1.5 text-xs font-bold shrink-0"
-                >
-                  <UserPlus size={13} /> Create account
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-faint opacity-0 select-none">
-                &nbsp;
-              </span>
-              <Link
-                to="/forgot-password"
-                className="text-[13px] font-bold text-navy-700 no-underline border-b-[1.5px] border-amber pb-px"
-              >
-                Forgot password?
-              </Link>
-            </div>
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-faint z-10 peer-focus:text-navy-700 transition-colors" />
-              <input
-                type={showPassword ? "text" : "password"}
-                id="login-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder=" "
-                className={authInputClass}
-                autoComplete="current-password"
-              />
-              <label htmlFor="login-password" className={authLabelClass}>
-                Password
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-faint hover:text-navy-700 z-10"
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={submitting || !emailLooksValid || !password}
-            className={authButtonClass}
-          >
-            {submitting ? "Signing in…" : "Sign In"}
-          </button>
-        </form>
-
-        {biometricAvailable && hasBiometricCreds && (
-          <button
-            type="button"
-            onClick={handleBiometricSignIn}
-            disabled={biometricBusy}
-            className="w-full h-12 mt-3 rounded-2xl border-[1.5px] border-dashed border-cream-200 bg-transparent text-ink-soft font-bold text-[13.5px] flex items-center justify-center gap-2 transition-colors hover:border-navy-600 hover:text-navy-700 hover:bg-cream-100"
-          >
-            <Fingerprint size={18} />
-            {biometricBusy ? "Verifying..." : labelBiometric}
-          </button>
-        )}
-
-        <p className="text-center mt-6 text-[13.5px] font-semibold text-ink-faint">
-          Don't have an account?{" "}
-          <Link
-            to="/register"
-            className="text-navy-700 font-extrabold no-underline border-b-[1.5px] border-amber"
-          >
-            Create one
-          </Link>
-        </p>
+        {/* Carousel indicators */}
+        <div className="relative z-10 flex items-center gap-1.5">
+          <span className="w-8 h-1 rounded-full bg-[#3b82f6]" />
+          <span className="w-2 h-1 rounded-full bg-white/10" />
+          <span className="w-2 h-1 rounded-full bg-white/10" />
+        </div>
       </div>
 
+      {/* Right Column (Form) */}
+      <div className="col-span-1 md:col-span-7 lg:col-span-8 p-8 sm:p-12 lg:p-20 flex flex-col justify-center bg-[#040914] relative h-full overflow-y-auto">
+        <div className="w-full max-w-[360px] mx-auto space-y-5">
+          
+          {/* Header (visible on mobile only: show small logo) */}
+          <div className="md:hidden flex items-center justify-between mb-2">
+            <img src="/img/brand-name-logo-light.png" alt="Pasona" className="h-6 w-auto object-contain" />
+          </div>
+
+          <div className="space-y-1">
+            <h1 className="text-[26px] font-semibold text-white tracking-tight">Sign In</h1>
+            <p className="text-[13px] text-[#8c93b0] font-medium">Secure access to your Pasona account.</p>
+          </div>
+
+          {error && (
+            <div
+              role="alert"
+              className="flex gap-2.5 items-start bg-rose-950/40 border border-rose-900/50 rounded-xl px-3.5 py-3 text-rose-200 text-[13px] font-medium leading-snug animate-shake"
+            >
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={onSubmit} className="space-y-4">
+            {/* Email Field */}
+            <div className="space-y-1.5">
+              <label htmlFor="login-email" className="text-[10px] font-bold uppercase tracking-wider text-[#8c93b0]">
+                Email Address
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5b6389] z-10" />
+                <input
+                  type="email"
+                  id="login-email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onBlur={() => setEmailTouched(true)}
+                  placeholder="you@example.com"
+                  className="w-full h-11 rounded-xl border border-white/[0.08] bg-[#0b1329]/50 pl-11 pr-10 text-[14px] text-white placeholder-[#454c70] outline-none transition-all focus:border-[#3b82f6] focus:bg-[#0b1329]/80 focus:ring-2 focus:ring-[#3b82f6]/20"
+                  autoComplete="email"
+                />
+                {emailLooksValid && emailExists === true && (
+                  <Check
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald"
+                    aria-hidden
+                  />
+                )}
+              </div>
+              {emailTouched && emailLooksValid && emailExists === false && (
+                <div className="flex items-center justify-between gap-2 bg-amber-950/40 border border-amber-900/50 rounded-xl p-3 text-[12px] text-amber-200">
+                  <span>No account with this email.</span>
+                  <button
+                    type="button"
+                    onClick={goToRegister}
+                    className="inline-flex items-center gap-1.5 bg-[#3b82f6] text-white rounded-lg px-2.5 py-1 text-xs font-semibold shrink-0 hover:bg-blue-600 transition-colors"
+                  >
+                    <UserPlus size={12} /> Register
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Password Field */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label htmlFor="login-password" className="text-[10px] font-bold uppercase tracking-wider text-[#8c93b0]">
+                  Password
+                </label>
+                <Link
+                  to="/forgot-password"
+                  className="text-[12px] font-medium text-[#3b82f6] hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5b6389] z-10" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="login-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full h-11 rounded-xl border border-white/[0.08] bg-[#0b1329]/50 pl-11 pr-12 text-[14px] text-white placeholder-[#454c70] outline-none transition-all focus:border-[#3b82f6] focus:bg-[#0b1329]/80 focus:ring-2 focus:ring-[#3b82f6]/20"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#5b6389] hover:text-[#8c93b0] z-10"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Sign In Button */}
+            <button
+              type="submit"
+              disabled={submitting || !emailLooksValid || !password}
+              className="w-full h-11 mt-2 rounded-xl bg-[#3b82f6] hover:bg-[#2563eb] active:scale-[0.985] text-white font-semibold text-[14px] transition-all flex items-center justify-center disabled:opacity-50 disabled:pointer-events-none"
+            >
+              {submitting ? "Signing in…" : "Sign In"}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 py-1">
+            <div className="flex-1 h-px bg-white/[0.06]" />
+            <span className="text-[9px] font-bold uppercase tracking-widest text-[#454c70] whitespace-nowrap">
+              Or continue with
+            </span>
+            <div className="flex-1 h-px bg-white/[0.06]" />
+          </div>
+
+          {/* Google Sign In */}
+          <GoogleButton variant="dark" />
+
+          {/* Biometric login */}
+          {biometricAvailable && hasBiometricCreds && (
+            <button
+              type="button"
+              onClick={handleBiometricSignIn}
+              disabled={biometricBusy}
+              className="w-full h-11 rounded-xl border border-dashed border-white/[0.1] bg-transparent text-[#8c93b0] hover:text-white hover:border-white/[0.2] font-semibold text-[13px] flex items-center justify-center gap-2 transition-all"
+            >
+              <Fingerprint size={16} />
+              {biometricBusy ? "Verifying..." : labelBiometric}
+            </button>
+          )}
+
+          {/* Footer Links */}
+          <div className="text-center space-y-4 pt-1">
+            <p className="text-[13px] text-[#8c93b0]">
+              New here?{" "}
+              <Link
+                to="/register"
+                className="text-white font-semibold hover:underline"
+              >
+                Create an account
+              </Link>
+            </p>
+            <p className="text-[11px] text-[#454c70] leading-normal">
+              By continuing, you agree to our{" "}
+              <a href="/terms" className="underline hover:text-[#8c93b0]">Terms of Service</a> and{" "}
+              <a href="/privacy" className="underline hover:text-[#8c93b0]">Privacy Policy</a>.
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Biometrics Enable Modal */}
       {showEnableBiometric && (
-        <div className="fixed inset-0 z-50 bg-navy-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-gradient-to-b from-navy-800 to-navy-900 border border-white/[0.08] rounded-[26px] p-[28px_24px_24px] max-w-sm w-full space-y-5 text-center">
+        <div className="fixed inset-0 z-50 bg-[#030712]/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#070e1e] border border-white/[0.08] rounded-[24px] p-6 max-w-sm w-full space-y-5 text-center">
             <div className="w-14 h-14 rounded-2xl mx-auto mb-4 bg-gradient-to-br from-amber to-amber-deep flex items-center justify-center shadow-[0_8px_20px_rgba(217,142,42,0.35)]">
               <Fingerprint size={24} className="text-navy-950" />
             </div>
             <div className="space-y-2">
-              <h3 className="font-display font-medium text-[21px] text-white">
+              <h3 className="font-display font-medium text-[20px] text-white">
                 Enable {labelBiometric}?
               </h3>
-              <p className="text-[14px] text-[#B7BEDD] leading-relaxed">
+              <p className="text-[13.5px] text-[#8c93b0] leading-relaxed">
                 Sign in instantly next time using your device's biometric authentication.
               </p>
             </div>
@@ -322,14 +376,14 @@ export function Login() {
               <button
                 type="button"
                 onClick={enableBiometrics}
-                className="w-full h-[50px] rounded-2xl border-none bg-amber text-navy-950 font-extrabold text-[15px]"
+                className="w-full h-11 rounded-xl border-none bg-amber text-navy-950 font-bold text-[14.5px]"
               >
                 Enable {labelBiometric}
               </button>
               <button
                 type="button"
                 onClick={skipBiometrics}
-                className="bg-none border-none text-[#9099C2] font-bold text-[13.5px] p-1.5"
+                className="bg-none border-none text-[#9099C2] font-semibold text-[13px] p-1.5"
               >
                 Maybe later
               </button>
@@ -337,6 +391,6 @@ export function Login() {
           </div>
         </div>
       )}
-    </AuthShell>
+    </div>
   );
 }

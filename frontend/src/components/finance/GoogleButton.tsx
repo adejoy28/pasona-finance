@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { startGoogleLogin } from "@/lib/auth/google";
 
-export function GoogleButton({ label = "Continue with Google" }: { label?: string }) {
+export function GoogleButton({
+  label = "Google",
+  variant = "light",
+}: {
+  label?: string;
+  variant?: "light" | "dark";
+}) {
   const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -10,8 +16,6 @@ export function GoogleButton({ label = "Continue with Google" }: { label?: strin
     setError(null);
     setRedirecting(true);
     try {
-      // The page navigates away on success — any state update after this
-      // is a no-op because the component is about to unmount.
       await startGoogleLogin();
     } catch (err) {
       setError(
@@ -20,6 +24,11 @@ export function GoogleButton({ label = "Continue with Google" }: { label?: strin
       setRedirecting(false);
     }
   };
+
+  const buttonClasses =
+    variant === "dark"
+      ? "w-full h-12 flex items-center justify-center gap-2.5 rounded-xl bg-[#0e172e] border border-white/[0.08] text-white font-semibold text-[14.5px] transition-all hover:bg-[#162244] active:scale-[0.985] disabled:opacity-60"
+      : "w-full h-[52px] flex items-center justify-center gap-2.5 rounded-2xl bg-cream-50 border-[1.5px] border-cream-200 text-navy-700 font-bold text-[15px] transition-colors hover:border-navy-600 hover:shadow-[0_6px_16px_-8px_rgba(24,36,89,0.25)] active:scale-[0.985] disabled:opacity-60 disabled:cursor-not-allowed";
 
   return (
     <div className="space-y-2">
@@ -35,7 +44,7 @@ export function GoogleButton({ label = "Continue with Google" }: { label?: strin
         type="button"
         onClick={onClick}
         disabled={redirecting}
-        className="w-full h-[52px] flex items-center justify-center gap-2.5 rounded-2xl bg-cream-50 border-[1.5px] border-cream-200 text-navy-700 font-bold text-[15px] transition-colors hover:border-navy-600 hover:shadow-[0_6px_16px_-8px_rgba(24,36,89,0.25)] active:scale-[0.985] disabled:opacity-60 disabled:cursor-not-allowed"
+        className={buttonClasses}
       >
         <GoogleLogo />
         {redirecting ? "Redirecting…" : label}
