@@ -21,162 +21,130 @@ export function SplashPage() {
   const goLogin = () => navigate("/login");
 
   return (
-    <div className="relative min-h-[100dvh] bg-[var(--navy-900)] text-white overflow-hidden">
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-[radial-gradient(60%_50%_at_18%_12%,oklch(0.42_0.12_250/0.35),transparent_60%),radial-gradient(50%_50%_at_85%_90%,oklch(0.55_0.13_248/0.18),transparent_60%)]"
-      />
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 opacity-[0.04] [background-image:linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)] [background-size:48px_48px]"
-      />
+    <div className="relative h-[100dvh] w-full grid grid-cols-1 md:grid-cols-12 bg-[#030712] font-sans overflow-hidden z-10">
+      
+      {/* Left Column (Promotional) */}
+      <div className="hidden md:flex md:col-span-5 lg:col-span-4 bg-gradient-to-b from-[#0a1b39] to-[#040c1b] p-12 lg:p-16 flex-col justify-between relative overflow-hidden border-r border-white/[0.06] h-full">
+        {/* Subtle glow in the promotional area */}
+        <div className="absolute top-[-20%] left-[-20%] w-[100%] h-[100%] rounded-full bg-blue-500/10 blur-[100px] pointer-events-none" />
+        
+        <div className="relative z-10">
+          <img src="/img/brand-name-logo-light.png" alt="Pasona" className="h-7 w-auto object-contain" />
+        </div>
 
-      <div className="relative z-10 flex min-h-[100dvh] flex-col lg:flex-row">
-        <aside className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 xl:p-16">
-          <Brand />
+        <div className="relative z-10 my-auto py-6 space-y-6">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#3b82f6]/20 bg-[#3b82f6]/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#3b82f6]">
+            <Sparkles size={11} />
+            New in Pasona
+          </span>
+          <h1 className="font-display font-medium text-[2.5rem] leading-[1.1] text-white tracking-[-0.02em]">
+            Money, organised.<br />
+            <span className="text-[#3b82f6]">Calm, not cluttered.</span>
+          </h1>
+          <p className="text-[#8c93b0] text-[13.5px] font-medium leading-relaxed max-w-[320px]">
+            Track every account, spend, and budget in one quiet dashboard. Built for the way your money actually moves.
+          </p>
 
-          <div className="space-y-7 max-w-md">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.28em] text-indigo-300">
-              <Sparkles size={12} />
-              New in Pasona
-            </span>
-            <h1 className="font-display text-5xl xl:text-6xl font-semibold tracking-tight leading-[1.02]">
-              Money, organised.
-              <br />
-              <span className="bg-gradient-to-r from-indigo-300 to-sky-300 bg-clip-text text-transparent">
-                Calm, not cluttered.
+          <ul className="space-y-4 pt-2">
+            <MarketingPoint
+              icon={<LineChart size={14} />}
+              title="Live dashboards"
+              copy="See net worth, spend, and budgets update as transactions sync."
+            />
+            <MarketingPoint
+              icon={<PiggyBank size={14} />}
+              title="Accounts that mean something"
+              copy="Cash, cards, savings, loans — grouped the way you think about them."
+            />
+            <MarketingPoint
+              icon={<ShieldCheck size={14} />}
+              title="Private by default"
+              copy="Your data is yours. End-to-end encrypted sync, no ad tracking, ever."
+            />
+          </ul>
+        </div>
+
+        {/* Carousel indicators */}
+        <div className="relative z-10 flex items-center gap-1.5">
+          <span className="w-8 h-1 rounded-full bg-[#3b82f6]" />
+          <span className="w-2 h-1 rounded-full bg-white/10" />
+          <span className="w-2 h-1 rounded-full bg-white/10" />
+        </div>
+      </div>
+
+      {/* Right Column (Actions) */}
+      <div className="col-span-1 md:col-span-7 lg:col-span-8 p-8 sm:p-12 lg:p-20 flex flex-col justify-center bg-[#040914] relative h-full overflow-y-auto">
+        <div className="w-full max-w-[360px] mx-auto space-y-6">
+          
+          {/* Header (visible on mobile only: show small logo) */}
+          <div className="md:hidden flex items-center justify-between mb-2">
+            <img src="/img/brand-name-logo-light.png" alt="Pasona" className="h-6 w-auto object-contain" />
+          </div>
+
+          <div className="space-y-1">
+            <h2 className="text-[26px] font-semibold text-white tracking-tight">Get started</h2>
+            <p className="text-[13px] text-[#8c93b0] font-medium">Create a free account in under a minute.</p>
+          </div>
+
+          <div className="space-y-5">
+            <GoogleButton label="Continue with Google" variant="dark" />
+
+            <div className="flex items-center gap-3 py-1">
+              <div className="flex-grow h-px bg-white/[0.06]" />
+              <span className="text-[9px] font-bold uppercase tracking-widest text-[#454c70] whitespace-nowrap">
+                Or
               </span>
-            </h1>
-            <p className="text-base text-slate-300/90 leading-relaxed max-w-sm">
-              Track every account, every transaction, every category — in one
-              quiet dashboard. Built for the way your money actually moves.
-            </p>
+              <div className="flex-grow h-px bg-white/[0.06]" />
+            </div>
 
-            <ul className="space-y-3 pt-2">
-              <MarketingPoint
-                icon={<LineChart size={16} />}
-                title="Live dashboards"
-                copy="See net worth, spend, and budgets update as transactions sync."
-              />
-              <MarketingPoint
-                icon={<PiggyBank size={16} />}
-                title="Accounts that mean something"
-                copy="Cash, cards, savings, loans — grouped the way you think about them."
-              />
-              <MarketingPoint
-                icon={<ShieldCheck size={16} />}
-                title="Private by default"
-                copy="Your data is yours. End-to-end encrypted sync, no ad tracking, ever."
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={goRegister}
+                className="group h-11 inline-flex items-center justify-center gap-2 rounded-xl font-bold text-white text-sm tracking-wide bg-[#3b82f6] hover:bg-[#2563eb] transition-all"
+              >
+                Create account
+                <ArrowRight
+                  size={15}
+                  className="transition-transform group-hover:translate-x-0.5"
+                />
+              </button>
+              <button
+                type="button"
+                onClick={goLogin}
+                className="h-11 inline-flex items-center justify-center rounded-xl font-semibold text-sm tracking-wide border border-white/[0.08] bg-[#0b1329]/50 text-white hover:bg-[#0b1329]/80 transition-colors"
+              >
+                Sign in
+              </button>
+            </div>
+
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] text-[#8c93b0] pt-2 border-t border-white/[0.04]">
+              <li className="flex items-center gap-1.5">
+                <Check size={12} className="text-emerald" /> Free forever
+              </li>
+              <li className="flex items-center gap-1.5">
+                <Check size={12} className="text-emerald" /> No credit card
+              </li>
+              <li className="flex items-center gap-1.5">
+                <Check size={12} className="text-emerald" /> Works offline
+              </li>
+              <li className="flex items-center gap-1.5">
+                <Check size={12} className="text-emerald" /> iOS · Android · Web
+              </li>
             </ul>
           </div>
 
-          <p className="text-[11px] text-slate-500">
-            Trusted by people who'd rather not think about their bank account.
-          </p>
-        </aside>
-
-        <main className="flex-1 flex items-center justify-center px-6 py-12 lg:py-16">
-          <div className="w-full max-w-[24rem] space-y-7">
-            <div className="lg:hidden flex justify-center">
-              <Brand />
-            </div>
-
-            <div className="space-y-3 text-center lg:text-left">
-              <h2 className="font-display text-3xl sm:text-[2rem] font-semibold tracking-tight leading-tight">
-                Get started
-              </h2>
-              <p className="text-sm text-slate-400">
-                Create a free account in under a minute.
-              </p>
-            </div>
-
-            <div className="rounded-[1.5rem] border border-white/[0.08] bg-white/[0.04] backdrop-blur-sm px-6 py-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] relative overflow-hidden">
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 rounded-[1.5rem] bg-gradient-to-b from-white/[0.05] to-transparent"
-              />
-              <div className="relative space-y-5">
-                <GoogleButton label="Continue with Google" />
-
-                <div className="relative flex items-center">
-                  <div className="flex-grow border-t border-slate-700/60" />
-                  <span className="flex-shrink mx-3 text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">
-                    or
-                  </span>
-                  <div className="flex-grow border-t border-slate-700/60" />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={goRegister}
-                    className="group h-12 inline-flex items-center justify-center gap-2 rounded-xl font-bold text-white text-sm tracking-wide bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-[0_18px_40px_-18px_rgba(99,102,241,0.9)] hover:opacity-95 transition-all"
-                  >
-                    Create account
-                    <ArrowRight
-                      size={16}
-                      className="transition-transform group-hover:translate-x-0.5"
-                    />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={goLogin}
-                    className="h-12 inline-flex items-center justify-center rounded-xl font-bold text-sm tracking-wide border border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] transition-colors"
-                  >
-                    Sign in
-                  </button>
-                </div>
-
-                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] text-slate-400 pt-1">
-                  <li className="flex items-center gap-1.5">
-                    <Check size={12} className="text-emerald-400" /> Free forever
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    <Check size={12} className="text-emerald-400" /> No credit card
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    <Check size={12} className="text-emerald-400" /> Works offline
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    <Check size={12} className="text-emerald-400" /> iOS · Android · Web
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <p className="text-[11px] text-slate-500 text-center leading-relaxed">
-              By continuing you agree to our{" "}
-              <a
-                href="/privacy"
-                className="text-slate-400 hover:text-white underline-offset-2 hover:underline"
-              >
-                Terms
-              </a>
-              <span className="mx-1.5">·</span>
-              <a
-                href="/privacy"
-                className="text-slate-400 hover:text-white underline-offset-2 hover:underline"
-              >
-                Privacy
-              </a>
+          {/* Footer Links */}
+          <div className="text-center pt-2">
+            <p className="text-[11px] text-[#454c70] leading-normal">
+              By continuing, you agree to our{" "}
+              <a href="/terms" className="underline hover:text-[#8c93b0]">Terms of Service</a> and{" "}
+              <a href="/privacy" className="underline hover:text-[#8c93b0]">Privacy Policy</a>.
             </p>
           </div>
-        </main>
-      </div>
-    </div>
-  );
-}
 
-function Brand() {
-  return (
-    <div className="flex items-center gap-2.5">
-      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber to-amber-deep shadow-[0_8px_20px_rgba(217,142,42,0.4)] flex items-center justify-center">
-        <img src="/img/brand-logo.png" alt="Pasona" className="w-5 h-5" />
+        </div>
       </div>
-      <span className="text-lg font-display font-bold tracking-tight text-white">
-        Pasona<span className="text-indigo-400">.</span>
-      </span>
     </div>
   );
 }
@@ -192,12 +160,12 @@ function MarketingPoint({
 }) {
   return (
     <li className="flex gap-3">
-      <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-400/20 flex items-center justify-center text-indigo-300">
+      <span className="flex-shrink-0 w-6 h-6 rounded-lg bg-[#3b82f6]/10 border border-[#3b82f6]/20 flex items-center justify-center text-[#3b82f6]">
         {icon}
       </span>
       <div className="space-y-0.5">
-        <p className="text-sm font-semibold text-white">{title}</p>
-        <p className="text-xs text-slate-400 leading-relaxed">{copy}</p>
+        <p className="text-xs font-semibold text-white">{title}</p>
+        <p className="text-[11px] text-[#8c93b0] leading-relaxed">{copy}</p>
       </div>
     </li>
   );
