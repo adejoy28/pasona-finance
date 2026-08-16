@@ -39,6 +39,9 @@ return [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URL'),
+        // Web client ID the mobile app signs in with. The ID token's `aud`
+        // claim must match this for verification to succeed.
+        'mobile_client_id' => env('GOOGLE_MOBILE_CLIENT_ID'),
     ],
 
     'vapid' => [

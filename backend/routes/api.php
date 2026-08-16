@@ -40,6 +40,7 @@ Route::get('/auth/check-email', [AuthController::class, 'checkEmail'])
 // Social Login (Google)
 Route::get('auth/google', [SocialAuthController::class, 'redirectToGoogle']);
 Route::get('auth/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
+Route::post('auth/google/mobile', [SocialAuthController::class, 'handleGoogleMobileLogin']);
 
 // Password Reset
 Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);

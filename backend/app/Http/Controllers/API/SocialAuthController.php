@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Socialite\Facades\Socialite;
+use Google\Client as GoogleClient;
 use Exception;
 
 class SocialAuthController extends Controller
@@ -75,6 +76,69 @@ class SocialAuthController extends Controller
         } catch (Exception $e) {
             $frontendUrl = config('app.frontend_url');
             return redirect("{$frontendUrl}/login?error=" . urlencode('Google authentication failed. Please try again.'));
+        }
+    }
+
+    /**
+     * Handle Google Mobile Login.
+     * Verifies the idToken sent from the mobile app (Capacitor/React Native).
+     */
+    public function handleGoogleMobileLogin(Request $request)
+    {
+        $idToken = $request->input('idToken');
+
+        if (!$idToken) {
+            return response()->json(['error' => 'Missing ID Token'], 400);
+        }
+
+        try {
+            $client = new GoogleClient(['client_id' => config('services.google.mobile_client_id')]);
+            $payload = $client->verifyIdToken($idToken);
+
+            if ($payload) {
+                $googleId = $payload['sub'];
+                $email = $payload['email'];
+                $name = $payload['name'];
+                $avatar = $payload['picture'] ?? null;
+
+                $user = User::withTrashed()->where('email', $email)->first();
+
+                if ($user) {
+                    if ($user->trashed()) {
+                        $user->restore();
+                    }
+                    $user->update([
+                        'google_id' => $googleId,
+                        'avatar' => $avatar ?? $user->avatar,
+                    ]);
+                } else {
+                    $user = User::create([
+                        'name' => $name,
+                        'email' => $email,
+                        'google_id' => $googleId,
+                        'avatar' => $avatar,
+                        'password' => null,
+                    ]);
+
+                    Mail::to($user->email)->queue(new WelcomeMail($user));
+                }
+
+                if (! $user->hasVerifiedEmail()) {
+                    $user->forceFill(['email_verified_at' => now()])->save();
+                }
+
+                $token = $user->createToken('mobile-auth-token')->plainTextToken;
+
+                return response()->json([
+                    'status' => 'success',
+                    'token' => $token,
+                    'user' => $user
+                ]);
+            } else {
+                return response()->json(['error' => 'Invalid Google Token'], 401);
+            }
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Token verification failed: ' . $e->getMessage()], 500);
         }
     }
 }
