@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 
 /**
  * AuthController Class
@@ -118,6 +119,11 @@ class AuthController extends Controller
     /**
      * Revoke the user's current token (Logout).
      *
+     * Only the session token passed in the request is revoked. Dedicated
+     * biometric tokens (created via `POST /auth/biometric/token`) are
+     * intentionally left alone so device biometric sign-in keeps working
+     * after a normal logout.
+     *
      * @return JsonResponse
      */
     public function logout(Request $request)
@@ -126,6 +132,84 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Successfully logged out',
+        ]);
+    }
+
+    /**
+     * Issue a dedicated biometric token for the authenticated user.
+     *
+     * The token is stored with the `biometric` ability and is NOT revoked
+     * by `logout()` (which only deletes the current session token). Any
+     * previously issued biometric token for the user is replaced so a
+     * device that re-enables biometrics rotates the secret. The app keeps
+     * this token in secure storage and uses it to re-authenticate on the
+     * login screen without a password.
+     *
+     * @return JsonResponse
+     */
+    public function createBiometricToken(Request $request)
+    {
+        $user = $request->user();
+
+        $user->tokens()->where('name', 'biometric_token')->delete();
+
+        $token = $user->createToken('biometric_token', ['biometric'])->plainTextToken;
+
+        return response()->json([
+            'biometric_token' => $token,
+        ]);
+    }
+
+    /**
+     * Exchange a stored biometric token for a fresh session token.
+     *
+     * Public — the biometric token itself is the credential. Validates the
+     * token, checks the `biometric` ability and expiry, then issues a new
+     * `auth_token`. The biometric token is left intact so it can be used
+     * again on the next biometric sign-in.
+     *
+     * @return JsonResponse
+     */
+    public function biometricLogin(Request $request)
+    {
+        $data = $request->validate([
+            'biometric_token' => 'required|string',
+        ]);
+
+        $accessToken = PersonalAccessToken::findToken($data['biometric_token']);
+
+        if (! $accessToken) {
+            throw ValidationException::withMessages([
+                'biometric_token' => ['Saved biometric credentials are no longer valid.'],
+            ]);
+        }
+
+        if (! $accessToken->can('biometric')) {
+            throw ValidationException::withMessages([
+                'biometric_token' => ['Saved biometric credentials are no longer valid.'],
+            ]);
+        }
+
+        if ($accessToken->expires_at && $accessToken->expires_at->isPast()) {
+            throw ValidationException::withMessages([
+                'biometric_token' => ['Saved biometric credentials have expired.'],
+            ]);
+        }
+
+        $user = $accessToken->tokenable;
+
+        if ($user->trashed()) {
+            throw ValidationException::withMessages([
+                'biometric_token' => ['This account is no longer available.'],
+            ]);
+        }
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'user' => $user,
         ]);
     }
 

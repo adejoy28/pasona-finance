@@ -42,6 +42,11 @@ Route::get('auth/google', [SocialAuthController::class, 'redirectToGoogle']);
 Route::get('auth/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
 Route::post('auth/google/mobile', [SocialAuthController::class, 'handleGoogleMobileLogin']);
 
+// Biometric sign-in. The exchange endpoint is public because the stored
+// biometric token itself is the credential; it only ever yields a fresh
+// session token. Token *issuance* stays behind auth below.
+Route::post('auth/biometric/login', [AuthController::class, 'biometricLogin']);
+
 // Password Reset
 Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
 Route::post('reset-password', [ResetPasswordController::class, 'reset']);
@@ -60,6 +65,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::patch('/me', [AuthController::class, 'updateProfile']);
     Route::delete('/me', [AuthController::class, 'destroy']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('auth/biometric/token', [AuthController::class, 'createBiometricToken']);
 
     // Email verification (resend / status)
     Route::get('/email/verification-status', [EmailVerificationController::class, 'status']);
