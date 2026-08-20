@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Mail\TransactionReminderMail;
+use App\Models\AppNotification;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -60,6 +61,14 @@ class SendTransactionReminder implements ShouldQueue
         }
 
         Mail::to($user->email)->send(new TransactionReminderMail($user));
+
+        AppNotification::push(
+            $user,
+            'reminder',
+            'Daily reminder',
+            "Time to log today's transactions. Don't let anything slip!",
+            ['url' => '/transactions/add'],
+        );
 
         $this->sendPushNotification($user);
 

@@ -8,6 +8,7 @@ use App\Http\Controllers\API\ForgotPasswordController;
 use App\Http\Controllers\API\Import\ImportController;
 use App\Http\Controllers\API\Import\KudaImportController;
 use App\Http\Controllers\API\Import\OpayImportController;
+use App\Http\Controllers\API\NotificationController;
 use App\Http\Controllers\API\ResetPasswordController;
 use App\Http\Controllers\API\SocialAuthController;
 use App\Http\Controllers\API\PushSubscriptionController;
@@ -99,6 +100,12 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Push Subscriptions
     Route::post('push/subscriptions', [PushSubscriptionController::class, 'store']);
     Route::delete('push/subscriptions', [PushSubscriptionController::class, 'destroy']);
+
+    // Notifications
+    Route::get('notifications', [NotificationController::class, 'index']);
+    Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::patch('notifications/{id}/read', [NotificationController::class, 'markRead']);
+    Route::post('notifications/read-all', [NotificationController::class, 'markAllRead']);
 
     // Dashboard Summary
     Route::get('summary', [SummaryController::class, 'index']);

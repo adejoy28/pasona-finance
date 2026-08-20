@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  Bell,
   ChevronLeft,
   ChevronRight,
   CreditCard,
@@ -17,6 +16,7 @@ import { FinanceNavbar } from "@/components/finance/Navbar";
 import { DashboardSkeleton } from "@/components/finance/Skeletons";
 import { AiChat } from "@/components/finance/AiChat";
 import { OnboardingTour } from "@/components/finance/OnboardingTour";
+import { NotificationBell } from "@/components/finance/NotificationBell";
 import { NewLookBanner } from "@/components/finance/NewLookBanner";
 import { VerifyEmailBanner } from "@/components/finance/VerifyEmailBanner";
 import { DEFAULT_CURRENCY } from "@/lib/currencies";
@@ -213,14 +213,7 @@ export function Dashboard() {
 
           <h1 className="text-lg font-extrabold tracking-tight">Dashboard</h1>
 
-          <button
-            type="button"
-            aria-label="Notifications"
-            className="relative w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-          >
-            <Bell size={18} />
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-blue-400 ring-2 ring-[#101b45]" />
-          </button>
+          <NotificationBell />
         </div>
 
         {/* Hero Navy Card: Total Balance + Add Transaction button & Column-aligned dynamic trend */}

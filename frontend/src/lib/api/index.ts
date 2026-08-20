@@ -7,6 +7,7 @@ export * as transactions from "./transactions";
 export * as categories from "./categories";
 export * as summary from "./summary";
 export * as push from "./push";
+export * as notifications from "./notifications";
 export {
   previewImport,
   commitImport,

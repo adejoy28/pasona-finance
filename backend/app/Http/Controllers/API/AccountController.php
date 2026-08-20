@@ -10,6 +10,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Account;
+use App\Models\AppNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -82,6 +83,14 @@ class AccountController extends Controller
         // (total_balance changes when a new account with starting_balance appears).
         Cache::forget("user:{$request->user()->id}:accounts:balances");
         Cache::forget("user:{$request->user()->id}:summary:" . now()->format('Y-m'));
+
+        AppNotification::push(
+            $request->user(),
+            'account_created',
+            'New account added',
+            "Your {$validated['type']} account \"{$validated['name']}\" is ready to use.",
+            ['account_id' => $account->id],
+        );
 
         return response()->json($account, 201);
     }

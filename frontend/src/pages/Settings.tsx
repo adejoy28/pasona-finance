@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router";
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import {
   AlertTriangle,
   Bell,
@@ -13,6 +14,7 @@ import {
   Shield,
   Tag,
   Trash2,
+  User,
   X,
 } from "lucide-react";
 import { usePopup } from "@/components/ui/popup";
@@ -33,6 +35,8 @@ import { ApiError, auth as authApi } from "@/lib/api";
 import { nextOccurrenceOfTime, useLocalNotifications } from "@/hooks/use-local-notifications";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { useMe, invalidateMe } from "@/hooks/use-me";
+import { useOnline } from "@/hooks/use-online";
+import { fadeSlideDown } from "@/lib/animations";
 import {
   checkBiometricAvailability,
   hasBiometricCredentials,
@@ -58,6 +62,7 @@ function readStoredEnabled(): boolean {
 export function Settings() {
   const navigate = useNavigate();
   const popup = usePopup();
+  const isOnline = useOnline();
   const [reminderTime, setReminderTime] = useState(readStoredTime);
   const [reminderEnabled, setReminderEnabled] = useState(readStoredEnabled);
   const [signingOut, setSigningOut] = useState(false);
@@ -263,24 +268,64 @@ export function Settings() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28">
-      <header className="bg-white border-b border-slate-100 px-6 pt-10 pb-6 sticky top-0 z-30 card-shadow">
-        <h1 className="text-xl font-black text-slate-900 tracking-tight">Settings</h1>
-        <p className="text-xs text-slate-400 font-medium">App preferences and account management</p>
-      </header>
+      {/* Top Header & Page Hero Card Section */}
+      <motion.header
+        variants={fadeSlideDown}
+        initial="hidden"
+        animate="visible"
+        className="px-6 pt-8 pb-10 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
+      >
+        {/* Top Header Bar: Avatar with Online Dot (left), Title (center), Notifications (right) */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="relative">
+            <div
+              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white shadow-sm relative overflow-hidden"
+              aria-label="User Avatar"
+            >
+              <User size={20} />
+            </div>
+            {/* Status Dot overlay on Avatar */}
+            <span
+              className={
+                "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#101b45] " +
+                (isOnline ? "bg-green-400" : "bg-amber-400")
+              }
+              title={isOnline ? "Online" : "Offline"}
+            />
+          </div>
 
-      <main className="p-6 space-y-6 max-w-lg mx-auto">
-        {/* Profile Card */}
-        <section className="bg-white p-5 rounded-2xl card-shadow border border-slate-50 flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-lg shrink-0">
+          <h1 className="text-lg font-extrabold tracking-tight">Settings</h1>
+
+          <button
+            type="button"
+            aria-label="Notifications"
+            className="relative w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+          >
+            <Bell size={18} />
+            <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-blue-400 ring-2 ring-[#101b45]" />
+          </button>
+        </div>
+
+        {/* Page Hero Card: User Profile Info */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+          className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
+        >
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-12 h-12 rounded-2xl bg-white/10 text-white flex items-center justify-center font-black text-lg shrink-0">
               {user?.name ? user.name[0].toUpperCase() : "P"}
             </div>
             <div className="min-w-0">
-              <p className="font-black text-slate-900 text-sm truncate">{user?.name ?? "User"}</p>
-              <p className="text-xs text-slate-400 truncate">{user?.email ?? ""}</p>
+              <p className="font-black text-white text-base truncate">{user?.name ?? "User"}</p>
+              <p className="text-xs text-white/70 truncate">{user?.email ?? ""}</p>
             </div>
           </div>
-        </section>
+        </motion.div>
+      </motion.header>
+
+      <main className="p-6 space-y-6 max-w-lg mx-auto">
 
         {/* Notifications */}
         <section className="bg-white rounded-2xl card-shadow border border-slate-50 overflow-hidden divide-y divide-slate-50">

@@ -19,6 +19,7 @@ namespace App\Http\Controllers\API\Import;
  */
 
 use App\Http\Controllers\Controller;
+use App\Models\AppNotification;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -104,8 +105,17 @@ abstract class BaseImportController extends Controller
         Cache::forget("user:{$userId}:accounts:balances");
         Cache::forget("user:{$userId}:summary:" . now()->format('Y-m'));
 
+        $count = count($rows);
+        AppNotification::push(
+            $userId,
+            'import_complete',
+            'Import complete',
+            "Successfully imported {$count} " . ($count === 1 ? 'transaction' : 'transactions') . '.',
+            ['count' => $count, 'url' => '/transactions'],
+        );
+
         return response()->json([
-            'message' => 'Successfully imported ' . count($rows) . ' transactions.',
+            'message' => 'Successfully imported ' . $count . ' transactions.',
         ], 201);
     }
 
