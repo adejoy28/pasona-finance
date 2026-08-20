@@ -7,6 +7,7 @@ import {
   ArrowDownLeft,
   ArrowRightLeft,
   ArrowUpRight,
+  Bell,
   Calendar,
   Pencil,
   Plus,
@@ -14,6 +15,7 @@ import {
   Search,
   Tag,
   Trash2,
+  User,
   Wallet,
   X,
 } from "lucide-react";
@@ -25,7 +27,8 @@ import { TransactionDialog } from "@/components/finance/TransactionDialog";
 import { TransactionsSkeleton } from "@/components/finance/Skeletons";
 import { SwipeReveal } from "@/components/finance/SwipeReveal";
 import { useMe } from "@/hooks/use-me";
-import { fadeSlideUp } from "@/lib/animations";
+import { useOnline } from "@/hooks/use-online";
+import { fadeSlideDown, fadeSlideUp } from "@/lib/animations";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,7 +51,7 @@ const FILTERS: { id: Filter; label: string }[] = [
 
 function getIcon(type: Transaction["type"]) {
   if (type === "income") return <ArrowDownLeft size={16} className="text-emerald-500" />;
-  if (type === "expense") return <ArrowUpRight size={16} className="text-slate-500" />;
+  if (type === "expense") return <ArrowUpRight size={16} className="text-red-600" />;
   return <ArrowRightLeft size={16} className="text-indigo-500" />;
 }
 
@@ -103,6 +106,7 @@ export function TransactionsIndex() {
 
   const userQuery = useMe();
   const userCurrency = userQuery.data?.currency ?? DEFAULT_CURRENCY;
+  const isOnline = useOnline();
   const popup = usePopup();
 
   const loadData = async () => {
@@ -172,101 +176,148 @@ export function TransactionsIndex() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/60 pb-32">
-      {/* Sleek Navbar Header */}
-      <header className="bg-white/90 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200/60 px-4 sm:px-6 py-4">
-        <div className="max-w-2xl mx-auto space-y-3">
-          {/* Top Row: Title + Quick Search Toggle + Add Btn */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-black text-slate-900 tracking-tight">History</h1>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowSearchInput((prev) => !prev);
-                  if (showSearchInput) setSearch("");
-                }}
-                className={cn(
-                  "p-2 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors",
-                  (showSearchInput || search) && "bg-slate-100 text-indigo-600 font-bold",
-                )}
-                aria-label="Toggle Search"
-              >
-                <Search size={18} />
-              </button>
-
-              <Link
-                to="/transactions/add"
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white font-black text-xs hover:bg-indigo-700 active:scale-95 transition-all shadow-sm"
-              >
-                <Plus size={15} />
-                <span>Add</span>
-              </Link>
-            </div>
+    <div className="min-h-screen bg-slate-50 pb-32">
+      {/* Top Header & Page Hero Card Section */}
+      <motion.header
+        variants={fadeSlideDown}
+        initial="hidden"
+        animate="visible"
+        className="px-6 pt-8 pb-10 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
+      >
+        {/* Top Header Bar: Avatar with Online Dot (left), Title (center), Notifications & Search (right) */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="relative">
+            <Link
+              to="/settings"
+              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors shadow-sm block relative overflow-hidden"
+              aria-label="Profile settings"
+            >
+              <User size={20} />
+            </Link>
+            {/* Status Dot overlay on Avatar */}
+            <span
+              className={
+                "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#101b45] " +
+                (isOnline ? "bg-green-400" : "bg-amber-400")
+              }
+              title={isOnline ? "Online" : "Offline"}
+            />
           </div>
 
-          {/* Expandable Search Input */}
-          <AnimatePresence>
-            {(showSearchInput || search) && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="relative pt-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search by note, category, or account..."
-                    autoFocus
-                    className="w-full bg-slate-100/70 border-0 rounded-xl pl-9 pr-8 py-2 text-xs font-semibold text-slate-800 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  />
-                  {search && (
-                    <button
-                      type="button"
-                      onClick={() => setSearch("")}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <h1 className="text-lg font-extrabold tracking-tight">History</h1>
 
-          {/* Minimal Segmented Filter Tabs */}
-          <div className="flex bg-slate-100/80 p-1 rounded-xl gap-1">
-            {FILTERS.map((f) => {
-              const active = filter === f.id;
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setFilter(f.id)}
-                  className={cn(
-                    "flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-center select-none",
-                    active
-                      ? "bg-white text-slate-900 shadow-sm"
-                      : "text-slate-500 hover:text-slate-800",
-                  )}
-                >
-                  {f.label}
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowSearchInput((prev) => !prev);
+                if (showSearchInput) setSearch("");
+              }}
+              className={cn(
+                "w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors",
+                (showSearchInput || search) && "bg-white text-indigo-950 font-bold",
+              )}
+              aria-label="Toggle Search"
+            >
+              <Search size={18} />
+            </button>
+            <Link
+              to="/transactions/add"
+              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+              aria-label="Add Transaction"
+            >
+              <Plus size={20} />
+            </Link>
           </div>
         </div>
-      </header>
 
-      {/* Main Stream Container */}
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 space-y-4">
+        {/* Page Hero Card: Net Cashflow for Selected Filter */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+          className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
+        >
+          <div className="flex justify-between items-center gap-2">
+            <p className="text-xs font-semibold text-white/80 uppercase tracking-wider shrink-0">Net Cashflow</p>
+            <div className="flex gap-2">
+              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full">
+                +{formatCurrency(totals.income, userCurrency)}
+              </span>
+              <span className="text-[10px] bg-rose-500/20 text-rose-300 font-bold px-2 py-0.5 rounded-full">
+                -{formatCurrency(totals.expense, userCurrency)}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-white truncate">
+              {formatCurrency(totals.net, userCurrency)}
+            </h2>
+            <div className="flex items-center gap-1.5 text-xs font-bold text-white/70 pt-1">
+              <span>{filtered.length} transactions in this view</span>
+            </div>
+          </div>
+        </motion.div>
+      </motion.header>
+
+      {/* Main Content Area */}
+      <main className="max-w-2xl mx-auto px-6 space-y-6 pt-4">
+        {/* Expandable Search Input */}
+        <AnimatePresence>
+          {(showSearchInput || search) && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="relative pt-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search by note, category, or account..."
+                  autoFocus
+                  className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-8 py-2.5 text-xs font-semibold text-slate-800 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/20 card-shadow"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Minimal Segmented Filter Tabs */}
+        <div className="flex bg-slate-200/50 p-1 rounded-xl gap-1 border border-slate-200/40">
+          {FILTERS.map((f) => {
+            const active = filter === f.id;
+            return (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setFilter(f.id)}
+                className={cn(
+                  "flex-1 py-2 rounded-lg text-xs font-black transition-all text-center select-none",
+                  active
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800",
+                )}
+              >
+                {f.label}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Sleek Summary Strip */}
         <div className="bg-white px-4 py-3 rounded-2xl border border-slate-200/60 shadow-xs flex items-center justify-between text-xs font-bold text-slate-500 overflow-x-auto no-scrollbar">
           <div className="flex items-center gap-1.5 shrink-0">
@@ -342,8 +393,17 @@ export function TransactionsIndex() {
                           to={`/transactions/${tx.id}`}
                           className="flex items-center gap-3 min-w-0 flex-1"
                         >
-                          {/* Minimal Icon */}
-                          <div className="w-9 h-9 rounded-xl bg-slate-100/90 flex items-center justify-center shrink-0">
+                          {/* Icon Container */}
+                          <div
+                            className={cn(
+                              "w-9 h-9 rounded-xl flex items-center justify-center shrink-0",
+                              tx.type === "income"
+                                ? "bg-emerald-50 text-emerald-600"
+                                : tx.type === "expense"
+                                  ? "bg-red-50 text-red-600"
+                                  : "bg-indigo-50 text-indigo-600",
+                            )}
+                          >
                             {getIcon(tx.type)}
                           </div>
 

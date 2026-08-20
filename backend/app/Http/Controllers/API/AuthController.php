@@ -10,6 +10,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Mail\WelcomeMail;
+use App\Models\AppNotification;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -68,6 +69,14 @@ class AuthController extends Controller
         // Send the welcome email alongside the verification link.
         // Mail::queue returns immediately; a queue worker handles the send.
         Mail::to($user->email)->queue(new WelcomeMail($user));
+
+        AppNotification::push(
+            $user,
+            'welcome',
+            'Welcome to Pasona!',
+            'Your account is set up and ready to go. Start by adding your first financial account.',
+            ['url' => '/accounts'],
+        );
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

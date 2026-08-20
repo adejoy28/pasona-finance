@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Mail\WelcomeMail;
+use App\Models\AppNotification;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -57,6 +58,14 @@ class SocialAuthController extends Controller
                 ]);
 
                 Mail::to($user->email)->queue(new WelcomeMail($user));
+
+                AppNotification::push(
+                    $user,
+                    'welcome',
+                    'Welcome to Pasona!',
+                    'Your account is set up and ready to go. Start by adding your first financial account.',
+                    ['url' => '/accounts'],
+                );
             }
 
             // Google has already confirmed the email address, so
@@ -121,6 +130,14 @@ class SocialAuthController extends Controller
                     ]);
 
                     Mail::to($user->email)->queue(new WelcomeMail($user));
+
+                    AppNotification::push(
+                        $user,
+                        'welcome',
+                        'Welcome to Pasona!',
+                        'Your account is set up and ready to go. Start by adding your first financial account.',
+                        ['url' => '/accounts'],
+                    );
                 }
 
                 if (! $user->hasVerifiedEmail()) {
