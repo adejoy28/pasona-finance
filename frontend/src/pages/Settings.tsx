@@ -125,11 +125,71 @@ export function Settings() {
     }
   };
 
-  const handleReminderTimeChange = async (newTime: string) => {
-    setReminderTime(newTime);
+  const toggleReminder = async (next: boolean) => {
+    const prev = reminderEnabled;
+    setReminderEnabled(next);
     try {
-      await authApi.updateProfile({ reminder_time: newTime, timezone: browserTz });
+      if (!next) {
+        if (isNative) {
+          await cancelAlarm(REMINDER_NOTIFICATION_ID);
+        }
+        await authApi.updateProfile({ reminder_time: null, timezone: browserTz });
+        invalidateMe();
+        popup.success("Daily reminder disabled");
+        return;
+      }
+
+      if (isNative) {
+        if (permission?.display !== "granted") {
+          const status = await requestPermission();
+          if (status.display !== "granted") {
+            setReminderEnabled(false);
+            popup.error("Notification permission denied. Enable it in system settings.");
+            return;
+          }
+        }
+        const at = nextOccurrenceOfTime(reminderTime);
+        await scheduleAlarm({
+          id: REMINDER_NOTIFICATION_ID,
+          title: "Time to log your expenses",
+          body: `Daily reminder for ${reminderTime}. Tap to record today's spending.`,
+          at,
+          repeats: true,
+        });
+      }
+      await authApi.updateProfile({ reminder_time: reminderTime, timezone: browserTz });
       invalidateMe();
+      popup.success(isNative ? `Reminder set for ${reminderTime}` : "Daily reminder enabled");
+    } catch {
+      setReminderEnabled(prev);
+      popup.error("Could not toggle reminder");
+    }
+  };
+
+  const handleTimeChange = async (next: string) => {
+    const prev = reminderTime;
+    setReminderTime(next);
+    if (seededFromServer.current) {
+      try {
+        await authApi.updateProfile({ reminder_time: next, timezone: browserTz });
+        invalidateMe();
+      } catch {
+        setReminderTime(prev);
+        popup.error("Could not save reminder time");
+        return;
+      }
+    }
+    if (!reminderEnabled || !isNative) return;
+    try {
+      const at = nextOccurrenceOfTime(next);
+      await scheduleAlarm({
+        id: REMINDER_NOTIFICATION_ID,
+        title: "Time to log your expenses",
+        body: `Daily reminder for ${next}. Tap to record today's spending.`,
+        at,
+        repeats: true,
+      });
+      popup.success(`Reminder rescheduled to ${next}`);
     } catch {
       // Best-effort
     }
@@ -146,7 +206,23 @@ export function Settings() {
       } else {
         const verified = await verifyBiometricIdentity();
         if (verified) {
-          popup.info("Biometric verified. Sign in once with password to save credentials.");
+          const email = user?.email;
+          if (!email) {
+            popup.error("No account on this device. Sign in again.");
+          } else {
+            try {
+              const biometricToken = await authApi.createBiometricToken();
+              const saved = await saveBiometricCredentials(email, biometricToken);
+              if (saved) {
+                setBiometricEnabled(true);
+                popup.success("Biometric sign-in enabled");
+              } else {
+                popup.error("Could not save biometric credentials");
+              }
+            } catch {
+              popup.error("Could not issue biometric credentials. Try again.");
+            }
+          }
         }
       }
     } catch {
@@ -204,6 +280,117 @@ export function Settings() {
               <p className="text-xs text-slate-400 truncate">{user?.email ?? ""}</p>
             </div>
           </div>
+        </section>
+
+        {/* Notifications */}
+        <section className="bg-white rounded-2xl card-shadow border border-slate-50 overflow-hidden divide-y divide-slate-50">
+          <div className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <Bell size={18} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-800">Daily Reminder</p>
+                <p className="text-[10px] text-slate-400 uppercase">
+                  {reminderEnabled ? `Active at ${reminderTime}` : "Off"}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={reminderEnabled}
+              onClick={() => void toggleReminder(!reminderEnabled)}
+              className={
+                "w-12 h-6 rounded-full p-1 transition-colors relative " +
+                (reminderEnabled ? "bg-blue-600" : "bg-slate-200")
+              }
+            >
+              <div
+                className={
+                  "w-4 h-4 rounded-full bg-white transition-transform " +
+                  (reminderEnabled ? "translate-x-6" : "translate-x-0")
+                }
+              />
+            </button>
+          </div>
+
+          <div className="p-4 flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+              Reminder time
+            </span>
+            <input
+              type="time"
+              disabled={!reminderEnabled}
+              value={reminderTime}
+              onChange={(e) => void handleTimeChange(e.target.value)}
+              className="bg-slate-50 p-2.5 rounded-xl font-black text-blue-600 outline-none text-sm disabled:opacity-50"
+            />
+          </div>
+
+          {!isNative && (
+            <div className="p-4 space-y-3">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                {reminderEnabled
+                  ? `Email reminder active at ${reminderTime}.`
+                  : "Email reminder is off."}
+              </p>
+
+              {push.isSupported && (
+                <div className="flex items-center justify-between gap-4 pt-2">
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">Push Notifications</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">
+                      {!push.isConfigured
+                        ? "Not configured on server"
+                        : push.isSubscribed
+                          ? "Enabled — you'll receive push alerts"
+                          : "Send reminders as push notifications"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {push.isConfigured && push.isSubscribed && (
+                      <button
+                        type="button"
+                        disabled={push.subscribing}
+                        onClick={() => void push.sendTestPush()}
+                        className="text-[10px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider disabled:opacity-50"
+                      >
+                        Send test
+                      </button>
+                    )}
+                    {push.isConfigured && (
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={push.isSubscribed}
+                        disabled={push.subscribing}
+                        onClick={() => {
+                          if (push.isSubscribed) {
+                            push.unsubscribe();
+                          } else {
+                            push.subscribe();
+                          }
+                        }}
+                        className={
+                          "w-12 h-6 rounded-full p-1 transition-colors relative shrink-0 disabled:opacity-50 " +
+                          (push.isSubscribed ? "bg-blue-600" : "bg-slate-200")
+                        }
+                      >
+                        <div
+                          className={
+                            "w-4 h-4 rounded-full bg-white transition-transform " +
+                            (push.isSubscribed ? "translate-x-6" : "translate-x-0")
+                          }
+                        />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+              {push.error && <p className="text-xs font-semibold text-red-600">{push.error}</p>}
+            </div>
+          )}
         </section>
 
         {/* Currency & Preferences */}

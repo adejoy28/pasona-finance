@@ -26,6 +26,16 @@ const BACKEND_BASE = `http://${BACKEND_HOST}:${BACKEND_PORT}`;
 
 let backendChild = null;
 
+const DIAG_LOG = path.join(app.getPath("temp"), "pasona-main.log");
+function diag(...args) {
+  try {
+    fs.appendFileSync(DIAG_LOG, `${new Date().toISOString()} ${args.join(" ")}\n`);
+  } catch {}
+}
+
+process.on("uncaughtException", (err) => diag("[uncaughtException]", err && err.stack));
+process.on("unhandledRejection", (reason) => diag("[unhandledRejection]", reason && (reason.stack || reason)));
+
 function log(...args) {
   console.log("[electron]", ...args);
 }
@@ -259,10 +269,13 @@ if (!gotLock) {
 
   app.whenReady().then(async () => {
     const devUrl = process.env.ELECTRON_START_URL || "";
+    diag("whenReady: begin");
 
     try {
       await ensureBackend();
-    } catch {
+      diag("whenReady: backend ok");
+    } catch (err) {
+      diag("whenReady: backend FAILED", err && err.stack);
       app.exit(1);
       return;
     }

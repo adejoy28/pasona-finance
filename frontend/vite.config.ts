@@ -58,8 +58,12 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
+            // Group all node_modules into one "vendor" chunk. The chunk name
+            // must not start with a dot: Android's aapt `ignoreAssetsPattern`
+            // drops dot-prefixed files (e.g. `.pnpm-*.js`) from the APK, which
+            // broke the app with a blank screen.
             if (id.includes("node_modules")) {
-              return id.toString().split("node_modules/")[1].split("/")[0].toString();
+              return "vendor";
             }
           },
         },

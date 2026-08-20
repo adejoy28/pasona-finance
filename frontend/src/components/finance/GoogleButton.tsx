@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
+import { Capacitor } from "@capacitor/core";
 import { startGoogleLogin } from "@/lib/auth/google";
 
 export function GoogleButton({
@@ -8,6 +10,7 @@ export function GoogleButton({
   label?: string;
   variant?: "light" | "dark";
 }) {
+  const navigate = useNavigate();
   const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,6 +20,10 @@ export function GoogleButton({
     setRedirecting(true);
     try {
       await startGoogleLogin();
+      if (Capacitor.isNativePlatform()) {
+        // Native sign-in already stored the token; no full-page reload needed.
+        void navigate("/dashboard", { replace: true });
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Unable to start Google sign-in. Please try again.",

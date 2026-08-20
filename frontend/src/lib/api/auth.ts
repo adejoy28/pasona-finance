@@ -96,3 +96,27 @@ export async function checkEmail(email: string): Promise<{ exists: boolean }> {
     return { exists: false };
   }
 }
+
+/**
+ * Issue a dedicated biometric token for the current session. This token is
+ * stored in secure storage and is NOT revoked on logout, so it can be used
+ * to re-authenticate without a password. Call only while authenticated.
+ */
+export async function createBiometricToken(): Promise<string> {
+  const data = await api.post<{ biometric_token: string }>("/auth/biometric/token");
+  return data.biometric_token;
+}
+
+/**
+ * Exchange a stored biometric token for a fresh session token. On success
+ * the session token is stored and the returned user is returned.
+ */
+export async function biometricLogin(biometricToken: string): Promise<UserDto> {
+  const data = await api.post<AuthResponse>(
+    "/auth/biometric/login",
+    { biometric_token: biometricToken },
+    { anonymous: true },
+  );
+  setAuthToken(data.access_token);
+  return data.user;
+}

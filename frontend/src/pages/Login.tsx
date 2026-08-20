@@ -137,14 +137,20 @@ export function Login() {
       }
       const creds = await getBiometricCredentials();
       if (!creds) {
-        setError("Saved biometric credentials expired. Sign in with password once.");
+        setError("Saved biometric credentials expired. Sign in once to re-enable.");
         setHasBiometricCreds(false);
         setBiometricBusy(false);
         return;
       }
       setEmail(creds.email);
-      setPassword(creds.password);
-      await performLogin(creds.email, creds.password, true);
+      try {
+        await authApi.biometricLogin(creds.token);
+        void navigate("/dashboard", { replace: true });
+      } catch {
+        await deleteBiometricCredentials();
+        setHasBiometricCreds(false);
+        setError("Biometric session expired. Sign in once to re-enable.");
+      }
     } catch (err) {
       setError("Biometric sign-in failed. Try your password.");
     } finally {
@@ -153,10 +159,15 @@ export function Login() {
   };
 
   const enableBiometrics = async () => {
-    await saveBiometricCredentials(email, password);
-    setHasBiometricCreds(true);
-    setShowEnableBiometric(false);
-    void navigate("/dashboard");
+    try {
+      const biometricToken = await authApi.createBiometricToken();
+      await saveBiometricCredentials(email, biometricToken);
+      setHasBiometricCreds(true);
+      setShowEnableBiometric(false);
+      void navigate("/dashboard");
+    } catch {
+      setError("Unable to save biometric credentials right now. Try again.");
+    }
   };
 
   const skipBiometrics = () => {

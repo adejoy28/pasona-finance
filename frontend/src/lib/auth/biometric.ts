@@ -4,7 +4,9 @@
 //   - @aparajita/capacitor-biometric-auth for the biometric prompt + hardware
 //     checks (fingerprint / face / iris / device credential).
 //   - @aparajita/capacitor-secure-storage (Android Keystore-backed) to hold the
-//     saved email + password so a biometric prompt can unlock the sign-in.
+//     saved email + auth token so a biometric prompt can unlock the sign-in.
+//     We store the token rather than a password so both email/password and
+//     Google OAuth accounts (which have no password) can enable biometrics.
 //
 // On the web there is no hardware biometry we can rely on, so every function
 // reports "unavailable" / returns null. This keeps the PWA behavior unchanged
@@ -87,15 +89,15 @@ export async function verifyBiometricIdentity(): Promise<boolean> {
 
 export interface BiometricCredentials {
   email: string;
-  password: string;
+  token: string;
 }
 
-export async function saveBiometricCredentials(_email: string, _password: string): Promise<boolean> {
+export async function saveBiometricCredentials(_email: string, _token: string): Promise<boolean> {
   if (!isNative()) {
     return false;
   }
   try {
-    const payload: BiometricCredentials = { email: _email, password: _password };
+    const payload: Record<string, unknown> = { email: _email, token: _token };
     await SecureStorage.set(CREDENTIALS_KEY, payload);
     return true;
   } catch {
@@ -111,10 +113,10 @@ export async function getBiometricCredentials(): Promise<BiometricCredentials | 
     const stored = await SecureStorage.get(CREDENTIALS_KEY);
     if (!stored || typeof stored !== "object") return null;
     const record = stored as Record<string, unknown>;
-    if (typeof record.email !== "string" || typeof record.password !== "string") {
+    if (typeof record.email !== "string" || typeof record.token !== "string") {
       return null;
     }
-    return { email: record.email, password: record.password };
+    return { email: record.email, token: record.token };
   } catch {
     return null;
   }

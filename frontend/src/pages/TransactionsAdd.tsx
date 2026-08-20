@@ -126,13 +126,17 @@ export function TransactionsAdd() {
       setError("Please enter a valid amount greater than zero.");
       return;
     }
+    if (numericAmount > 1_000_000_000) {
+      setError("Amount is too large.");
+      return;
+    }
     if (type === "transfer" && (!toAccountId || toAccountId === accountId)) {
       setError("Pick a different destination account for the transfer.");
       return;
     }
 
     setError(null);
-    setDuplicateWarning(false);
+    setSubmitting(true);
 
     const payload: CreateTransactionInput = {
       account_id: Number(accountId),
@@ -148,24 +152,22 @@ export function TransactionsAdd() {
       payload.category_id = Number(categoryId);
     }
 
-    if (!isOnline) {
-      try {
-        await enqueue(payload);
-        popup.success("Saved offline. Will sync automatically when back online.");
-        void navigate(-1);
-      } catch (err) {
-        setError("Unable to save transaction offline.");
-      }
-      return;
-    }
-
-    setSubmitting(true);
     try {
-      await transactionsApi.createTransaction(payload);
-      popup.success("Transaction added");
-      void navigate(-1);
+      if (isOnline) {
+        await transactionsApi.createTransaction(payload);
+        void loadFormData();
+        popup.success("Transaction saved", { duration: 2000 });
+      } else {
+        await enqueue(payload);
+        popup.success("Saved offline. We'll sync it when you're back online.", { duration: 2000 });
+      }
+      // Retain selected options (type, accountId, toAccountId, categoryId, date)
+      // and reset transaction-specific input fields for fast consecutive recording
+      setAmount("");
+      setDescription("");
+      setDuplicateWarning(false);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409 && !force) {
+      if (isOnline && err instanceof ApiError && err.status === 409 && !force) {
         setDuplicateWarning(true);
       } else {
         setError(
@@ -442,8 +444,9 @@ export function TransactionsAdd() {
           <button
             type="submit"
             disabled={submitting || loading}
-            className="w-full py-4 rounded-2xl bg-blue-600 text-white font-black text-sm tracking-wide shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.99] transition-all disabled:opacity-50"
+            className="w-full py-4 rounded-2xl bg-blue-600 text-white font-black text-sm tracking-wide shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
+            <Check size={20} strokeWidth={2.5} />
             {submitting ? "Saving Transaction…" : "Save Transaction"}
           </button>
         </form>

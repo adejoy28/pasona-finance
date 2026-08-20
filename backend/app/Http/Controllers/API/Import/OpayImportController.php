@@ -49,7 +49,7 @@ class OpayImportController extends BaseImportController
      * date+type+amount for rows without a reference. Two queries instead of the
      * base's single OR-WHERE on tuples.
      */
-    protected function fetchExisting(array $parsed, int $userId): Collection
+    protected function fetchExisting(array $parsed, int $userId, int $accountId = 0): Collection
     {
         $refs    = array_values(array_filter(array_column($parsed, 'reference')));
         $nonRefs = array_values(array_filter($parsed, fn ($p) => empty($p['reference'])));
