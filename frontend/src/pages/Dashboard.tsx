@@ -1,7 +1,17 @@
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowDownLeft, ArrowUpRight, ChevronLeft, ChevronRight, CreditCard, Wallet } from "lucide-react";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  Plus,
+  User,
+  Wallet,
+} from "lucide-react";
 import { usePopup } from "@/components/ui/popup";
 import { FinanceNavbar } from "@/components/finance/Navbar";
 import { DashboardSkeleton } from "@/components/finance/Skeletons";
@@ -150,14 +160,15 @@ export function Dashboard() {
 
   const categoryBreakdown = summaryHasData && summary?.category_breakdown
     ? summary.category_breakdown.map((row) => ({
-        category_name: row.category_name,
-        total: toNumber(row.total),
-      }))
+      category_name: row.category_name,
+      total: toNumber(row.total),
+    }))
     : [...derived.byCategory.entries()]
-        .map(([category_name, total]) => ({ category_name, total }))
-        .sort((a, b) => b.total - a.total);
-
+      .map(([category_name, total]) => ({ category_name, total }))
   const maxTotal = Math.max(...categoryBreakdown.map((c) => c.total), 1);
+  const netSavings = monthlyIncome - monthlyExpense;
+  const isPositiveTrend = netSavings >= 0;
+  const hasMonthRecords = monthTx.length > 0 || monthlyIncome > 0 || monthlyExpense > 0 || categoryBreakdown.length > 0;
 
   if (loading && !summary) {
     return (
@@ -172,80 +183,118 @@ export function Dashboard() {
     <div className="min-h-screen bg-slate-50 pb-32">
       <NewLookBanner />
       <VerifyEmailBanner />
+
+      {/* Top Header & Vibrant Hero Card Section */}
       <motion.header
         variants={fadeSlideDown}
         initial="hidden"
         animate="visible"
-        className="px-6 pt-10 pb-20 premium-gradient text-white rounded-b-[3rem] shadow-2xl shadow-blue-100"
+        className="px-6 pt-8 pb-10 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
       >
-        <div className="flex justify-between items-start mb-8">
-          <motion.div
-            initial={{ opacity: 0, x: -12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.15, duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-            className="space-y-1"
-          >
-            <h1 className="text-lg font-bold opacity-80">Dashboard</h1>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                aria-label="Previous month"
-                onClick={() => setMonthOffset((o) => o - 1)}
-                className="w-6 h-6 -ml-1 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 transition-colors"
-              >
-                <ChevronLeft size={14} />
-              </button>
-              <p className="text-xs font-bold uppercase tracking-widest opacity-80 min-w-[8.5rem] text-center">
-                {monthLabel}
-              </p>
-              <button
-                type="button"
-                aria-label="Next month"
-                disabled={monthOffset >= 0}
-                onClick={() => setMonthOffset((o) => Math.min(0, o + 1))}
-                className="w-6 h-6 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-30 disabled:hover:bg-white/10"
-              >
-                <ChevronRight size={14} />
-              </button>
-            </div>
-
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.25, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 rounded-full text-[10px] font-bold uppercase"
-          >
-            <div
+        {/* Top Header Bar: Avatar with Online Dot (left), Title (center), Notifications (right) */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="relative">
+            <Link
+              to="/settings"
+              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors shadow-sm block relative overflow-hidden"
+              aria-label="Profile settings"
+            >
+              <User size={20} />
+            </Link>
+            {/* Status Dot overlay on Avatar */}
+            <span
               className={
-                "w-2 h-2 rounded-full " +
-                (isOnline
-                  ? "bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.5)]"
-                  : "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]")
+                "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#101b45] " +
+                (isOnline ? "bg-green-400" : "bg-amber-400")
               }
+              title={isOnline ? "Online" : "Offline"}
             />
-            {isOnline ? "Online" : "Offline"}
-          </motion.div>
+          </div>
+
+          <h1 className="text-lg font-extrabold tracking-tight">Dashboard</h1>
+
+          <button
+            type="button"
+            aria-label="Notifications"
+            className="relative w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+          >
+            <Bell size={18} />
+            <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-blue-400 ring-2 ring-[#101b45]" />
+          </button>
         </div>
+
+        {/* Hero Navy Card: Total Balance + Add Transaction button & Column-aligned dynamic trend */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-          className="space-y-1 overflow-hidden"
+          className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
         >
-          <p className="text-sm font-medium opacity-80">Total Balance</p>
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-none truncate">
-            {formatCurrency(totalBalance, userCurrency)}
-          </h2>
+          <div className="flex justify-between items-center gap-2">
+            <p className="text-xs font-semibold text-white/80 uppercase tracking-wider shrink-0">Total Balance</p>
+            <Link
+              to="/transactions/add"
+              data-tour-target="add-transaction"
+              className="px-2 py-1.5 bg-white text-[#101b45] hover:bg-slate-100 rounded-full text-[8px] sm:text-xs font-bold flex items-center gap-1 shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 whitespace-nowrap"
+            >
+              <Plus size={12} strokeWidth={2.5} className="shrink-0" />
+              <span>Add Transaction</span>
+            </Link>
+          </div>
+
+          <div className="space-y-1">
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-white truncate">
+              {formatCurrency(totalBalance, userCurrency)}
+            </h2>
+            <div
+              className={`flex items-center gap-1 text-xs font-bold pt-1 ${
+                isPositiveTrend ? "text-green-400" : "text-rose-400"
+              }`}
+            >
+              <span>{isPositiveTrend ? "▲" : "▼"}</span>
+              <span>
+                {isPositiveTrend ? "+" : "-"}
+                {formatCurrency(Math.abs(netSavings), userCurrency)} net cashflow
+              </span>
+            </div>
+          </div>
         </motion.div>
       </motion.header>
 
+      {/* Main Content Area */}
       <motion.div
         variants={fadeSlideUp}
         initial="hidden"
         animate="visible"
-        className="px-6 -mt-12 space-y-8"
+        className="px-6 space-y-6 pt-4"
       >
+        {/* Month Selector Row (positioned between Hero Balance Card and Cashflow / Income & Expenses) */}
+        <div className="flex justify-center items-center gap-3">
+          <button
+            type="button"
+            aria-label="Previous month"
+            disabled={loading || !hasMonthRecords}
+            onClick={() => setMonthOffset((o) => o - 1)}
+            className="w-7 h-7 rounded-full flex items-center justify-center bg-white shadow-sm border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white"
+            title={!hasMonthRecords ? "No records for this month" : "Previous month"}
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <span className="text-xs font-extrabold uppercase tracking-widest text-slate-700 min-w-[9rem] text-center">
+            {monthLabel}
+          </span>
+          <button
+            type="button"
+            aria-label="Next month"
+            disabled={loading || monthOffset >= 0}
+            onClick={() => setMonthOffset((o) => Math.min(0, o + 1))}
+            className="w-7 h-7 rounded-full flex items-center justify-center bg-white shadow-sm border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+
+        {/* Income & Expenses (Cashflow) Summary Cards */}
         <motion.div
           variants={staggerContainer}
           initial="hidden"
@@ -286,13 +335,14 @@ export function Dashboard() {
           </motion.div>
         </motion.div>
 
+        {/* My Accounts Section with View All & Horizontal Scrolling Overflow */}
         <motion.section
           variants={fadeSlideUp}
           initial="hidden"
           animate="visible"
           className="space-y-4"
         >
-          <div className="flex justify-between items-end px-2">
+          <div className="flex justify-between items-center px-1">
             <h3 className="text-lg font-black text-slate-900 leading-none">My Accounts</h3>
             <Link to="/accounts" className="text-xs font-bold text-blue-600 hover:underline">
               View All
@@ -302,7 +352,7 @@ export function Dashboard() {
             variants={staggerContainer}
             initial="hidden"
             animate="visible"
-            className="flex overflow-x-auto gap-4 pb-4 -mx-2 px-2 scrollbar-hide"
+            className="flex overflow-x-auto gap-4 pb-3 -mx-2 px-2 scrollbar-hide"
           >
             {accountList.length === 0 && !loading && (
               <motion.div
@@ -320,13 +370,12 @@ export function Dashboard() {
                   className="flex-shrink-0 w-44 bg-white p-5 rounded-2xl card-shadow border border-slate-50 space-y-4 block hover:border-blue-200 transition-colors"
                 >
                   <div
-                    className={`p-2.5 inline-flex rounded-2xl ${
-                      account.type === "bank"
-                        ? "bg-blue-50 text-blue-600"
-                        : account.type === "mobile"
-                          ? "bg-purple-50 text-purple-600"
-                          : "bg-amber-50 text-amber-600"
-                    }`}
+                    className={`p-2.5 inline-flex rounded-2xl ${account.type === "bank"
+                      ? "bg-blue-50 text-blue-600"
+                      : account.type === "mobile"
+                        ? "bg-purple-50 text-purple-600"
+                        : "bg-amber-50 text-amber-600"
+                      }`}
                   >
                     {account.type === "bank" ? <CreditCard size={18} /> : <Wallet size={18} />}
                   </div>
@@ -344,14 +393,15 @@ export function Dashboard() {
           </motion.div>
         </motion.section>
 
+        {/* Spending Category Breakdown Section */}
         <motion.div
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+          className="grid grid-cols-1 gap-6"
         >
           <motion.section variants={staggerItem} className="space-y-4" data-tour-target="spending">
-            <div className="flex justify-between items-end px-2">
+            <div className="flex justify-between items-center px-1">
               <h3 className="text-lg font-black text-slate-900 leading-none">Spending</h3>
               <p className="text-[10px] font-bold text-slate-400 uppercase">{monthLabel}</p>
             </div>
@@ -401,7 +451,6 @@ export function Dashboard() {
               </Link>
             </motion.div>
           </motion.section>
-
         </motion.div>
       </motion.div>
 
@@ -411,3 +460,4 @@ export function Dashboard() {
     </div>
   );
 }
+

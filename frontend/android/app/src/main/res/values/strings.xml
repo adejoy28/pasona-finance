@@ -4,4 +4,5 @@
     <string name="title_activity_main">Pasona Finance</string>
     <string name="package_name">com.pasona.finance</string>
     <string name="custom_url_scheme">com.pasona.finance</string>
+    <string name="server_client_id">247677231726-68hcaf4sdt3cpf2ffpt4a0g2t2oaiu5r.apps.googleusercontent.com</string>
 </resources>

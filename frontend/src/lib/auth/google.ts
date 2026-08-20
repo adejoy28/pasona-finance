@@ -16,21 +16,36 @@ import { setAuthToken } from "./token";
 
 type GoogleStartResponse = { url: string };
 
-/**
- * Start the Google OAuth flow.
- *
- * Throws an `Error` with a user-facing message on any failure (network,
- * non-2xx, or a response that doesn't carry a `url` string) so the
- * caller can surface it in the UI.
- */
+import { Capacitor } from '@capacitor/core';
+import { GoogleSignIn } from '@capawesome/capacitor-google-sign-in';
+
 export async function startGoogleLogin(): Promise<void> {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const result = await GoogleSignIn.signIn();
+      if (!result.idToken) {
+        throw new Error("No ID token returned from Google.");
+      }
+      
+      const response = await api.post<{ token: string, user: any }>(
+        '/auth/google/mobile',
+        { idToken: result.idToken },
+        { anonymous: true }
+      );
+
+      setAuthToken(response.token);
+      return;
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      throw new Error("Unable to sign in with Google on device. Please try again.");
+    }
+  }
+
+  // Web fallback (existing flow)
   let response: GoogleStartResponse;
   try {
     response = await api.get<GoogleStartResponse>("/auth/google", { anonymous: true });
   } catch (err) {
-    // `ApiError.message` is already user-facing (the API client
-    // sanitizes the backend's message). Anything else is a network /
-    // parse failure — fall back to a generic message.
     if (err instanceof ApiError) throw err;
     throw new Error("Unable to start Google sign-in. Please try again.");
   }
