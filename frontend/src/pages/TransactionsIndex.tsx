@@ -184,85 +184,87 @@ export function TransactionsIndex() {
         animate="visible"
         className="px-6 pt-8 pb-10 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
       >
-        {/* Top Header Bar: Avatar with Online Dot (left), Title (center), Notifications & Search (right) */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="relative">
-            <Link
-              to="/settings"
-              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors shadow-sm block relative overflow-hidden"
-              aria-label="Profile settings"
-            >
-              <User size={20} />
-            </Link>
-            {/* Status Dot overlay on Avatar */}
-            <span
-              className={
-                "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#101b45] " +
-                (isOnline ? "bg-green-400" : "bg-amber-400")
-              }
-              title={isOnline ? "Online" : "Offline"}
-            />
+        <div className="max-w-5xl mx-auto">
+          {/* Top Header Bar: Avatar with Online Dot (left), Title (center), Notifications & Search (right) */}
+          <div className="flex justify-between items-center mb-6">
+            <div className="relative">
+              <Link
+                to="/settings"
+                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors shadow-sm block relative overflow-hidden"
+                aria-label="Profile settings"
+              >
+                <User size={20} />
+              </Link>
+              {/* Status Dot overlay on Avatar */}
+              <span
+                className={
+                  "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#101b45] " +
+                  (isOnline ? "bg-green-400" : "bg-amber-400")
+                }
+                title={isOnline ? "Online" : "Offline"}
+              />
+            </div>
+
+            <h1 className="text-lg font-extrabold tracking-tight">History</h1>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSearchInput((prev) => !prev);
+                  if (showSearchInput) setSearch("");
+                }}
+                className={cn(
+                  "w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors",
+                  (showSearchInput || search) && "bg-white text-indigo-950 font-bold",
+                )}
+                aria-label="Toggle Search"
+              >
+                <Search size={18} />
+              </button>
+              <Link
+                to="/transactions/add"
+                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                aria-label="Add Transaction"
+              >
+                <Plus size={20} />
+              </Link>
+            </div>
           </div>
 
-          <h1 className="text-lg font-extrabold tracking-tight">History</h1>
+          {/* Page Hero Card: Net Cashflow for Selected Filter */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+            className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
+          >
+            <div className="flex justify-between items-center gap-2">
+              <p className="text-xs font-semibold text-white/80 uppercase tracking-wider shrink-0">Net Cashflow</p>
+              <div className="flex gap-2">
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full">
+                  +{formatCurrency(totals.income, userCurrency)}
+                </span>
+                <span className="text-[10px] bg-rose-500/20 text-rose-300 font-bold px-2 py-0.5 rounded-full">
+                  -{formatCurrency(totals.expense, userCurrency)}
+                </span>
+              </div>
+            </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setShowSearchInput((prev) => !prev);
-                if (showSearchInput) setSearch("");
-              }}
-              className={cn(
-                "w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors",
-                (showSearchInput || search) && "bg-white text-indigo-950 font-bold",
-              )}
-              aria-label="Toggle Search"
-            >
-              <Search size={18} />
-            </button>
-            <Link
-              to="/transactions/add"
-              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-              aria-label="Add Transaction"
-            >
-              <Plus size={20} />
-            </Link>
-          </div>
+            <div className="space-y-1">
+              <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-white truncate">
+                {formatCurrency(totals.net, userCurrency)}
+              </h2>
+              <div className="flex items-center gap-1.5 text-xs font-bold text-white/70 pt-1">
+                <span>{filtered.length} transactions in this view</span>
+              </div>
+            </div>
+          </motion.div>
         </div>
-
-        {/* Page Hero Card: Net Cashflow for Selected Filter */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-          className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
-        >
-          <div className="flex justify-between items-center gap-2">
-            <p className="text-xs font-semibold text-white/80 uppercase tracking-wider shrink-0">Net Cashflow</p>
-            <div className="flex gap-2">
-              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full">
-                +{formatCurrency(totals.income, userCurrency)}
-              </span>
-              <span className="text-[10px] bg-rose-500/20 text-rose-300 font-bold px-2 py-0.5 rounded-full">
-                -{formatCurrency(totals.expense, userCurrency)}
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-white truncate">
-              {formatCurrency(totals.net, userCurrency)}
-            </h2>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-white/70 pt-1">
-              <span>{filtered.length} transactions in this view</span>
-            </div>
-          </div>
-        </motion.div>
       </motion.header>
 
       {/* Main Content Area */}
-      <main className="max-w-2xl mx-auto px-6 space-y-6 pt-4">
+      <main className="max-w-5xl mx-auto px-6 space-y-6 pt-4 w-full">
         {/* Expandable Search Input */}
         <AnimatePresence>
           {(showSearchInput || search) && (

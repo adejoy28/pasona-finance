@@ -197,7 +197,7 @@ export function TransactionsAdd() {
   return (
     <div className="min-h-screen bg-slate-50 pb-28">
       <header className="bg-white border-b border-slate-100 px-6 pt-10 pb-6 sticky top-0 z-30 card-shadow">
-        <div className="flex items-center gap-3">
+        <div className="max-w-lg mx-auto flex items-center gap-3">
           <button
             type="button"
             onClick={handleBack}

@@ -98,6 +98,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         ->middleware('verified');
 
     // Push Subscriptions
+    Route::post('push/vapid-key', [PushSubscriptionController::class, 'vapidKey']);
+    Route::post('push/send', [PushSubscriptionController::class, 'sendTest']);
     Route::post('push/subscriptions', [PushSubscriptionController::class, 'store']);
     Route::delete('push/subscriptions', [PushSubscriptionController::class, 'destroy']);
 

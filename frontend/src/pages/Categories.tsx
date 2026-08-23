@@ -114,138 +114,142 @@ export function Categories() {
         animate="visible"
         className="px-6 pt-8 pb-10 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
       >
-        {/* Top Header Bar: Back/Avatar with Online Dot (left), Title (center), Notifications (right) */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-2">
-            <Link
-              to="/settings"
-              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors shadow-sm block relative overflow-hidden"
-              aria-label="Profile settings"
-            >
-              <User size={20} />
-            </Link>
-          </div>
-
-          <h1 className="text-lg font-extrabold tracking-tight">Categories</h1>
-
-          <NotificationBell />
-        </div>
-
-        {/* Page Hero Card: Category Stats + Add Button */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-          className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
-        >
-          <div className="flex justify-between items-center gap-2">
-            <p className="text-xs font-semibold text-white/80 uppercase tracking-wider shrink-0">Labels</p>
-            <button
-              type="button"
-              onClick={openCreate}
-              className="px-3 py-1.5 bg-white text-[#101b45] hover:bg-slate-100 rounded-full text-[11px] sm:text-xs font-bold flex items-center gap-1 shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 whitespace-nowrap"
-            >
-              <Plus size={14} strokeWidth={2.5} className="shrink-0" />
-              <span>New Category</span>
-            </button>
-          </div>
-
-          <div className="space-y-1">
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-white truncate">
-              {categories.length} Total
-            </h2>
-            <div className="flex items-center gap-2 text-xs font-bold text-white/70 pt-1">
-              <span className="bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full">
-                {expenseCategories.length} Expenses
-              </span>
-              <span className="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full">
-                {incomeCategories.length} Income
-              </span>
+        <div className="max-w-5xl mx-auto">
+          {/* Top Header Bar: Back/Avatar with Online Dot (left), Title (center), Notifications (right) */}
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-2">
+              <Link
+                to="/settings"
+                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors shadow-sm block relative overflow-hidden"
+                aria-label="Profile settings"
+              >
+                <User size={20} />
+              </Link>
             </div>
+
+            <h1 className="text-lg font-extrabold tracking-tight">Categories</h1>
+
+            <NotificationBell />
           </div>
-        </motion.div>
+
+          {/* Page Hero Card: Category Stats + Add Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+            className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
+          >
+            <div className="flex justify-between items-center gap-2">
+              <p className="text-xs font-semibold text-white/80 uppercase tracking-wider shrink-0">Labels</p>
+              <button
+                type="button"
+                onClick={openCreate}
+                className="px-3 py-1.5 bg-white text-[#101b45] hover:bg-slate-100 rounded-full text-[11px] sm:text-xs font-bold flex items-center gap-1 shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 whitespace-nowrap"
+              >
+                <Plus size={14} strokeWidth={2.5} className="shrink-0" />
+                <span>New Category</span>
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-white truncate">
+                {categories.length} Total
+              </h2>
+              <div className="flex items-center gap-2 text-xs font-bold text-white/70 pt-1">
+                <span className="bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full">
+                  {expenseCategories.length} Expenses
+                </span>
+                <span className="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full">
+                  {incomeCategories.length} Income
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        </div>
       </motion.header>
 
-      <main className="p-6 space-y-6">
+      <main className="p-6 max-w-5xl mx-auto w-full space-y-6">
         {error && (
           <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-xs font-bold">
             {error}
           </div>
         )}
 
-        <section className="space-y-3">
-          <h2 className="text-xs font-black uppercase tracking-wider text-slate-400 px-1 flex items-center gap-2">
-            <ArrowDownCircle size={14} className="text-red-500" /> Expenses ({expenseCategories.length})
-          </h2>
-          <div className="bg-white rounded-2xl card-shadow border border-slate-50 overflow-hidden divide-y divide-slate-50">
-            {expenseCategories.map((c) => (
-              <div key={c.id} className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
-                    <Tag size={16} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+          <section className="space-y-3">
+            <h2 className="text-xs font-black uppercase tracking-wider text-slate-400 px-1 flex items-center gap-2">
+              <ArrowDownCircle size={14} className="text-red-500" /> Expenses ({expenseCategories.length})
+            </h2>
+            <div className="bg-white rounded-2xl card-shadow border border-slate-50 overflow-hidden divide-y divide-slate-50">
+              {expenseCategories.map((c) => (
+                <div key={c.id} className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
+                      <Tag size={16} />
+                    </div>
+                    <span className="text-xs font-bold text-slate-800">{c.name}</span>
                   </div>
-                  <span className="text-xs font-bold text-slate-800">{c.name}</span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => openEdit(c)}
+                      className="p-2 text-slate-300 hover:text-blue-500 transition-colors"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDelete(c.id)}
+                      className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => openEdit(c)}
-                    className="p-2 text-slate-300 hover:text-blue-500 transition-colors"
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleDelete(c.id)}
-                    className="p-2 text-slate-300 hover:text-red-500 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            ))}
-            {!loading && expenseCategories.length === 0 && (
-              <p className="p-4 text-xs text-slate-400 text-center font-medium">No expense categories yet</p>
-            )}
-          </div>
-        </section>
+              ))}
+              {!loading && expenseCategories.length === 0 && (
+                <p className="p-4 text-xs text-slate-400 text-center font-medium">No expense categories yet</p>
+              )}
+            </div>
+          </section>
 
-        <section className="space-y-3">
-          <h2 className="text-xs font-black uppercase tracking-wider text-slate-400 px-1 flex items-center gap-2">
-            <ArrowUpCircle size={14} className="text-green-500" /> Income ({incomeCategories.length})
-          </h2>
-          <div className="bg-white rounded-2xl card-shadow border border-slate-50 overflow-hidden divide-y divide-slate-50">
-            {incomeCategories.map((c) => (
-              <div key={c.id} className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-green-50 text-green-600 flex items-center justify-center">
-                    <Tag size={16} />
+          <section className="space-y-3">
+            <h2 className="text-xs font-black uppercase tracking-wider text-slate-400 px-1 flex items-center gap-2">
+              <ArrowUpCircle size={14} className="text-green-500" /> Income ({incomeCategories.length})
+            </h2>
+            <div className="bg-white rounded-2xl card-shadow border border-slate-50 overflow-hidden divide-y divide-slate-50">
+              {incomeCategories.map((c) => (
+                <div key={c.id} className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-green-50 text-green-600 flex items-center justify-center">
+                      <Tag size={16} />
+                    </div>
+                    <span className="text-xs font-bold text-slate-800">{c.name}</span>
                   </div>
-                  <span className="text-xs font-bold text-slate-800">{c.name}</span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => openEdit(c)}
+                      className="p-2 text-slate-300 hover:text-blue-500 transition-colors"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDelete(c.id)}
+                      className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => openEdit(c)}
-                    className="p-2 text-slate-300 hover:text-blue-500 transition-colors"
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleDelete(c.id)}
-                    className="p-2 text-slate-300 hover:text-red-500 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            ))}
-            {!loading && incomeCategories.length === 0 && (
-              <p className="p-4 text-xs text-slate-400 text-center font-medium">No income categories yet</p>
-            )}
-          </div>
-        </section>
+              ))}
+              {!loading && incomeCategories.length === 0 && (
+                <p className="p-4 text-xs text-slate-400 text-center font-medium">No income categories yet</p>
+              )}
+            </div>
+          </section>
+        </div>
       </main>
 
       <CategoryDialog
