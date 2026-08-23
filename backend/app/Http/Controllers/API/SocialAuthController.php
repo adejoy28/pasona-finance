@@ -59,7 +59,7 @@ class SocialAuthController extends Controller
 
                 Mail::to($user->email)->queue(new WelcomeMail($user));
 
-                AppNotification::push(
+                AppNotification::send(
                     $user,
                     'welcome',
                     'Welcome to Pasona!',
@@ -131,7 +131,7 @@ class SocialAuthController extends Controller
 
                     Mail::to($user->email)->queue(new WelcomeMail($user));
 
-                    AppNotification::push(
+                    AppNotification::send(
                         $user,
                         'welcome',
                         'Welcome to Pasona!',
@@ -159,3 +159,4 @@ class SocialAuthController extends Controller
         }
     }
 }
+

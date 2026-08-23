@@ -106,7 +106,7 @@ abstract class BaseImportController extends Controller
         Cache::forget("user:{$userId}:summary:" . now()->format('Y-m'));
 
         $count = count($rows);
-        AppNotification::push(
+        AppNotification::send(
             $userId,
             'import_complete',
             'Import complete',
@@ -230,3 +230,4 @@ abstract class BaseImportController extends Controller
         }
     }
 }
+

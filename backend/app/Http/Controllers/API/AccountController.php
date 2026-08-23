@@ -84,7 +84,7 @@ class AccountController extends Controller
         Cache::forget("user:{$request->user()->id}:accounts:balances");
         Cache::forget("user:{$request->user()->id}:summary:" . now()->format('Y-m'));
 
-        AppNotification::push(
+        AppNotification::send(
             $request->user(),
             'account_created',
             'New account added',
@@ -169,3 +169,4 @@ class AccountController extends Controller
         return response()->json(null, 204);
     }
 }
+

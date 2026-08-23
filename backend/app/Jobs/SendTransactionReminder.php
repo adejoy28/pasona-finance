@@ -62,7 +62,7 @@ class SendTransactionReminder implements ShouldQueue
 
         Mail::to($user->email)->send(new TransactionReminderMail($user));
 
-        AppNotification::push(
+        AppNotification::send(
             $user,
             'reminder',
             'Daily reminder',
@@ -153,3 +153,4 @@ class SendTransactionReminder implements ShouldQueue
         ]);
     }
 }
+
