@@ -37,7 +37,9 @@ pasona-finance/
 - **Opt-in email verification** — register and use the app immediately, with a dismissible banner until confirmed. Only sensitive bulk writers (CSV import, transaction batch sync) require a verified email
 - **Daily reminder email** at each user’s chosen time (default 21:10). Smart-skips if the user already logged something today, dedupes to one send per day
 - **Catchy password-reset email** with a one-click link to the SPA reset form
-- Mobile-first, installable as a home screen PWA and wrapped in Capacitor for iOS/Android
+- Mobile-first, installable as a home screen PWA with a subtle floating install prompt
+- Dedicated `/download` page with smart OS detection for iOS/Android native app installation
+- Fully automated CI/CD pipeline via GitHub Actions to securely build, sign, and distribute the Android APK to Cloudflare R2
 
 ---
 
@@ -166,6 +168,20 @@ All three mail classes pick it up automatically — no code change. Examples for
 ## 🌍 Deployment
 
 See [`DEPLOY.md`](./DEPLOY.md) for step-by-step instructions to deploy on cPanel with PostgreSQL.
+
+### 📱 Mobile App Distribution (Cloudflare R2 + GitHub Actions)
+
+The repository includes a fully automated CI/CD pipeline to build, cryptographically sign, and distribute the Android APK:
+
+1. **Trigger**: Pushing a new GitHub Release triggers the `.github/workflows/deploy-android.yml` action.
+2. **Build & Sign**: The action builds a fresh Capacitor release APK and signs it securely using your Android Keystore stored in GitHub Secrets.
+3. **Dynamic Metadata**: It automatically extracts the release version, file size, and release notes into a `metadata.json` file.
+4. **Cloudflare R2 Upload**: Both the signed `.apk` and `metadata.json` are published directly to a Cloudflare R2 bucket.
+5. **App Integration**: The frontend `/download` page automatically queries this `metadata.json` to display the "What's New" logs, file size, and version number dynamically!
+
+**Required GitHub Secrets for CI/CD:**
+- **Keystore**: `SIGNING_KEY` (Base64 string), `ALIAS`, `KEY_STORE_PASSWORD`, `KEY_PASSWORD`
+- **Cloudflare**: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT`, `R2_BUCKET_NAME`
 
 ---
 
