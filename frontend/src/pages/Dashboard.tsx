@@ -191,67 +191,69 @@ export function Dashboard() {
         animate="visible"
         className="px-6 pt-8 pb-10 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
       >
-        {/* Top Header Bar: Avatar with Online Dot (left), Title (center), Notifications (right) */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="relative">
-            <Link
-              to="/settings"
-              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors shadow-sm block relative overflow-hidden"
-              aria-label="Profile settings"
-            >
-              <User size={20} />
-            </Link>
-            {/* Status Dot overlay on Avatar */}
-            <span
-              className={
-                "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#101b45] " +
-                (isOnline ? "bg-green-400" : "bg-amber-400")
-              }
-              title={isOnline ? "Online" : "Offline"}
-            />
-          </div>
-
-          <h1 className="text-lg font-extrabold tracking-tight">Dashboard</h1>
-
-          <NotificationBell />
-        </div>
-
-        {/* Hero Navy Card: Total Balance + Add Transaction button & Column-aligned dynamic trend */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-          className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
-        >
-          <div className="flex justify-between items-center gap-2">
-            <p className="text-xs font-semibold text-white/80 uppercase tracking-wider shrink-0">Total Balance</p>
-            <Link
-              to="/transactions/add"
-              data-tour-target="add-transaction"
-              className="px-2 py-1.5 bg-white text-[#101b45] hover:bg-slate-100 rounded-full text-[8px] sm:text-xs font-bold flex items-center gap-1 shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 whitespace-nowrap"
-            >
-              <Plus size={12} strokeWidth={2.5} className="shrink-0" />
-              <span>Add Transaction</span>
-            </Link>
-          </div>
-
-          <div className="space-y-1">
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-white truncate">
-              {formatCurrency(totalBalance, userCurrency)}
-            </h2>
-            <div
-              className={`flex items-center gap-1 text-xs font-bold pt-1 ${
-                isPositiveTrend ? "text-green-400" : "text-rose-400"
-              }`}
-            >
-              <span>{isPositiveTrend ? "▲" : "▼"}</span>
-              <span>
-                {isPositiveTrend ? "+" : "-"}
-                {formatCurrency(Math.abs(netSavings), userCurrency)} net cashflow
-              </span>
+        <div className="max-w-5xl mx-auto">
+          {/* Top Header Bar: Avatar with Online Dot (left), Title (center), Notifications (right) */}
+          <div className="flex justify-between items-center mb-6">
+            <div className="relative">
+              <Link
+                to="/settings"
+                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors shadow-sm block relative overflow-hidden"
+                aria-label="Profile settings"
+              >
+                <User size={20} />
+              </Link>
+              {/* Status Dot overlay on Avatar */}
+              <span
+                className={
+                  "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#101b45] " +
+                  (isOnline ? "bg-green-400" : "bg-amber-400")
+                }
+                title={isOnline ? "Online" : "Offline"}
+              />
             </div>
+
+            <h1 className="text-lg font-extrabold tracking-tight">Dashboard</h1>
+
+            <NotificationBell />
           </div>
-        </motion.div>
+
+          {/* Hero Navy Card: Total Balance + Add Transaction button & Column-aligned dynamic trend */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+            className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
+          >
+            <div className="flex justify-between items-center gap-2">
+              <p className="text-xs font-semibold text-white/80 uppercase tracking-wider shrink-0">Total Balance</p>
+              <Link
+                to="/transactions/add"
+                data-tour-target="add-transaction"
+                className="px-2 py-1.5 bg-white text-[#101b45] hover:bg-slate-100 rounded-full text-[8px] sm:text-xs font-bold flex items-center gap-1 shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 whitespace-nowrap"
+              >
+                <Plus size={12} strokeWidth={2.5} className="shrink-0" />
+                <span>Add Transaction</span>
+              </Link>
+            </div>
+
+            <div className="space-y-1">
+              <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-white truncate">
+                {formatCurrency(totalBalance, userCurrency)}
+              </h2>
+              <div
+                className={`flex items-center gap-1 text-xs font-bold pt-1 ${
+                  isPositiveTrend ? "text-green-400" : "text-rose-400"
+                }`}
+              >
+                <span>{isPositiveTrend ? "▲" : "▼"}</span>
+                <span>
+                  {isPositiveTrend ? "+" : "-"}
+                  {formatCurrency(Math.abs(netSavings), userCurrency)} net cashflow
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        </div>
       </motion.header>
 
       {/* Main Content Area */}
@@ -259,7 +261,7 @@ export function Dashboard() {
         variants={fadeSlideUp}
         initial="hidden"
         animate="visible"
-        className="px-6 space-y-6 pt-4"
+        className="px-6 space-y-6 pt-4 max-w-5xl mx-auto w-full"
       >
         {/* Month Selector Row (positioned between Hero Balance Card and Cashflow / Income & Expenses) */}
         <div className="flex justify-center items-center gap-3">

@@ -207,11 +207,13 @@ export function ImportPage() {
   return (
     <div className="min-h-screen bg-slate-50 pb-28">
       <header className="bg-white border-b border-slate-100 px-6 pt-10 pb-6 sticky top-0 z-30 card-shadow">
-        <h1 className="text-xl font-black text-slate-900 tracking-tight">Import Transactions</h1>
-        <p className="text-xs text-slate-400 font-medium">Batch upload bank statements (CSV or PDF)</p>
+        <div className="max-w-2xl mx-auto">
+          <h1 className="text-xl font-black text-slate-900 tracking-tight">Import Transactions</h1>
+          <p className="text-xs text-slate-400 font-medium">Batch upload bank statements (CSV or PDF)</p>
+        </div>
       </header>
 
-      <main className="p-6 max-w-2xl mx-auto space-y-6">
+      <main className="p-6 max-w-2xl mx-auto space-y-6 w-full">
         {error && (
           <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-xs font-bold">
             {error}

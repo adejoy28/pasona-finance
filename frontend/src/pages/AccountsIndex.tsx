@@ -181,62 +181,64 @@ export function AccountsIndex() {
         animate="visible"
         className="px-6 pt-8 pb-10 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
       >
-        {/* Top Header Bar: Avatar with Online Dot (left), Title (center), Notifications (right) */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="relative">
-            <Link
-              to="/settings"
-              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors shadow-sm block relative overflow-hidden"
-              aria-label="Profile settings"
-            >
-              <User size={20} />
-            </Link>
-            {/* Status Dot overlay on Avatar */}
-            <span
-              className={
-                "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#101b45] " +
-                (isOnline ? "bg-green-400" : "bg-amber-400")
-              }
-              title={isOnline ? "Online" : "Offline"}
-            />
-          </div>
-
-          <h1 className="text-lg font-extrabold tracking-tight">My Accounts</h1>
-
-          <NotificationBell />
-        </div>
-
-        {/* Page Hero Card: Total Net Worth + Add Button */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-          className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
-        >
-          <div className="flex justify-between items-center gap-2">
-            <p className="text-xs font-semibold text-white/80 uppercase tracking-wider shrink-0">Total Net Worth</p>
-            <button
-              type="button"
-              onClick={openCreate}
-              className="px-3 py-1.5 bg-white text-[#101b45] hover:bg-slate-100 rounded-full text-[11px] sm:text-xs font-bold flex items-center gap-1 shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 whitespace-nowrap"
-            >
-              <Plus size={14} strokeWidth={2.5} className="shrink-0" />
-              <span>New Account</span>
-            </button>
-          </div>
-
-          <div className="space-y-1">
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-white truncate">
-              {formatCurrency(totalBalance, userCurrency)}
-            </h2>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-white/70 pt-1">
-              <span>{accounts.length} funding sources active</span>
+        <div className="max-w-5xl mx-auto">
+          {/* Top Header Bar: Avatar with Online Dot (left), Title (center), Notifications (right) */}
+          <div className="flex justify-between items-center mb-6">
+            <div className="relative">
+              <Link
+                to="/settings"
+                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors shadow-sm block relative overflow-hidden"
+                aria-label="Profile settings"
+              >
+                <User size={20} />
+              </Link>
+              {/* Status Dot overlay on Avatar */}
+              <span
+                className={
+                  "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#101b45] " +
+                  (isOnline ? "bg-green-400" : "bg-amber-400")
+                }
+                title={isOnline ? "Online" : "Offline"}
+              />
             </div>
+
+            <h1 className="text-lg font-extrabold tracking-tight">My Accounts</h1>
+
+            <NotificationBell />
           </div>
-        </motion.div>
+
+          {/* Page Hero Card: Total Net Worth + Add Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+            className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
+          >
+            <div className="flex justify-between items-center gap-2">
+              <p className="text-xs font-semibold text-white/80 uppercase tracking-wider shrink-0">Total Net Worth</p>
+              <button
+                type="button"
+                onClick={openCreate}
+                className="px-3 py-1.5 bg-white text-[#101b45] hover:bg-slate-100 rounded-full text-[11px] sm:text-xs font-bold flex items-center gap-1 shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 whitespace-nowrap"
+              >
+                <Plus size={14} strokeWidth={2.5} className="shrink-0" />
+                <span>New Account</span>
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-white truncate">
+                {formatCurrency(totalBalance, userCurrency)}
+              </h2>
+              <div className="flex items-center gap-1.5 text-xs font-bold text-white/70 pt-1">
+                <span>{accounts.length} funding sources active</span>
+              </div>
+            </div>
+          </motion.div>
+        </div>
       </motion.header>
 
-      <main className="p-6 space-y-4">
+      <main className="p-6 space-y-4 max-w-5xl mx-auto w-full">
         {error && (
           <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-xs font-bold">
             {error}
