@@ -12,11 +12,12 @@ import {
   LogOut,
   Pencil,
   Shield,
+  Smartphone,
   Tag,
   Trash2,
-  User,
   X,
 } from "lucide-react";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { usePopup } from "@/components/ui/popup";
 import {
   AlertDialog,
@@ -61,7 +62,9 @@ function readStoredEnabled(): boolean {
 
 export function Settings() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const popup = usePopup();
+  const { isInstallable, install } = usePwaInstall();
   const isOnline = useOnline();
   const [reminderTime, setReminderTime] = useState(readStoredTime);
   const [reminderEnabled, setReminderEnabled] = useState(readStoredEnabled);
@@ -516,6 +519,27 @@ export function Settings() {
               </button>
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={() => {
+              if (isInstallable) {
+                install();
+              } else {
+                navigate("/download");
+              }
+            }}
+            className="w-full text-left p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Smartphone size={18} className="text-slate-400" />
+              <div>
+                <p className="text-xs font-bold text-slate-800">Get Mobile App</p>
+                <p className="text-[10px] text-slate-400">Install Pasona for quick access</p>
+              </div>
+            </div>
+            <ChevronRight size={16} className="text-slate-300" />
+          </button>
 
           <Link to="/privacy" className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
             <div className="flex items-center gap-3">

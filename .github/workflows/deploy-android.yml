@@ -1,0 +1,83 @@
+name: Deploy Signed APK to Cloudflare R2
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          
+      - name: Install Frontend Dependencies & Build
+        run: |
+          cd frontend
+          npm install
+          npm run build
+          npx cap sync android
+
+      - name: Build Android Release APK
+        run: |
+          cd frontend/android
+          chmod +x ./gradlew
+          ./gradlew assembleRelease
+
+      - name: Sign APK
+        id: sign_app
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: frontend/android/app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
+          alias: ${{ secrets.ALIAS }}
+          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Generate metadata.json
+        run: |
+          SIGNED_APK="${{ steps.sign_app.outputs.signedReleaseFile }}"
+          SIZE_BYTES=$(wc -c < "$SIGNED_APK")
+          # Convert bytes to MB with 1 decimal place
+          SIZE_MB=$(echo "scale=1; $SIZE_BYTES / 1048576" | bc)
+          
+          # Use jq to safely encode the JSON
+          jq -n \
+            --arg version "${{ github.event.release.tag_name }}" \
+            --arg size "${SIZE_MB} MB" \
+            --arg whatsNew "${{ github.event.release.body }}" \
+            '{version: $version, size: $size, whatsNew: $whatsNew}' > metadata.json
+            
+          cat metadata.json
+
+      - name: Upload to Cloudflare R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_EC2_METADATA_DISABLED: true
+        run: |
+          SIGNED_APK="${{ steps.sign_app.outputs.signedReleaseFile }}"
+          
+          # Upload the signed APK
+          aws s3 cp "$SIGNED_APK" \
+            s3://${{ secrets.R2_BUCKET_NAME }}/pasona-latest.apk \
+            --endpoint-url ${{ secrets.R2_ENDPOINT }} \
+            --region auto
+            
+          # Upload the metadata
+          aws s3 cp metadata.json \
+            s3://${{ secrets.R2_BUCKET_NAME }}/metadata.json \
+            --endpoint-url ${{ secrets.R2_ENDPOINT }} \
+            --region auto

@@ -24,8 +24,10 @@ import { ImportPage } from "@/pages/ImportPage";
 import { PrivacyPage } from "@/pages/PrivacyPage";
 import { TestInputPage } from "@/pages/TestInputPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
+import { DownloadPage } from "@/pages/DownloadPage";
 
 import { initCapacitor } from "@/lib/capacitor";
+import { AppInstallBanner } from "@/components/finance/AppInstallBanner";
 
 function UnauthorizedHandler() {
   const navigate = useNavigate();
@@ -52,6 +54,7 @@ export function App() {
 
   return (
     <BrowserRouter>
+      <AppInstallBanner />
       <UnauthorizedHandler />
       <PopupProvider>
         <Routes>
@@ -63,6 +66,7 @@ export function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/email/verify" element={<EmailVerify />} />
           <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/download" element={<DownloadPage />} />
           <Route path="/test-input" element={<TestInputPage />} />
 
           {/* Protected routes */}
