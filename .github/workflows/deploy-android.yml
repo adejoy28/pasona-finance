@@ -96,7 +96,7 @@ jobs:
           
           # Upload the signed APK
           aws s3 cp "$SIGNED_APK" \
-            s3://${{ secrets.R2_BUCKET_NAME }}/pasona-latest.apk \
+            s3://${{ secrets.R2_BUCKET_NAME }}/pasona.apk \
             --endpoint-url ${{ secrets.R2_ENDPOINT }} \
             --region auto
             
