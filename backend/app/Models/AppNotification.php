@@ -47,7 +47,7 @@ class AppNotification extends Model
      * @param  string    $body   Short description / body text
      * @param  array<string,mixed>|null  $data  Optional JSON payload
      */
-    public static function push(
+    public static function send(
         User|int $user,
         string $type,
         string $title,

@@ -70,7 +70,7 @@ class AuthController extends Controller
         // Mail::queue returns immediately; a queue worker handles the send.
         Mail::to($user->email)->queue(new WelcomeMail($user));
 
-        AppNotification::push(
+        AppNotification::send(
             $user,
             'welcome',
             'Welcome to Pasona!',
@@ -330,3 +330,4 @@ class AuthController extends Controller
         return response()->json(['available' => $available]);
     }
 }
+
