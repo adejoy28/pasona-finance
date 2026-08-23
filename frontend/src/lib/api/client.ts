@@ -9,6 +9,8 @@
 
 import { env } from "../env";
 import { clearAuthToken, getAuthToken } from "../auth/token";
+import { getCachedData, setCachedData, enqueueMutation } from "../db/schema";
+import { Capacitor } from "@capacitor/core";
 
 const DEFAULT_TIMEOUT_MS = 20_000;
 export const API_ERROR_USER_MESSAGE =
@@ -168,7 +170,9 @@ export async function request<T = unknown>(path: string, options: RequestOptions
     timeoutMs ?? DEFAULT_TIMEOUT_MS,
   );
 
-  let response: Response;
+  let response: Response | undefined;
+  let isNetworkError = false;
+
   try {
     let serializedBody: BodyInit | undefined;
     if (hasBody) {
@@ -190,25 +194,44 @@ export async function request<T = unknown>(path: string, options: RequestOptions
     const aborted = combinedSignal.aborted;
     const isTimeout = !signal?.aborted && aborted;
     const kind: ApiErrorKind = aborted ? (isTimeout ? "timeout" : "abort") : "network";
-    const apiError = new ApiError({
-      message: API_ERROR_USER_MESSAGE,
-      status: 0,
-      kind,
-      url,
-    });
-    if (env.isDevelopment) {
-      console.error(`[api] ${method} ${url} failed (${kind})`, cause);
+    
+    if (kind === "network" || kind === "timeout") {
+      isNetworkError = true;
     } else {
-      console.error(`[api] request failed (${kind})`, cause);
+      const apiError = new ApiError({ message: API_ERROR_USER_MESSAGE, status: 0, kind, url });
+      throw apiError;
     }
-    throw apiError;
   }
   cancel();
 
-  const payload = await parseBody(response);
+  // --- Offline / Cache Fallback Logic ---
+  if (isNetworkError) {
+    if (Capacitor.isNativePlatform()) {
+      if (method === "GET") {
+        const cached = await getCachedData(url);
+        if (cached) {
+          if (env.isDevelopment) console.log(`[api] ${method} ${url} (Served from Offline Cache)`);
+          return cached as T;
+        }
+        throw new ApiError({ message: "You are offline and no cached data is available.", status: 0, kind: "network", url });
+      } else {
+        // It's a mutation. Queue it!
+        if (env.isDevelopment) console.log(`[api] ${method} ${url} (Queued for Offline Sync)`);
+        await enqueueMutation(url, method, body, options);
+        // Return a mock success response so the UI proceeds optimistically.
+        return { message: "Saved offline. Will sync when connected." } as any;
+      }
+    } else {
+      // Non-native platforms get standard network error
+      throw new ApiError({ message: API_ERROR_USER_MESSAGE, status: 0, kind: "network", url });
+    }
+  }
 
-  if (!response.ok) {
-    if (response.status === 401) {
+  // --- Online Logic ---
+  const payload = await parseBody(response!);
+
+  if (!response!.ok) {
+    if (response!.status === 401) {
       clearAuthToken();
       try {
         unauthorizedHandler?.();
@@ -216,21 +239,21 @@ export async function request<T = unknown>(path: string, options: RequestOptions
         console.error("[api] unauthorized handler threw", handlerError);
       }
     }
-    const requiresVerifiedEmail = isRequiresVerifiedEmailPayload(response.status, payload);
+    const requiresVerifiedEmail = isRequiresVerifiedEmailPayload(response!.status, payload);
     const message = extractMessage(payload, API_ERROR_USER_MESSAGE);
-    if (env.isDevelopment) {
-      console.error(`[api] ${method} ${url} -> ${response.status}`, payload ?? response.statusText);
-    } else {
-      console.error(`[api] ${method} -> ${response.status}`);
-    }
     throw new ApiError({
       message,
-      status: response.status,
+      status: response!.status,
       kind: "http",
       payload,
       url,
       requiresVerifiedEmail,
     });
+  }
+
+  // Cache successful GETs
+  if (method === "GET") {
+    await setCachedData(url, payload);
   }
 
   return payload as T;

@@ -15,8 +15,10 @@ import {
   Smartphone,
   Tag,
   Trash2,
+  User,
   X,
 } from "lucide-react";
+import { NotificationBell } from "@/components/finance/NotificationBell";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { usePopup } from "@/components/ui/popup";
 import {
@@ -62,7 +64,6 @@ function readStoredEnabled(): boolean {
 
 export function Settings() {
   const navigate = useNavigate();
-  const qc = useQueryClient();
   const popup = usePopup();
   const { isInstallable, install } = usePwaInstall();
   const isOnline = useOnline();
@@ -278,325 +279,327 @@ export function Settings() {
         animate="visible"
         className="px-6 pt-8 pb-10 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
       >
-        {/* Top Header Bar: Avatar with Online Dot (left), Title (center), Notifications (right) */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="relative">
-            <div
-              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white shadow-sm relative overflow-hidden"
-              aria-label="User Avatar"
-            >
-              <User size={20} />
+        <div className="max-w-5xl mx-auto">
+          {/* Top Header Bar: Avatar with Online Dot (left), Title (center), Notifications (right) */}
+          <div className="flex justify-between items-center mb-6">
+            <div className="relative">
+              <div
+                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white shadow-sm relative overflow-hidden"
+                aria-label="User Avatar"
+              >
+                <User size={20} />
+              </div>
+              {/* Status Dot overlay on Avatar */}
+              <span
+                className={
+                  "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#101b45] " +
+                  (isOnline ? "bg-green-400" : "bg-amber-400")
+                }
+                title={isOnline ? "Online" : "Offline"}
+              />
             </div>
-            {/* Status Dot overlay on Avatar */}
-            <span
-              className={
-                "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#101b45] " +
-                (isOnline ? "bg-green-400" : "bg-amber-400")
-              }
-              title={isOnline ? "Online" : "Offline"}
-            />
+
+            <h1 className="text-lg font-extrabold tracking-tight">Settings</h1>
+
+            <NotificationBell />
           </div>
 
-          <h1 className="text-lg font-extrabold tracking-tight">Settings</h1>
-
-          <button
-            type="button"
-            aria-label="Notifications"
-            className="relative w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+          {/* Page Hero Card: User Profile Info */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+            className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
           >
-            <Bell size={18} />
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-blue-400 ring-2 ring-[#101b45]" />
-          </button>
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-12 h-12 rounded-2xl bg-white/10 text-white flex items-center justify-center font-black text-lg shrink-0">
+                {user?.name ? user.name[0].toUpperCase() : "P"}
+              </div>
+              <div className="min-w-0">
+                <p className="font-black text-white text-base truncate">{user?.name ?? "User"}</p>
+                <p className="text-xs text-white/70 truncate">{user?.email ?? ""}</p>
+              </div>
+            </div>
+          </motion.div>
         </div>
-
-        {/* Page Hero Card: User Profile Info */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-          className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
-        >
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="w-12 h-12 rounded-2xl bg-white/10 text-white flex items-center justify-center font-black text-lg shrink-0">
-              {user?.name ? user.name[0].toUpperCase() : "P"}
-            </div>
-            <div className="min-w-0">
-              <p className="font-black text-white text-base truncate">{user?.name ?? "User"}</p>
-              <p className="text-xs text-white/70 truncate">{user?.email ?? ""}</p>
-            </div>
-          </div>
-        </motion.div>
       </motion.header>
 
-      <main className="p-6 space-y-6 max-w-lg mx-auto">
-
-        {/* Notifications */}
-        <section className="bg-white rounded-2xl card-shadow border border-slate-50 overflow-hidden divide-y divide-slate-50">
-          <div className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                <Bell size={18} />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-800">Daily Reminder</p>
-                <p className="text-[10px] text-slate-400 uppercase">
-                  {reminderEnabled ? `Active at ${reminderTime}` : "Off"}
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={reminderEnabled}
-              onClick={() => void toggleReminder(!reminderEnabled)}
-              className={
-                "w-12 h-6 rounded-full p-1 transition-colors relative " +
-                (reminderEnabled ? "bg-blue-600" : "bg-slate-200")
-              }
-            >
-              <div
-                className={
-                  "w-4 h-4 rounded-full bg-white transition-transform " +
-                  (reminderEnabled ? "translate-x-6" : "translate-x-0")
-                }
-              />
-            </button>
-          </div>
-
-          <div className="p-4 flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-              Reminder time
-            </span>
-            <input
-              type="time"
-              disabled={!reminderEnabled}
-              value={reminderTime}
-              onChange={(e) => void handleTimeChange(e.target.value)}
-              className="bg-slate-50 p-2.5 rounded-xl font-black text-blue-600 outline-none text-sm disabled:opacity-50"
-            />
-          </div>
-
-          {!isNative && (
-            <div className="p-4 space-y-3">
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                {reminderEnabled
-                  ? `Email reminder active at ${reminderTime}.`
-                  : "Email reminder is off."}
-              </p>
-
-              {push.isSupported && (
-                <div className="flex items-center justify-between gap-4 pt-2">
+      <main className="p-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+          {/* Left Column */}
+          <div className="space-y-6">
+            {/* Notifications */}
+            <section className="bg-white rounded-2xl card-shadow border border-slate-50 overflow-hidden divide-y divide-slate-50">
+              <div className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                    <Bell size={18} />
+                  </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-800">Push Notifications</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">
-                      {!push.isConfigured
-                        ? "Not configured on server"
-                        : push.isSubscribed
-                          ? "Enabled — you'll receive push alerts"
-                          : "Send reminders as push notifications"}
+                    <p className="text-xs font-bold text-slate-800">Daily Reminder</p>
+                    <p className="text-[10px] text-slate-400 uppercase">
+                      {reminderEnabled ? `Active at ${reminderTime}` : "Off"}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {push.isConfigured && push.isSubscribed && (
-                      <button
-                        type="button"
-                        disabled={push.subscribing}
-                        onClick={() => void push.sendTestPush()}
-                        className="text-[10px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider disabled:opacity-50"
-                      >
-                        Send test
-                      </button>
-                    )}
-                    {push.isConfigured && (
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={push.isSubscribed}
-                        disabled={push.subscribing}
-                        onClick={() => {
-                          if (push.isSubscribed) {
-                            push.unsubscribe();
-                          } else {
-                            push.subscribe();
-                          }
-                        }}
-                        className={
-                          "w-12 h-6 rounded-full p-1 transition-colors relative shrink-0 disabled:opacity-50 " +
-                          (push.isSubscribed ? "bg-blue-600" : "bg-slate-200")
-                        }
-                      >
-                        <div
-                          className={
-                            "w-4 h-4 rounded-full bg-white transition-transform " +
-                            (push.isSubscribed ? "translate-x-6" : "translate-x-0")
-                          }
-                        />
-                      </button>
-                    )}
-                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={reminderEnabled}
+                  onClick={() => void toggleReminder(!reminderEnabled)}
+                  className={
+                    "w-12 h-6 rounded-full p-1 transition-colors relative " +
+                    (reminderEnabled ? "bg-blue-600" : "bg-slate-200")
+                  }
+                >
+                  <div
+                    className={
+                      "w-4 h-4 rounded-full bg-white transition-transform " +
+                      (reminderEnabled ? "translate-x-6" : "translate-x-0")
+                    }
+                  />
+                </button>
+              </div>
+
+              <div className="p-4 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  Reminder time
+                </span>
+                <input
+                  type="time"
+                  disabled={!reminderEnabled}
+                  value={reminderTime}
+                  onChange={(e) => void handleTimeChange(e.target.value)}
+                  className="bg-slate-50 p-2.5 rounded-xl font-black text-blue-600 outline-none text-sm disabled:opacity-50"
+                />
+              </div>
+
+              {!isNative && (
+                <div className="p-4 space-y-3">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    {reminderEnabled
+                      ? `Email reminder active at ${reminderTime}.`
+                      : "Email reminder is off."}
+                  </p>
+
+                  {push.isSupported && (
+                    <div className="flex items-center justify-between gap-4 pt-2">
+                      <div>
+                        <p className="text-xs font-bold text-slate-800">Push Notifications</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">
+                          {!push.isConfigured
+                            ? "Not configured on server"
+                            : push.isSubscribed
+                              ? "Enabled — you'll receive push alerts"
+                              : "Send reminders as push notifications"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {push.isConfigured && push.isSubscribed && (
+                          <button
+                            type="button"
+                            disabled={push.subscribing}
+                            onClick={() => void push.sendTestPush()}
+                            className="text-[10px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider disabled:opacity-50"
+                          >
+                            Send test
+                          </button>
+                        )}
+                        {push.isConfigured && (
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={push.isSubscribed}
+                            disabled={push.subscribing}
+                            onClick={() => {
+                              if (push.isSubscribed) {
+                                push.unsubscribe();
+                              } else {
+                                push.subscribe();
+                              }
+                            }}
+                            className={
+                              "w-12 h-6 rounded-full p-1 transition-colors relative shrink-0 disabled:opacity-50 " +
+                              (push.isSubscribed ? "bg-blue-600" : "bg-slate-200")
+                            }
+                          >
+                            <div
+                              className={
+                                "w-4 h-4 rounded-full bg-white transition-transform " +
+                                (push.isSubscribed ? "translate-x-6" : "translate-x-0")
+                              }
+                            />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {push.error && <p className="text-xs font-semibold text-red-600">{push.error}</p>}
                 </div>
               )}
-              {push.error && <p className="text-xs font-semibold text-red-600">{push.error}</p>}
-            </div>
-          )}
-        </section>
+            </section>
 
-        {/* Currency & Preferences */}
-        <section className="bg-white rounded-2xl card-shadow border border-slate-50 overflow-hidden divide-y divide-slate-50">
-          <div className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Globe size={18} className="text-slate-400" />
-              <div>
-                <p className="text-xs font-bold text-slate-800">Display Currency</p>
-                <p className="text-[10px] text-slate-400">Used for balances and totals</p>
-              </div>
-            </div>
-            <div className="relative">
-              <select
-                value={currency}
-                onChange={(e) => void handleCurrencyChange(e.target.value)}
-                className="bg-slate-50 border-0 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 appearance-none pr-8 outline-none"
-              >
-                {CURRENCIES.map((c) => (
-                  <option key={c.intlCode} value={c.intlCode}>
-                    {c.symbol} {c.intlCode}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            </div>
-          </div>
-
-          <Link to="/categories" className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
-            <div className="flex items-center gap-3">
-              <Tag size={18} className="text-slate-400" />
-              <div>
-                <p className="text-xs font-bold text-slate-800">Categories</p>
-                <p className="text-[10px] text-slate-400">Manage expense and income tags</p>
-              </div>
-            </div>
-            <ChevronRight size={16} className="text-slate-300" />
-          </Link>
-
-          <Link to="/import" className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
-            <div className="flex items-center gap-3">
-              <Download size={18} className="text-slate-400" />
-              <div>
-                <p className="text-xs font-bold text-slate-800">Import Statements</p>
-                <p className="text-[10px] text-slate-400">Batch upload bank CSV / PDF files</p>
-              </div>
-            </div>
-            <ChevronRight size={16} className="text-slate-300" />
-          </Link>
-        </section>
-
-        {/* Security & Biometrics */}
-        <section className="bg-white rounded-2xl card-shadow border border-slate-50 overflow-hidden divide-y divide-slate-50">
-          {biometricAvailable && (
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Fingerprint size={18} className="text-slate-400" />
-                <div>
-                  <p className="text-xs font-bold text-slate-800">Biometric Sign In</p>
-                  <p className="text-[10px] text-slate-400">Use Touch ID / Face ID</p>
+            {/* Currency & Preferences */}
+            <section className="bg-white rounded-2xl card-shadow border border-slate-50 overflow-hidden divide-y divide-slate-50">
+              <div className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Globe size={18} className="text-slate-400" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">Display Currency</p>
+                    <p className="text-[10px] text-slate-400">Used for balances and totals</p>
+                  </div>
+                </div>
+                <div className="relative">
+                  <select
+                    value={currency}
+                    onChange={(e) => void handleCurrencyChange(e.target.value)}
+                    className="bg-slate-50 border-0 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 appearance-none pr-8 outline-none"
+                  >
+                    {CURRENCIES.map((c) => (
+                      <option key={c.intlCode} value={c.intlCode}>
+                        {c.symbol} {c.intlCode}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>
               </div>
+
+              <Link to="/categories" className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <Tag size={18} className="text-slate-400" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">Categories</p>
+                    <p className="text-[10px] text-slate-400">Manage expense and income tags</p>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-slate-300" />
+              </Link>
+
+              <Link to="/import" className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <Download size={18} className="text-slate-400" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">Import Statements</p>
+                    <p className="text-[10px] text-slate-400">Batch upload bank CSV / PDF files</p>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-slate-300" />
+              </Link>
+            </section>
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-6">
+            {/* Security & Biometrics */}
+            <section className="bg-white rounded-2xl card-shadow border border-slate-50 overflow-hidden divide-y divide-slate-50">
+              {biometricAvailable && (
+                <div className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Fingerprint size={18} className="text-slate-400" />
+                    <div>
+                      <p className="text-xs font-bold text-slate-800">Biometric Sign In</p>
+                      <p className="text-[10px] text-slate-400">Use Touch ID / Face ID</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleBiometricToggle}
+                    disabled={biometricBusy}
+                    className={
+                      "w-12 h-6 rounded-full p-1 transition-colors relative " +
+                      (biometricEnabled ? "bg-blue-600" : "bg-slate-200")
+                    }
+                  >
+                    <div
+                      className={
+                        "w-4 h-4 rounded-full bg-white transition-transform " +
+                        (biometricEnabled ? "translate-x-6" : "translate-x-0")
+                      }
+                    />
+                  </button>
+                </div>
+              )}
+
               <button
                 type="button"
-                onClick={handleBiometricToggle}
-                disabled={biometricBusy}
-                className={
-                  "w-12 h-6 rounded-full p-1 transition-colors relative " +
-                  (biometricEnabled ? "bg-blue-600" : "bg-slate-200")
-                }
-              >
-                <div
-                  className={
-                    "w-4 h-4 rounded-full bg-white transition-transform " +
-                    (biometricEnabled ? "translate-x-6" : "translate-x-0")
+                onClick={() => {
+                  if (isInstallable) {
+                    install();
+                  } else {
+                    navigate("/download");
                   }
-                />
+                }}
+                className="w-full text-left p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Smartphone size={18} className="text-slate-400" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">Get Mobile App</p>
+                    <p className="text-[10px] text-slate-400">Install Pasona for quick access</p>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-slate-300" />
               </button>
-            </div>
-          )}
 
-          <button
-            type="button"
-            onClick={() => {
-              if (isInstallable) {
-                install();
-              } else {
-                navigate("/download");
-              }
-            }}
-            className="w-full text-left p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <Smartphone size={18} className="text-slate-400" />
-              <div>
-                <p className="text-xs font-bold text-slate-800">Get Mobile App</p>
-                <p className="text-[10px] text-slate-400">Install Pasona for quick access</p>
-              </div>
-            </div>
-            <ChevronRight size={16} className="text-slate-300" />
-          </button>
+              <Link to="/privacy" className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <Shield size={18} className="text-slate-400" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">Privacy & Security</p>
+                    <p className="text-[10px] text-slate-400">How your data is stored and protected</p>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-slate-300" />
+              </Link>
+            </section>
 
-          <Link to="/privacy" className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
-            <div className="flex items-center gap-3">
-              <Shield size={18} className="text-slate-400" />
-              <div>
-                <p className="text-xs font-bold text-slate-800">Privacy & Security</p>
-                <p className="text-[10px] text-slate-400">How your data is stored and protected</p>
-              </div>
-            </div>
-            <ChevronRight size={16} className="text-slate-300" />
-          </Link>
-        </section>
-
-        {/* Account Actions */}
-        <section className="space-y-3 pt-2">
-          <button
-            type="button"
-            onClick={handleSignOut}
-            disabled={signingOut}
-            className="w-full p-4 rounded-2xl bg-white border border-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors card-shadow"
-          >
-            <LogOut size={16} />
-            {signingOut ? "Signing out…" : "Sign Out"}
-          </button>
-
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
+            {/* Account Actions */}
+            <section className="space-y-3">
               <button
                 type="button"
-                className="w-full p-4 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 font-bold text-xs flex items-center justify-center gap-2 hover:bg-rose-100 transition-colors"
+                onClick={handleSignOut}
+                disabled={signingOut}
+                className="w-full p-4 rounded-2xl bg-white border border-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors card-shadow"
               >
-                <Trash2 size={16} />
-                Delete Account
+                <LogOut size={16} />
+                {signingOut ? "Signing out…" : "Sign Out"}
               </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="rounded-2xl max-w-sm">
-              <AlertDialogHeader>
-                <AlertDialogTitle className="text-base font-black text-rose-600">Delete account?</AlertDialogTitle>
-                <AlertDialogDescription className="text-xs text-slate-500">
-                  This will permanently delete your account, all connected bank data, transactions, and categories. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter className="flex-row gap-2 justify-end">
-                <AlertDialogCancel className="rounded-xl text-xs font-bold border-slate-200 mt-0">
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDeleteAccount}
-                  disabled={deletingAccount}
-                  className="rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white border-0"
-                >
-                  {deletingAccount ? "Deleting…" : "Delete Account"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </section>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <button
+                    type="button"
+                    className="w-full p-4 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 font-bold text-xs flex items-center justify-center gap-2 hover:bg-rose-100 transition-colors"
+                  >
+                    <Trash2 size={16} />
+                    Delete Account
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="rounded-2xl max-w-sm">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-base font-black text-rose-600">Delete account?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-xs text-slate-500">
+                      This will permanently delete your account, all connected bank data, transactions, and categories. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="flex-row gap-2 justify-end">
+                    <AlertDialogCancel className="rounded-xl text-xs font-bold border-slate-200 mt-0">
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteAccount}
+                      disabled={deletingAccount}
+                      className="rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white border-0"
+                    >
+                      {deletingAccount ? "Deleting…" : "Delete Account"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </section>
+          </div>
+        </div>
       </main>
 
       <FinanceNavbar />

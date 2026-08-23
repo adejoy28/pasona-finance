@@ -28,6 +28,7 @@ import { DownloadPage } from "@/pages/DownloadPage";
 
 import { initCapacitor } from "@/lib/capacitor";
 import { AppInstallBanner } from "@/components/finance/AppInstallBanner";
+import { SyncIndicator } from "@/components/finance/SyncIndicator";
 
 function UnauthorizedHandler() {
   const navigate = useNavigate();
@@ -55,6 +56,7 @@ export function App() {
   return (
     <BrowserRouter>
       <AppInstallBanner />
+      <SyncIndicator />
       <UnauthorizedHandler />
       <PopupProvider>
         <Routes>

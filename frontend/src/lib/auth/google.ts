@@ -86,7 +86,7 @@ export function completeGoogleCallback(
     // Drop the token from the address bar so a refresh doesn't replay the
     // callback, and so the token isn't leaked via the browser history /
     // referer headers.
-    const cleanUrl = window.location.pathname + window.location.hash;
+    const cleanUrl = window.location.pathname;
     window.history.replaceState(null, "", cleanUrl);
   }
 

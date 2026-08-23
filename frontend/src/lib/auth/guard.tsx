@@ -1,6 +1,7 @@
 import { type ReactNode } from "react";
 import { Navigate } from "react-router";
 import { getAuthToken } from "./token";
+import { InactivityTimer } from "@/components/finance/InactivityTimer";
 
 /**
  * Route guard component. Wrap any route that requires authentication.
@@ -10,5 +11,10 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   if (!getAuthToken()) {
     return <Navigate to="/login" replace />;
   }
-  return <>{children}</>;
+  return (
+    <>
+      <InactivityTimer />
+      {children}
+    </>
+  );
 }

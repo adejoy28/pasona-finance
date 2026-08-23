@@ -85,6 +85,7 @@ export type SummaryDto = {
     net: number | string;
   };
   category_breakdown: { category_name: string; total: number | string }[];
+  daily_breakdown?: { date: string; income: number | string; expense: number | string }[];
 };
 
 export type ImportPreviewRow = {

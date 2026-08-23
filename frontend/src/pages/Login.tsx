@@ -58,27 +58,27 @@ export function Login() {
     void navigate("/register");
   }, [email, navigate]);
 
-  type CallbackState = "none" | { kind: "pending" } | { kind: "error"; message: string };
+  type CallbackState = "none" | { kind: "pending"; search: string } | { kind: "error"; message: string };
   const [callback, setCallback] = useState<CallbackState>(() => {
     if (typeof window === "undefined") return "none";
-    const search = window.location.search || window.location.hash || "";
-    const params = new URLSearchParams(search);
+    const rawSearch = window.location.search || window.location.hash || "";
+    const normalizedSearch = rawSearch.replace(/^#/, "?");
+    const params = new URLSearchParams(normalizedSearch);
     const token = params.get("token") ?? params.get("access_token");
     const callbackError = params.get("error");
-    if (token) return { kind: "pending" };
+    if (token) return { kind: "pending", search: normalizedSearch };
     if (callbackError) return { kind: "error", message: callbackError };
     return "none";
   });
   const isCallback = callback !== "none";
 
   useEffect(() => {
-    if (!isCallback) return;
+    if (callback === "none") return;
     if (callback.kind === "error") {
       setError(callback.message);
       return;
     }
-    const search = typeof window !== "undefined" ? window.location.search : "";
-    const result = completeGoogleCallback(search);
+    const result = completeGoogleCallback(callback.search);
     if (!result.ok) {
       setError(result.error);
       setCallback({ kind: "error", message: result.error });
@@ -146,10 +146,14 @@ export function Login() {
       try {
         await authApi.biometricLogin(creds.token);
         void navigate("/dashboard", { replace: true });
-      } catch {
-        await deleteBiometricCredentials();
-        setHasBiometricCreds(false);
-        setError("Biometric session expired. Sign in once to re-enable.");
+      } catch (err) {
+        if (err instanceof ApiError && (err.kind === "network" || err.kind === "timeout")) {
+          setError("Cannot sign in offline. Please connect to the internet.");
+        } else {
+          await deleteBiometricCredentials();
+          setHasBiometricCreds(false);
+          setError("Biometric session expired. Sign in once to re-enable.");
+        }
       }
     } catch (err) {
       setError("Biometric sign-in failed. Try your password.");

@@ -90,6 +90,20 @@ class SummaryController extends Controller
                         'total' => $item->total,
                     ];
                 });
+            // 4. Daily Breakdown
+            $dailyTransactions = $user->transactions()
+                ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
+                ->get(['transaction_date', 'type', 'amount']);
+
+            $dailyBreakdown = $dailyTransactions->groupBy(function($item) {
+                return \Carbon\Carbon::parse($item->transaction_date)->format('Y-m-d');
+            })->map(function ($dayTransactions, $date) {
+                return [
+                    'date' => $date,
+                    'income' => $dayTransactions->where('type', 'income')->sum('amount'),
+                    'expense' => $dayTransactions->where('type', 'expense')->sum('amount'),
+                ];
+            })->sortKeys()->values();
 
             return [
                 'total_balance' => $totalBalance,
@@ -100,6 +114,7 @@ class SummaryController extends Controller
                     'net' => $monthlyIncome - $monthlyExpense,
                 ],
                 'category_breakdown' => $categoryBreakdown,
+                'daily_breakdown' => $dailyBreakdown,
             ];
         });
 
