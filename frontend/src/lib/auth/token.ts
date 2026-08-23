@@ -3,19 +3,22 @@ let _token: string | null = null;
 export function setAuthToken(token: string): void {
   _token = token;
   try {
-    window.sessionStorage.setItem("auth_token", token);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("auth_token", token);
+      window.localStorage.setItem("last_activity", Date.now().toString());
+    }
   } catch {
-    // sessionStorage may be unavailable (privacy mode, quota). Best-effort.
+    // localStorage may be unavailable (privacy mode, quota). Best-effort.
   }
 }
 
 export function getAuthToken(): string | null {
   if (_token) return _token;
-  if (typeof window === "undefined" || typeof window.sessionStorage === "undefined") {
+  if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
     return null;
   }
   try {
-    _token = window.sessionStorage.getItem("auth_token");
+    _token = window.localStorage.getItem("auth_token");
   } catch {
     _token = null;
   }
