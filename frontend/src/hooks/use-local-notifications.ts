@@ -112,11 +112,19 @@ export function useLocalNotifications(): UseLocalNotificationsResult {
               title,
               body: body ?? "",
               channelId: REMINDER_CHANNEL_ID,
-              schedule: {
-                at,
-                repeats: repeats ?? false,
-                allowWhileIdle: true,
-              },
+              schedule: repeats
+                ? {
+                    repeats: true,
+                    allowWhileIdle: true,
+                    on: {
+                      hour: at.getHours(),
+                      minute: at.getMinutes(),
+                    },
+                  }
+                : {
+                    at,
+                    allowWhileIdle: true,
+                  },
             },
           ],
         });
