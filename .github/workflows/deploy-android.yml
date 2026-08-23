@@ -1,8 +1,9 @@
 name: Deploy Signed APK to Cloudflare R2
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - master
 
 jobs:
   build-and-deploy:
@@ -38,14 +39,35 @@ jobs:
 
       - name: Sign APK
         id: sign_app
-        uses: r0adkll/sign-android-release@v1
-        with:
-          releaseDirectory: frontend/android/app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
-          alias: ${{ secrets.ALIAS }}
-          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
-          buildToolsVersion: 35.0.0
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          ALIAS: ${{ secrets.ALIAS }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          # Decode keystore
+          echo "$SIGNING_KEY" | base64 --decode > pasona-release-key.jks
+          
+          # Find the newest apksigner
+          APKSIGNER=$(find $ANDROID_SDK_ROOT/build-tools -name apksigner | sort -r | head -n 1)
+          ZIPALIGN=$(find $ANDROID_SDK_ROOT/build-tools -name zipalign | sort -r | head -n 1)
+          
+          APK_PATH="frontend/android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          ALIGNED_APK="frontend/android/app/build/outputs/apk/release/app-release-aligned.apk"
+          SIGNED_APK="frontend/android/app/build/outputs/apk/release/app-release-signed.apk"
+          
+          # Align
+          $ZIPALIGN -v -p 4 $APK_PATH $ALIGNED_APK
+          
+          # Sign
+          $APKSIGNER sign --ks pasona-release-key.jks \
+            --ks-key-alias "$ALIAS" \
+            --ks-pass pass:"$KEY_STORE_PASSWORD" \
+            --key-pass pass:"$KEY_PASSWORD" \
+            --out $SIGNED_APK \
+            $ALIGNED_APK
+            
+          echo "signedReleaseFile=$SIGNED_APK" >> $GITHUB_OUTPUT
 
       - name: Generate metadata.json
         run: |
@@ -53,12 +75,13 @@ jobs:
           SIZE_BYTES=$(wc -c < "$SIGNED_APK")
           # Convert bytes to MB with 1 decimal place
           SIZE_MB=$(echo "scale=1; $SIZE_BYTES / 1048576" | bc)
+          VERSION="${GITHUB_SHA:0:7}"
           
           # Use jq to safely encode the JSON
           jq -n \
-            --arg version "${{ github.event.release.tag_name }}" \
+            --arg version "$VERSION" \
             --arg size "${SIZE_MB} MB" \
-            --arg whatsNew "${{ github.event.release.body }}" \
+            --arg whatsNew "${{ github.event.head_commit.message }}" \
             '{version: $version, size: $size, whatsNew: $whatsNew}' > metadata.json
             
           cat metadata.json
