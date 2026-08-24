@@ -14,14 +14,20 @@ export function DownloadPage() {
   useEffect(() => {
     const metaUrl = import.meta.env.VITE_ANDROID_APK_METADATA_URL;
     if (metaUrl) {
+      console.log("[download] Firing metadata fetch via proxy for:", metaUrl);
       const proxyUrl = `${import.meta.env.VITE_API_BASE_URL}/download/metadata?url=${encodeURIComponent(metaUrl)}&t=${Date.now()}`;
       fetch(proxyUrl)
         .then((res) => {
-          if (!res.ok) throw new Error("Metadata fetch failed");
+          if (!res.ok) throw new Error("Metadata fetch failed with status " + res.status);
           return res.json();
         })
-        .then((data) => setMetadata(data))
+        .then((data) => {
+          console.log("[download] Metadata successfully fetched:", data);
+          setMetadata(data);
+        })
         .catch((err) => console.error("[download] Failed to fetch metadata", err));
+    } else {
+      console.log("[download] No VITE_ANDROID_APK_METADATA_URL defined in environment.");
     }
   }, []);
 
