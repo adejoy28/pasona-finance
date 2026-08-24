@@ -15,6 +15,7 @@ import {
   Smartphone,
   Tag,
   Trash2,
+  EyeOff,
   User,
   X,
 } from "lucide-react";
@@ -39,6 +40,7 @@ import { nextOccurrenceOfTime, useLocalNotifications } from "@/hooks/use-local-n
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { useMe, invalidateMe } from "@/hooks/use-me";
 import { useOnline } from "@/hooks/use-online";
+import { usePrivacyMode } from "@/hooks/use-privacy-mode";
 import { fadeSlideDown } from "@/lib/animations";
 import {
   checkBiometricAvailability,
@@ -70,6 +72,7 @@ export function Settings() {
   const [reminderTime, setReminderTime] = useState(readStoredTime);
   const [reminderEnabled, setReminderEnabled] = useState(readStoredEnabled);
   const [signingOut, setSigningOut] = useState(false);
+  const { isPrivacyModeEnabled, setPrivacyMode } = usePrivacyMode();
 
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
@@ -463,6 +466,33 @@ export function Settings() {
                   </select>
                   <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>
+              </div>
+
+              <div className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <EyeOff size={18} className="text-slate-400" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">Privacy Mode</p>
+                    <p className="text-[10px] text-slate-400">Hide balances by default</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isPrivacyModeEnabled}
+                  onClick={() => setPrivacyMode(!isPrivacyModeEnabled)}
+                  className={
+                    "w-12 h-6 rounded-full p-1 transition-colors relative " +
+                    (isPrivacyModeEnabled ? "bg-blue-600" : "bg-slate-200")
+                  }
+                >
+                  <div
+                    className={
+                      "w-4 h-4 rounded-full bg-white transition-transform " +
+                      (isPrivacyModeEnabled ? "translate-x-6" : "translate-x-0")
+                    }
+                  />
+                </button>
               </div>
 
 

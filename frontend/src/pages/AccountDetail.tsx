@@ -25,6 +25,7 @@ import { SwipeReveal } from "@/components/finance/SwipeReveal";
 import { cn } from "@/lib/utils";
 import { DEFAULT_CURRENCY } from "@/lib/currencies";
 import { formatCurrency, type Account, type Transaction } from "@/lib/finance";
+import { usePrivacyMode } from "@/hooks/use-privacy-mode";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -110,6 +111,7 @@ export function AccountDetail() {
   const accountId = Number(rawAccountId);
   const navigate = useNavigate();
   const popup = usePopup();
+  const { renderAmount } = usePrivacyMode();
 
   useEffect(() => {
     document.title = "Account — Pasona";
@@ -313,7 +315,7 @@ export function AccountDetail() {
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
                 Available Balance
               </p>
-              <p className="text-2xl font-black truncate">{formatCurrency(account.balance, userCurrency)}</p>
+              <p className="text-2xl font-black truncate">{renderAmount(account.balance, userCurrency)}</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
               {getTypeIcon(account.type)}
@@ -406,13 +408,13 @@ export function AccountDetail() {
           <div className="bg-white p-3 rounded-2xl card-shadow border border-slate-50 text-center">
             <p className="text-[9px] font-bold text-slate-400 uppercase">Income</p>
             <p className="text-xs sm:text-sm font-black text-green-600 truncate mt-0.5">
-              +{formatCurrency(totals.income, userCurrency)}
+              +{renderAmount(totals.income, userCurrency)}
             </p>
           </div>
           <div className="bg-white p-3 rounded-2xl card-shadow border border-slate-50 text-center">
             <p className="text-[9px] font-bold text-slate-400 uppercase">Expense</p>
             <p className="text-xs sm:text-sm font-black text-red-600 truncate mt-0.5">
-              -{formatCurrency(totals.expense, userCurrency)}
+              -{renderAmount(totals.expense, userCurrency)}
             </p>
           </div>
           <div className="bg-white p-3 rounded-2xl card-shadow border border-slate-50 text-center">
@@ -423,7 +425,7 @@ export function AccountDetail() {
                 totals.net >= 0 ? "text-slate-900" : "text-red-600",
               )}
             >
-              {formatCurrency(totals.net, userCurrency)}
+              {renderAmount(totals.net, userCurrency)}
             </p>
           </div>
         </section>
@@ -522,7 +524,7 @@ export function AccountDetail() {
                               )}
                             >
                               {tx.type === "income" ? "+" : tx.type === "expense" ? "-" : ""}
-                              {formatCurrency(tx.amount, userCurrency)}
+                              {renderAmount(tx.amount, userCurrency)}
                             </p>
                             <div className="hidden sm:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button

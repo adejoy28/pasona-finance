@@ -17,6 +17,7 @@ import {
 import { DEFAULT_CURRENCY, resolveCurrency } from "@/lib/currencies";
 import type { Account, Category } from "@/lib/finance";
 import { formatCurrency, parseAmountInput } from "@/lib/finance";
+import { usePrivacyMode } from "@/hooks/use-privacy-mode";
 import { useMe } from "@/hooks/use-me";
 import { useOfflineSync } from "@/hooks/use-offline-sync";
 
@@ -84,6 +85,7 @@ export function TransactionsAdd() {
   const { isOnline, enqueue } = useOfflineSync();
   const userQuery = useMe();
   const userCurrency = userQuery.data?.currency ?? DEFAULT_CURRENCY;
+  const { renderAmount } = usePrivacyMode();
 
   const amountParse = useMemo(() => parseAmountInput(amount), [amount]);
   const amountSymbol = resolveCurrency(userCurrency)?.symbol ?? userCurrency;
@@ -320,7 +322,7 @@ export function TransactionsAdd() {
             </div>
             {amountParse.isExpression && (
               <p className="text-xs font-bold text-blue-600">
-                = {formatCurrency(amountParse.projected ?? 0, userCurrency)}
+                = {renderAmount(amountParse.projected ?? 0, userCurrency)}
               </p>
             )}
           </div>
@@ -348,7 +350,7 @@ export function TransactionsAdd() {
                   <option value="" disabled>Select account</option>
                   {accounts.map((acc) => (
                     <option key={acc.id} value={acc.id}>
-                      {acc.name} ({formatCurrency(acc.balance, userCurrency)})
+                      {acc.name} ({renderAmount(acc.balance, userCurrency)})
                     </option>
                   ))}
                 </select>
@@ -372,7 +374,7 @@ export function TransactionsAdd() {
                       .filter((acc) => String(acc.id) !== accountId)
                       .map((acc) => (
                         <option key={acc.id} value={acc.id}>
-                          {acc.name} ({formatCurrency(acc.balance, userCurrency)})
+                          {acc.name} ({renderAmount(acc.balance, userCurrency)})
                         </option>
                       ))}
                   </select>
