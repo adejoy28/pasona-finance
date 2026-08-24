@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { createFileRoute, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { ArrowLeft, Share, PlusSquare, Download, ShieldCheck, DownloadCloud } from "lucide-react";
 
 export function DownloadPage() {
