@@ -12,7 +12,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { usePopup } from "@/components/ui/popup";
-import { AccountCardSkeleton } from "@/components/finance/Skeletons";
+import { AccountCardSkeleton, AccountsSkeleton } from "@/components/finance/Skeletons";
 import { AccountDialog } from "@/components/finance/AccountDialog";
 import { NotificationBell } from "@/components/finance/NotificationBell";
 import { cn } from "@/lib/utils";
@@ -173,6 +173,10 @@ export function AccountsIndex() {
   };
 
   const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
+
+  if (loading && accounts.length === 0) {
+    return <AccountsSkeleton />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28">

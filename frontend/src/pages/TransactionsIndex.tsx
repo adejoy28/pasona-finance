@@ -25,7 +25,7 @@ import { formatCompactCurrency, formatCurrency, type Transaction } from "@/lib/f
 import { ApiError, transactions as transactionsApi, type TransactionDto } from "@/lib/api";
 import { DEFAULT_CURRENCY } from "@/lib/currencies";
 import { TransactionDialog } from "@/components/finance/TransactionDialog";
-import { TransactionsSkeleton } from "@/components/finance/Skeletons";
+import { HistorySkeleton, TransactionsSkeleton } from "@/components/finance/Skeletons";
 import { SwipeReveal } from "@/components/finance/SwipeReveal";
 import { useMe } from "@/hooks/use-me";
 import { useOnline } from "@/hooks/use-online";
@@ -219,6 +219,10 @@ export function TransactionsIndex() {
       setIsDeleting(false);
     }
   };
+
+  if (loading && txDtos.length === 0) {
+    return <HistorySkeleton />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 pb-32">
