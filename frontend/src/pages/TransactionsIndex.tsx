@@ -460,8 +460,10 @@ export function TransactionsIndex() {
                   return (
                     <SwipeReveal
                       key={tx.id}
-                      onEdit={() => setEditingTransaction(rawDto)}
-                      onDelete={() => setDeletingTransaction(tx)}
+                      rightActions={[
+                        { label: "Edit", icon: <Pencil size={18} />, onClick: () => setEditingTransaction(rawDto), className: "bg-blue-500 text-white" },
+                        { label: "Delete", icon: <Trash2 size={18} />, onClick: () => setDeletingTransaction(tx), className: "bg-red-500 text-white" }
+                      ]}
                     >
                       <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-slate-50/80 transition-colors group cursor-pointer">
                         <Link
