@@ -134,7 +134,7 @@ export function Dashboard() {
     return dateStr >= monthFrom && dateStr <= monthTo;
   });
 
-  type MonthAgg = { income: number; expense: number; byCategory: Map<string, number> };
+  type MonthAgg = { income: number; expense: number; byCategory: Map<string, { amount: number; id?: number }> };
   const derived = filteredMonthTx.reduce<MonthAgg>(
     (acc, t) => {
       const amount = toNumber(t.amount);
@@ -142,11 +142,12 @@ export function Dashboard() {
       else if (t.type === "expense") {
         acc.expense += amount;
         const name = t.category?.name ?? "Uncategorized";
-        acc.byCategory.set(name, (acc.byCategory.get(name) ?? 0) + amount);
+        const existing = acc.byCategory.get(name) ?? { amount: 0, id: t.category_id ?? undefined };
+        acc.byCategory.set(name, { amount: existing.amount + amount, id: existing.id ?? t.category_id ?? undefined });
       }
       return acc;
     },
-    { income: 0, expense: 0, byCategory: new Map<string, number>() },
+    { income: 0, expense: 0, byCategory: new Map<string, { amount: number; id?: number }>() },
   );
 
   const summaryHasData = Boolean(summary?.monthly_summary);
@@ -161,10 +162,11 @@ export function Dashboard() {
   const categoryBreakdown = summaryHasData && summary?.category_breakdown
     ? summary.category_breakdown.map((row) => ({
       category_name: row.category_name,
+      category_id: row.category_id,
       total: toNumber(row.total),
     }))
     : [...derived.byCategory.entries()]
-      .map(([category_name, total]) => ({ category_name, total }))
+      .map(([category_name, data]) => ({ category_name, category_id: data.id, total: data.amount }))
   const maxTotal = Math.max(...categoryBreakdown.map((c) => c.total), 1);
   const netSavings = monthlyIncome - monthlyExpense;
   const isPositiveTrend = netSavings >= 0;

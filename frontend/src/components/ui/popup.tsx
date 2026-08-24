@@ -23,7 +23,7 @@ const PopupContext = createContext<PopupContextValue | null>(null);
 let nextId = 0;
 
 const VARIANT_STYLES: Record<PopupVariant, { accent: string; icon: string }> = {
-  success: { accent: "bg-emerald-400", icon: "✓" },
+  success: { accent: "bg-[#101b45]", icon: "✓" },
   error: { accent: "bg-rose-500", icon: "!" },
   info: { accent: "bg-blue-500", icon: "i" },
 };
@@ -100,7 +100,8 @@ function PopupCard({ item, onDismiss }: { item: PopupItem; onDismiss: () => void
     >
       <div
         className={cn(
-          "flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-full text-5xl font-black text-white mb-6",
+          "flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-full text-5xl font-black text-white mb-6 transition-transform duration-500",
+          item.variant === "success" && "animate-[bounce_1s_ease-in-out_infinite]",
           v.accent,
         )}
       >
