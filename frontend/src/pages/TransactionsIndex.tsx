@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePopup } from "@/components/ui/popup";
@@ -97,8 +97,13 @@ export function TransactionsIndex() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
   const [search, setSearch] = useState("");
   const [showSearchInput, setShowSearchInput] = useState(false);
+  const [searchParams] = useSearchParams();
+  const categoryId = searchParams.get("category_id");
 
   useEffect(() => {
     document.title = "History — Pasona";
@@ -112,7 +117,44 @@ export function TransactionsIndex() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const res = await transactionsApi.listTransactions({ per_page: 100 });
+      let from: string | undefined;
+      let to: string | undefined;
+
+      const today = new Date();
+      if (dateFilter === "today") {
+        from = today.toISOString().split("T")[0];
+        to = today.toISOString().split("T")[0];
+      } else if (dateFilter === "yesterday") {
+        const y = new Date(today);
+        y.setDate(y.getDate() - 1);
+        from = y.toISOString().split("T")[0];
+        to = y.toISOString().split("T")[0];
+      } else if (dateFilter === "this_week") {
+        const d = new Date(today);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        d.setDate(diff);
+        from = d.toISOString().split("T")[0];
+        to = today.toISOString().split("T")[0];
+      } else if (dateFilter === "last_week") {
+        const endLastWeek = new Date(today);
+        const day = endLastWeek.getDay();
+        endLastWeek.setDate(endLastWeek.getDate() - day + (day === 0 ? -6 : 1) - 1);
+        const startLastWeek = new Date(endLastWeek);
+        startLastWeek.setDate(endLastWeek.getDate() - 6);
+        from = startLastWeek.toISOString().split("T")[0];
+        to = endLastWeek.toISOString().split("T")[0];
+      } else if (dateFilter === "custom") {
+        from = customFrom || undefined;
+        to = customTo || undefined;
+      }
+
+      const res = await transactionsApi.listTransactions({
+        per_page: 100,
+        category_id: categoryId ? parseInt(categoryId, 10) : undefined,
+        from,
+        to
+      });
       setTxDtos(res.data ?? []);
     } catch (err) {
       if (err instanceof ApiError) setError(err);
@@ -123,7 +165,7 @@ export function TransactionsIndex() {
 
   useEffect(() => {
     void loadData();
-  }, []);
+  }, [categoryId, dateFilter, customFrom, customTo]);
 
   const transactions: Transaction[] = useMemo(() => txDtos.map(toTransaction), [txDtos]);
 
@@ -298,26 +340,57 @@ export function TransactionsIndex() {
           )}
         </AnimatePresence>
 
-        {/* Minimal Segmented Filter Tabs */}
-        <div className="flex bg-slate-200/50 p-1 rounded-xl gap-1 border border-slate-200/40">
-          {FILTERS.map((f) => {
-            const active = filter === f.id;
-            return (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setFilter(f.id)}
-                className={cn(
-                  "flex-1 py-2 rounded-lg text-xs font-black transition-all text-center select-none",
-                  active
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-800",
-                )}
-              >
-                {f.label}
-              </button>
-            );
-          })}
+        {/* Minimal Segmented Filter Tabs & Date Filter */}
+        <div className="space-y-2">
+          <div className="flex bg-slate-200/50 p-1 rounded-xl gap-1 border border-slate-200/40">
+            {FILTERS.map((f) => {
+              const active = filter === f.id;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setFilter(f.id)}
+                  className={cn(
+                    "flex-1 py-2 rounded-lg text-xs font-black transition-all text-center select-none",
+                    active
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-500 hover:text-slate-800",
+                  )}
+                >
+                  {f.label}
+                </button>
+              );
+            })}
+          </div>
+          
+          <select 
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            className="w-full bg-white border border-slate-200/60 rounded-xl px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:border-blue-500 shadow-xs appearance-none"
+          >
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="this_week">This Week</option>
+            <option value="last_week">Last Week</option>
+            <option value="custom">Custom Range</option>
+          </select>
+          {dateFilter === "custom" && (
+            <div className="flex gap-2">
+              <input 
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="w-full bg-white border border-slate-200/60 rounded-xl px-3 py-2 text-xs text-slate-600 focus:outline-none focus:border-blue-500 shadow-xs"
+              />
+              <input 
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="w-full bg-white border border-slate-200/60 rounded-xl px-3 py-2 text-xs text-slate-600 focus:outline-none focus:border-blue-500 shadow-xs"
+              />
+            </div>
+          )}
         </div>
 
         {/* Sleek Summary Strip */}

@@ -84,7 +84,7 @@ export type SummaryDto = {
     expense: number | string;
     net: number | string;
   };
-  category_breakdown: { category_name: string; total: number | string }[];
+  category_breakdown: { category_id?: number | null; category_name: string; total: number | string }[];
   daily_breakdown?: { date: string; income: number | string; expense: number | string }[];
 };
 

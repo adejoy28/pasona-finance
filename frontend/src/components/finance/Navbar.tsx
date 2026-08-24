@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import {
@@ -6,21 +6,48 @@ import {
   Plus,
   ReceiptText,
   CreditCard,
-  Settings,
+  Tag,
+  User,
+  LogOut,
+  Settings as SettingsIcon,
+  ChevronsUpDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useMe, invalidateMe } from "@/hooks/use-me";
+import { auth as authApi } from "@/lib/api";
 
 const navItems = [
   { label: "Overview", short: "Home", href: "/dashboard", icon: LayoutDashboard, tour: undefined },
   { label: "History", short: "History", href: "/transactions", icon: ReceiptText, tour: "history-nav" },
   { label: "Accounts", short: "Accounts", href: "/accounts", icon: CreditCard, tour: "accounts-nav" },
-  { label: "Settings", short: "Settings", href: "/settings", icon: Settings, tour: "settings-nav" },
+  { label: "Categories", short: "Categories", href: "/categories", icon: Tag, tour: "categories-nav" },
 ] as const;
 
 export function FinanceNavbar() {
   const pathname = useLocation().pathname;
+  const navigate = useNavigate();
+  const { data: user } = useMe();
+
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
+
+  const handleSignOut = async () => {
+    try {
+      await authApi.logout();
+    } catch (e) {
+      // ignore
+    } finally {
+      invalidateMe();
+      void navigate("/login");
+    }
+  };
 
   // Tag the body while the app nav is mounted so global CSS can offset
   // page content for the desktop sidebar (auth/404 pages stay full-width).
@@ -84,8 +111,36 @@ export function FinanceNavbar() {
           New transaction
         </Link>
 
-        <div className="mt-auto px-3 pt-6 text-[10px] uppercase tracking-[0.22em] text-muted-foreground/60">
-          v1.0 · Pasona Finance
+        <div className="mt-auto flex flex-col gap-2 pt-6 pb-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-100/50 transition-colors text-left outline-none border border-transparent hover:border-border/50">
+                <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
+                  <User size={18} className="text-slate-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-slate-800 truncate">{user?.name || "User"}</p>
+                  <p className="text-xs text-slate-500 truncate">{user?.email || ""}</p>
+                </div>
+                <ChevronsUpDown size={16} className="text-slate-400 shrink-0" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 rounded-xl border-border/60 shadow-lg">
+              <DropdownMenuItem onClick={() => navigate("/settings")} className="rounded-lg cursor-pointer py-2 text-sm font-medium">
+                <SettingsIcon size={16} className="mr-2 text-slate-500" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => void handleSignOut()} className="rounded-lg cursor-pointer py-2 text-sm font-medium text-rose-600 focus:text-rose-600 focus:bg-rose-50">
+                <LogOut size={16} className="mr-2" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <div className="px-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground/60 text-center">
+            v1.0 • Pasona Finance
+          </div>
         </div>
       </aside>
 

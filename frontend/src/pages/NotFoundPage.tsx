@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { getAuthToken } from "@/lib/auth/token";
 
 export function NotFoundPage() {
   return (
@@ -11,8 +12,8 @@ export function NotFoundPage() {
         </p>
         <div className="mt-6">
           <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            to={getAuthToken() ? "/dashboard" : "/"}
+            className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
           >
             Go home
           </Link>

@@ -416,10 +416,11 @@ export function Dashboard() {
                 return (
                   <motion.div
                     key={idx}
+                    onClick={() => { if (item.category_id) navigate(`/transactions?category_id=${item.category_id}`); }}
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.35 + idx * 0.08, duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-                    className="space-y-2"
+                    className={`space-y-2 ${item.category_id ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
                   >
                     <div className="flex justify-between items-center px-1 min-w-0">
                       <span className="text-xs font-bold text-slate-700 truncate">{item.category_name}</span>
@@ -448,55 +449,7 @@ export function Dashboard() {
           </motion.section>
         </motion.div>
 
-        {/* Daily Cashflow Breakdown Section */}
-        <motion.div
-          variants={staggerContainer}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 gap-6"
-        >
-          <motion.section variants={staggerItem} className="space-y-4">
-            <div className="flex justify-between items-center px-1">
-              <h3 className="text-lg font-black text-slate-900 leading-none">Daily Cashflow</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase">{monthLabel}</p>
-            </div>
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-              className="bg-white rounded-2xl card-shadow border border-slate-50 p-6 space-y-2"
-            >
-              {summary?.daily_breakdown?.length === 0 && !loading && (
-                <p className="text-center py-6 text-xs font-bold text-slate-400 uppercase tracking-widest opacity-60">
-                  No activity in {monthLabel}
-                </p>
-              )}
-              {summary?.daily_breakdown?.map((item, idx) => {
-                const dateObj = new Date(item.date);
-                const dayLabel = dateObj.toLocaleDateString("en-US", { weekday: 'short', day: 'numeric' });
-                return (
-                  <motion.div
-                    key={item.date}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.35 + idx * 0.05, duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-                    className="flex justify-between items-center py-2.5 border-b border-slate-50 last:border-0"
-                  >
-                    <span className="text-xs font-bold text-slate-700 w-16 shrink-0">{dayLabel}</span>
-                    <div className="flex-1 flex justify-end gap-3 px-2">
-                      <span className="text-xs font-black text-emerald-500 w-20 text-right">
-                        {toNumber(item.income) > 0 ? "+" + formatCurrency(toNumber(item.income), userCurrency) : "-"}
-                      </span>
-                      <span className="text-xs font-black text-rose-500 w-20 text-right">
-                        {toNumber(item.expense) > 0 ? "-" + formatCurrency(toNumber(item.expense), userCurrency) : "-"}
-                      </span>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </motion.section>
-        </motion.div>
+
       </motion.div>
 
       <AiChat />

@@ -465,16 +465,7 @@ export function Settings() {
                 </div>
               </div>
 
-              <Link to="/categories" className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <Tag size={18} className="text-slate-400" />
-                  <div>
-                    <p className="text-xs font-bold text-slate-800">Categories</p>
-                    <p className="text-[10px] text-slate-400">Manage expense and income tags</p>
-                  </div>
-                </div>
-                <ChevronRight size={16} className="text-slate-300" />
-              </Link>
+
 
               <Link to="/import" className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
                 <div className="flex items-center gap-3">
