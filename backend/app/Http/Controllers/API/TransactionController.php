@@ -57,6 +57,10 @@ class TransactionController extends Controller
             $query->where('type', $request->input('type'));
         }
 
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->input('category_id'));
+        }
+
         $perPage = (int) $request->input('per_page', 50);
         $perPage = min(max(1, $perPage), 500);
 

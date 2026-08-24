@@ -7,6 +7,7 @@ export type ListTransactionsParams = {
   from?: string;
   to?: string;
   account_id?: number;
+  category_id?: number;
   type?: "income" | "expense" | "transfer";
 };
 

@@ -86,6 +86,7 @@ class SummaryController extends Controller
                 ->get()
                 ->map(function ($item) {
                     return [
+                        'category_id' => $item->category_id,
                         'category_name' => $item->category ? $item->category->name : 'Uncategorized',
                         'total' => $item->total,
                     ];

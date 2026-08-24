@@ -19,6 +19,7 @@ import { ApiError, categories as categoriesApi, type CategoryDto } from "@/lib/a
 import type { Category } from "@/lib/finance";
 import { useOnline } from "@/hooks/use-online";
 import { fadeSlideDown } from "@/lib/animations";
+import { cn } from "@/lib/utils";
 
 function toCategory(dto: CategoryDto): Category {
   return {
@@ -30,6 +31,7 @@ function toCategory(dto: CategoryDto): Category {
 
 export function Categories() {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [activeTab, setActiveTab] = useState<"expense" | "income">("expense");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -175,80 +177,103 @@ export function Categories() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-          <section className="space-y-3">
-            <h2 className="text-xs font-black uppercase tracking-wider text-slate-400 px-1 flex items-center gap-2">
-              <ArrowDownCircle size={14} className="text-red-500" /> Expenses ({expenseCategories.length})
-            </h2>
-            <div className="bg-white rounded-2xl card-shadow border border-slate-50 overflow-hidden divide-y divide-slate-50">
-              {expenseCategories.map((c) => (
-                <div key={c.id} className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
-                      <Tag size={16} />
-                    </div>
-                    <span className="text-xs font-bold text-slate-800">{c.name}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => openEdit(c)}
-                      className="p-2 text-slate-300 hover:text-blue-500 transition-colors"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleDelete(c.id)}
-                      className="p-2 text-slate-300 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {!loading && expenseCategories.length === 0 && (
-                <p className="p-4 text-xs text-slate-400 text-center font-medium">No expense categories yet</p>
+        <div className="space-y-4">
+          <div className="flex bg-slate-200/50 p-1 rounded-xl gap-1 border border-slate-200/40">
+            <button
+              type="button"
+              onClick={() => setActiveTab("expense")}
+              className={cn(
+                "flex-1 py-2 rounded-lg text-xs font-black transition-all text-center select-none flex items-center justify-center gap-2",
+                activeTab === "expense"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-800"
               )}
-            </div>
-          </section>
+            >
+              <ArrowDownCircle size={14} className={activeTab === "expense" ? "text-red-500" : ""} />
+              Expenses ({expenseCategories.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("income")}
+              className={cn(
+                "flex-1 py-2 rounded-lg text-xs font-black transition-all text-center select-none flex items-center justify-center gap-2",
+                activeTab === "income"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              <ArrowUpCircle size={14} className={activeTab === "income" ? "text-green-500" : ""} />
+              Income ({incomeCategories.length})
+            </button>
+          </div>
 
-          <section className="space-y-3">
-            <h2 className="text-xs font-black uppercase tracking-wider text-slate-400 px-1 flex items-center gap-2">
-              <ArrowUpCircle size={14} className="text-green-500" /> Income ({incomeCategories.length})
-            </h2>
-            <div className="bg-white rounded-2xl card-shadow border border-slate-50 overflow-hidden divide-y divide-slate-50">
-              {incomeCategories.map((c) => (
-                <div key={c.id} className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-green-50 text-green-600 flex items-center justify-center">
-                      <Tag size={16} />
+          <div className="bg-white rounded-2xl card-shadow border border-slate-50 overflow-hidden divide-y divide-slate-50">
+            {activeTab === "expense" ? (
+              <>
+                {expenseCategories.map((c) => (
+                  <div key={c.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors group">
+                    <Link to={`/transactions?category_id=${c.id}`} className="flex items-center gap-3 flex-1">
+                      <div className="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <Tag size={16} />
+                      </div>
+                      <span className="text-xs font-bold text-slate-800">{c.name}</span>
+                    </Link>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); openEdit(c); }}
+                        className="p-2 text-slate-300 hover:text-blue-500 transition-colors"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); void handleDelete(c.id); }}
+                        className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
-                    <span className="text-xs font-bold text-slate-800">{c.name}</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => openEdit(c)}
-                      className="p-2 text-slate-300 hover:text-blue-500 transition-colors"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleDelete(c.id)}
-                      className="p-2 text-slate-300 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                ))}
+                {!loading && expenseCategories.length === 0 && (
+                  <p className="p-4 text-xs text-slate-400 text-center font-medium">No expense categories yet</p>
+                )}
+              </>
+            ) : (
+              <>
+                {incomeCategories.map((c) => (
+                  <div key={c.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors group">
+                    <Link to={`/transactions?category_id=${c.id}`} className="flex items-center gap-3 flex-1">
+                      <div className="w-8 h-8 rounded-xl bg-green-50 text-green-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <Tag size={16} />
+                      </div>
+                      <span className="text-xs font-bold text-slate-800">{c.name}</span>
+                    </Link>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); openEdit(c); }}
+                        className="p-2 text-slate-300 hover:text-blue-500 transition-colors"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); void handleDelete(c.id); }}
+                        className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-              {!loading && incomeCategories.length === 0 && (
-                <p className="p-4 text-xs text-slate-400 text-center font-medium">No income categories yet</p>
-              )}
-            </div>
-          </section>
+                ))}
+                {!loading && incomeCategories.length === 0 && (
+                  <p className="p-4 text-xs text-slate-400 text-center font-medium">No income categories yet</p>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </main>
 
