@@ -20,6 +20,7 @@ import {
 import { usePopup } from "@/components/ui/popup";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/finance";
+import { usePrivacyMode } from "@/hooks/use-privacy-mode";
 import { ApiError, transactions as transactionsApi, type TransactionDto } from "@/lib/api";
 import { DEFAULT_CURRENCY } from "@/lib/currencies";
 import { TransactionDialog } from "@/components/finance/TransactionDialog";
@@ -112,6 +113,7 @@ export function TransactionDetail() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const userQuery = useMe();
+  const { renderAmount } = usePrivacyMode();
   const userCurrency = userQuery.data?.currency ?? DEFAULT_CURRENCY;
 
   const loadDetail = async () => {
@@ -235,7 +237,7 @@ export function TransactionDetail() {
               <p className="text-[11px] font-bold uppercase tracking-widest text-white/70">Amount</p>
               <h1 className="text-4xl font-black tracking-tight tabular-nums mt-1">
                 {isIncome ? "+" : isExpense ? "-" : ""}
-                {formatCurrency(numericAmount, userCurrency)}
+                {renderAmount(numericAmount, userCurrency)}
               </h1>
               <p className="text-sm font-semibold text-white/90 mt-2">
                 {dto.description || (isTransfer ? "Transfer Record" : "Untitled Entry")}

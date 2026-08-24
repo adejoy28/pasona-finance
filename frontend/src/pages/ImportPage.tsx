@@ -26,6 +26,7 @@ import { getTransferSuggestion } from "@/config/transferSuggestions";
 import { cn } from "@/lib/utils";
 import { DEFAULT_CURRENCY } from "@/lib/currencies";
 import { formatCurrency } from "@/lib/finance";
+import { usePrivacyMode } from "@/hooks/use-privacy-mode";
 import { useMe } from "@/hooks/use-me";
 import { prepareFileForUpload } from "@/lib/upload/normalize-file";
 
@@ -64,6 +65,7 @@ export function ImportPage() {
 
   const userQuery = useMe();
   const userCurrency = userQuery.data?.currency ?? DEFAULT_CURRENCY;
+  const { renderAmount } = usePrivacyMode();
 
   const [step, setStep] = useState<Step>("upload");
   const [bank, setBank] = useState<BankSlug>("generic");
@@ -375,7 +377,7 @@ export function ImportPage() {
 
                     <div className="text-right shrink-0">
                       <p className="text-xs font-black text-slate-900">
-                        {formatCurrency(row.amount, userCurrency)}
+                        {renderAmount(row.amount, userCurrency)}
                       </p>
                       {isDup && <span className="text-[9px] font-bold text-amber-600 uppercase">Duplicate</span>}
                     </div>

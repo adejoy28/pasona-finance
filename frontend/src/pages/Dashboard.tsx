@@ -10,6 +10,8 @@ import {
   Plus,
   User,
   Wallet,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { usePopup } from "@/components/ui/popup";
 import { FinanceNavbar } from "@/components/finance/Navbar";
@@ -37,6 +39,7 @@ import {
 } from "@/lib/api";
 import { useOnline } from "@/hooks/use-online";
 import { useMe, invalidateMe } from "@/hooks/use-me";
+import { usePrivacyMode } from "@/hooks/use-privacy-mode";
 
 function toAccount(dto: AccountDto): Account {
   return {
@@ -57,6 +60,7 @@ export function Dashboard() {
   const navigate = useNavigate();
   const verifiedFlag = searchParams.get("verified") ?? undefined;
   const popup = usePopup();
+  const { isRevealed, toggleReveal, renderAmount } = usePrivacyMode();
 
   useEffect(() => {
     document.title = "Dashboard — Pasona";
@@ -227,7 +231,16 @@ export function Dashboard() {
             className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
           >
             <div className="flex justify-between items-center gap-2">
-              <p className="text-xs font-semibold text-white/80 uppercase tracking-wider shrink-0">Total Balance</p>
+              <div className="flex items-center gap-2 shrink-0">
+                <p className="text-xs font-semibold text-white/80 uppercase tracking-wider">Total Balance</p>
+                <button 
+                  onClick={toggleReveal} 
+                  className="text-white/60 hover:text-white transition-colors"
+                  aria-label={isRevealed ? "Hide balances" : "Show balances"}
+                >
+                  {isRevealed ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
               <Link
                 to="/transactions/add"
                 data-tour-target="add-transaction"
@@ -240,7 +253,7 @@ export function Dashboard() {
 
             <div className="space-y-1">
               <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-white truncate">
-                {formatCurrency(totalBalance, userCurrency)}
+                {renderAmount(totalBalance, userCurrency)}
               </h2>
               <div
                 className={`flex items-center gap-1 text-xs font-bold pt-1 ${
@@ -250,7 +263,7 @@ export function Dashboard() {
                 <span>{isPositiveTrend ? "▲" : "▼"}</span>
                 <span>
                   {isPositiveTrend ? "+" : "-"}
-                  {formatCurrency(Math.abs(netSavings), userCurrency)} net cashflow
+                  {renderAmount(Math.abs(netSavings), userCurrency)} net cashflow
                 </span>
               </div>
             </div>
@@ -311,7 +324,7 @@ export function Dashboard() {
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 Income
               </p>
-              <p className="text-sm sm:text-lg font-black text-slate-900 truncate">{formatCurrency(monthlyIncome, userCurrency)}</p>
+              <p className="text-sm sm:text-lg font-black text-slate-900 truncate">{renderAmount(monthlyIncome, userCurrency)}</p>
             </div>
           </motion.div>
           <motion.div variants={staggerItem} className="bg-white p-5 rounded-2xl card-shadow border border-slate-50 flex flex-col justify-between h-32 overflow-hidden">
@@ -327,7 +340,7 @@ export function Dashboard() {
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 Expenses
               </p>
-              <p className="text-sm sm:text-lg font-black text-slate-900 truncate">{formatCurrency(monthlyExpense, userCurrency)}</p>
+              <p className="text-sm sm:text-lg font-black text-slate-900 truncate">{renderAmount(monthlyExpense, userCurrency)}</p>
             </div>
           </motion.div>
         </motion.div>
@@ -381,7 +394,7 @@ export function Dashboard() {
                       {account.name}
                     </p>
                     <p className="text-base font-black text-slate-800 truncate">
-                      {formatCurrency(account.balance, userCurrency)}
+                      {renderAmount(account.balance, userCurrency)}
                     </p>
                   </div>
                 </Link>
@@ -427,7 +440,7 @@ export function Dashboard() {
                     <div className="flex justify-between items-center px-1 min-w-0">
                       <span className="text-xs font-bold text-slate-700 truncate">{item.category_name}</span>
                       <span className="text-xs font-black text-slate-900 shrink-0 ml-2">
-                        {formatCurrency(item.total, userCurrency)}
+                        {renderAmount(item.total, userCurrency)}
                       </span>
                     </div>
                     <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">

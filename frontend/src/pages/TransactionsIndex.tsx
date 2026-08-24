@@ -2,6 +2,7 @@ import { Link, useSearchParams } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePopup } from "@/components/ui/popup";
+import { usePrivacyMode } from "@/hooks/use-privacy-mode";
 import {
   AlertTriangle,
   ArrowDownLeft,
@@ -111,8 +112,9 @@ export function TransactionsIndex() {
 
   const userQuery = useMe();
   const userCurrency = userQuery.data?.currency ?? DEFAULT_CURRENCY;
-  const isOnline = useOnline();
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const popup = usePopup();
+  const { renderAmount, isMasked } = usePrivacyMode();
 
   const loadData = async () => {
     setLoading(true);
@@ -285,17 +287,17 @@ export function TransactionsIndex() {
               <p className="text-xs font-semibold text-white/80 uppercase tracking-wider shrink-0">Net Cashflow</p>
               <div className="flex gap-2">
                 <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full">
-                  +{formatCurrency(totals.income, userCurrency)}
+                  +{renderAmount(totals.income, userCurrency)}
                 </span>
                 <span className="text-[10px] bg-rose-500/20 text-rose-300 font-bold px-2 py-0.5 rounded-full">
-                  -{formatCurrency(totals.expense, userCurrency)}
+                  -{renderAmount(totals.expense, userCurrency)}
                 </span>
               </div>
             </div>
 
             <div className="space-y-1">
               <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-white truncate">
-                {formatCurrency(totals.net, userCurrency)}
+                {renderAmount(totals.net, userCurrency)}
               </h2>
               <div className="flex items-center gap-1.5 text-xs font-bold text-white/70 pt-1">
                 <span>{filtered.length} transactions in this view</span>
@@ -321,6 +323,7 @@ export function TransactionsIndex() {
                 <input
                   type="text"
                   value={search}
+                  ref={searchInputRef}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search by note, category, or account..."
                   autoFocus
@@ -398,19 +401,19 @@ export function TransactionsIndex() {
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
             <span className="text-slate-400 font-medium">In:</span>
-            <span className="text-slate-900 font-extrabold tabular-nums">+{formatCompactCurrency(totals.income, userCurrency)}</span>
+            <span className="text-slate-900 font-extrabold tabular-nums">+{isMasked ? "****" : formatCompactCurrency(totals.income, userCurrency)}</span>
           </div>
           <div className="h-3 w-px bg-slate-200 shrink-0 mx-1" />
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
             <span className="text-slate-400 font-medium">Out:</span>
-            <span className="text-slate-900 font-extrabold tabular-nums">-{formatCompactCurrency(totals.expense, userCurrency)}</span>
+            <span className="text-slate-900 font-extrabold tabular-nums">-{isMasked ? "****" : formatCompactCurrency(totals.expense, userCurrency)}</span>
           </div>
           <div className="h-3 w-px bg-slate-200 shrink-0 mx-1" />
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="text-slate-400 font-medium">Net:</span>
             <span className={cn("font-extrabold tabular-nums", totals.net >= 0 ? "text-indigo-600" : "text-rose-600")}>
-              {formatCompactCurrency(totals.net, userCurrency)}
+              {isMasked ? "****" : formatCompactCurrency(totals.net, userCurrency)}
             </span>
           </div>
         </div>
@@ -455,7 +458,6 @@ export function TransactionsIndex() {
                 {items.map((tx) => {
                   const rawDto = txDtos.find((d) => d.id === tx.id) ?? null;
                   const isIncome = tx.type === "income";
-                  const isExpense = tx.type === "expense";
 
                   return (
                     <SwipeReveal
@@ -510,8 +512,8 @@ export function TransactionsIndex() {
                                 isIncome ? "text-emerald-600" : "text-slate-900",
                               )}
                             >
-                              {isIncome ? "+" : isExpense ? "-" : ""}
-                              {formatCurrency(tx.amount, userCurrency)}
+                              {isIncome ? "+" : ""}
+                              {renderAmount(tx.amount, userCurrency)}
                             </p>
                           </Link>
 

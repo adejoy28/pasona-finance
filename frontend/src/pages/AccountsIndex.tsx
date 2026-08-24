@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DEFAULT_CURRENCY } from "@/lib/currencies";
 import { formatCurrency, type Account } from "@/lib/finance";
+import { usePrivacyMode } from "@/hooks/use-privacy-mode";
 import { ApiError, accounts as accountsApi, type AccountDto } from "@/lib/api";
 import { useMe } from "@/hooks/use-me";
 import { useOnline } from "@/hooks/use-online";
@@ -69,6 +70,7 @@ function markCashAtHandSeeded(): void {
 export function AccountsIndex() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
+  const { renderAmount } = usePrivacyMode();
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -228,7 +230,7 @@ export function AccountsIndex() {
 
             <div className="space-y-1">
               <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-white truncate">
-                {formatCurrency(totalBalance, userCurrency)}
+                {renderAmount(totalBalance, userCurrency)}
               </h2>
               <div className="flex items-center gap-1.5 text-xs font-bold text-white/70 pt-1">
                 <span>{accounts.length} funding sources active</span>
@@ -334,7 +336,7 @@ export function AccountsIndex() {
                     Available Balance
                   </p>
                   <p className="text-lg sm:text-xl font-black text-slate-800 tracking-tight truncate">
-                    {formatCurrency(account.balance, userCurrency)}
+                    {renderAmount(account.balance, userCurrency)}
                   </p>
                 </div>
               </div>
