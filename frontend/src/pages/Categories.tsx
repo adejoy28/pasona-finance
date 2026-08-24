@@ -15,6 +15,7 @@ import { usePopup } from "@/components/ui/popup";
 import { FinanceNavbar } from "@/components/finance/Navbar";
 import { CategoryDialog } from "@/components/finance/CategoryDialog";
 import { NotificationBell } from "@/components/finance/NotificationBell";
+import { CategoriesSkeleton } from "@/components/finance/Skeletons";
 import { ApiError, categories as categoriesApi, type CategoryDto } from "@/lib/api";
 import type { Category } from "@/lib/finance";
 import { useOnline } from "@/hooks/use-online";
@@ -106,6 +107,15 @@ export function Categories() {
     () => categories.filter((c) => c.type === "income"),
     [categories],
   );
+
+  if (loading && categories.length === 0) {
+    return (
+      <>
+        <CategoriesSkeleton />
+        <FinanceNavbar />
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28">
