@@ -14,8 +14,8 @@ export function DownloadPage() {
   useEffect(() => {
     const metaUrl = import.meta.env.VITE_ANDROID_APK_METADATA_URL;
     if (metaUrl) {
-      // Append timestamp to bypass CDN caching
-      fetch(`${metaUrl}?t=${Date.now()}`)
+      const proxyUrl = `${import.meta.env.VITE_API_BASE_URL}/download/metadata?url=${encodeURIComponent(metaUrl)}&t=${Date.now()}`;
+      fetch(proxyUrl)
         .then((res) => {
           if (!res.ok) throw new Error("Metadata fetch failed");
           return res.json();

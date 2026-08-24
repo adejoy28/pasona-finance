@@ -15,6 +15,7 @@ use App\Http\Controllers\API\PushSubscriptionController;
 use App\Http\Controllers\API\SummaryController;
 use App\Http\Controllers\API\TransactionController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Http;
 
 /**
  * API Routes File
@@ -26,6 +27,23 @@ use Illuminate\Support\Facades\Route;
 // Public Routes
 Route::get('/', function () {
     return response()->json(['message' => 'Welcome to the Pasona Finance Tracker API!']);
+});
+
+Route::get('/download/metadata', function (Illuminate\Http\Request $request) {
+    $url = $request->query('url');
+    if (!$url || !filter_var($url, FILTER_VALIDATE_URL)) {
+        return response()->json(['error' => 'Invalid URL'], 400);
+    }
+
+    try {
+        $response = Http::timeout(5)->get($url);
+        if ($response->successful()) {
+            return response()->json($response->json());
+        }
+        return response()->json(['error' => 'Failed to fetch metadata'], 502);
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Failed to fetch metadata'], 502);
+    }
 });
 
 Route::post('/register', [AuthController::class, 'register']);
