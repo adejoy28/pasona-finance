@@ -1,9 +1,8 @@
 name: Deploy Signed APK to Cloudflare R2
 
 on:
-  push:
-    branches:
-      - master
+  release:
+    types: [published]
 
 jobs:
   build-and-deploy:
@@ -79,9 +78,9 @@ jobs:
           
           # Use jq to safely encode the JSON
           jq -n \
-            --arg version "$VERSION" \
+            --arg version "${{ github.event.release.tag_name }}" \
             --arg size "${SIZE_MB} MB" \
-            --arg whatsNew "${{ github.event.head_commit.message }}" \
+            --arg whatsNew "${{ github.event.release.body }}" \
             '{version: $version, size: $size, whatsNew: $whatsNew}' > metadata.json
             
           cat metadata.json
