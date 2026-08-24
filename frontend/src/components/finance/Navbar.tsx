@@ -112,7 +112,7 @@ export function FinanceNavbar() {
         </Link>
 
         <div className="mt-auto flex flex-col gap-2 pt-6 pb-2">
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-100/50 transition-colors text-left outline-none border border-transparent hover:border-border/50">
                 <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
@@ -125,7 +125,7 @@ export function FinanceNavbar() {
                 <ChevronsUpDown size={16} className="text-slate-400 shrink-0" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 rounded-xl border-border/60 shadow-lg">
+            <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-56 rounded-xl border-border/60 shadow-lg">
               <DropdownMenuItem onClick={() => navigate("/settings")} className="rounded-lg cursor-pointer py-2 text-sm font-medium">
                 <SettingsIcon size={16} className="mr-2 text-slate-500" />
                 Settings
