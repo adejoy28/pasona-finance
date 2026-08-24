@@ -542,7 +542,7 @@ export function Settings() {
                 </div>
               )}
 
-              {!isNative && (
+              {/* {!isNative && (
                 <button
                   type="button"
                   onClick={() => {
@@ -563,7 +563,7 @@ export function Settings() {
                   </div>
                   <ChevronRight size={16} className="text-slate-300" />
                 </button>
-              )}
+              )} */}
 
               <Link to="/privacy" className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
                 <div className="flex items-center gap-3">

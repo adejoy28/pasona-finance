@@ -118,13 +118,13 @@ export function SplashPage() {
               </button>
             </div>
             
-            <button
+            {/* <button
               type="button"
               onClick={() => navigate("/download")}
               className="w-full h-11 inline-flex items-center justify-center rounded-xl font-semibold text-sm tracking-wide border border-[#3b82f6]/30 bg-[#3b82f6]/5 text-[#3b82f6] hover:bg-[#3b82f6]/10 transition-colors mt-1"
             >
               Get Mobile App
-            </button>
+            </button> */}
 
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] text-[#8c93b0] pt-2 border-t border-white/[0.04]">
               <li className="flex items-center gap-1.5">

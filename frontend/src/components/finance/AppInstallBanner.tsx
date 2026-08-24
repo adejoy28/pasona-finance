@@ -47,6 +47,10 @@ export function AppInstallBanner() {
     handleClose();
   };
 
+  // Temporarily disabled while app is offline
+  return null;
+
+  /*
   return (
     <AnimatePresence>
       {isVisible && (
@@ -57,7 +61,6 @@ export function AppInstallBanner() {
           className="fixed top-3 left-3 right-3 md:left-auto md:right-4 z-[100] md:w-96"
         >
           <div className="bg-[#0b1329]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-3 flex items-center justify-between gap-4 relative overflow-hidden">
-            {/* Subtle glow effect */}
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 to-emerald-500/10 blur-xl opacity-50 pointer-events-none" />
             
             <div className="flex items-center gap-3 relative z-10">
@@ -90,4 +93,5 @@ export function AppInstallBanner() {
       )}
     </AnimatePresence>
   );
+  */
 }
