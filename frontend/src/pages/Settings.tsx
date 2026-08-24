@@ -137,6 +137,11 @@ export function Settings() {
     }
   };
 
+  const handlePrivacyToggle = (next: boolean) => {
+    setPrivacyMode(next);
+    popup.success(next ? "Privacy mode enabled (balances hidden)" : "Privacy mode disabled (balances visible)");
+  };
+
   const toggleReminder = async (next: boolean) => {
     const prev = reminderEnabled;
     setReminderEnabled(next);
@@ -480,7 +485,7 @@ export function Settings() {
                   type="button"
                   role="switch"
                   aria-checked={isPrivacyModeEnabled}
-                  onClick={() => setPrivacyMode(!isPrivacyModeEnabled)}
+                  onClick={() => handlePrivacyToggle(!isPrivacyModeEnabled)}
                   className={
                     "w-12 h-6 rounded-full p-1 transition-colors relative " +
                     (isPrivacyModeEnabled ? "bg-blue-600" : "bg-slate-200")
