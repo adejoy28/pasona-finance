@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from "react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePopup } from "@/components/ui/popup";
 import { usePrivacyMode } from "@/hooks/use-privacy-mode";
@@ -110,6 +110,7 @@ export function TransactionsIndex() {
     document.title = "History — Pasona";
   }, []);
 
+  const isOnline = useOnline();
   const userQuery = useMe();
   const userCurrency = userQuery.data?.currency ?? DEFAULT_CURRENCY;
   const searchInputRef = useRef<HTMLInputElement>(null);
