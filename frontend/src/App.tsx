@@ -55,7 +55,7 @@ export function App() {
 
   return (
     <BrowserRouter>
-      <AppInstallBanner />
+      {/* <AppInstallBanner /> */}
       <SyncIndicator />
       <UnauthorizedHandler />
       <PopupProvider>
