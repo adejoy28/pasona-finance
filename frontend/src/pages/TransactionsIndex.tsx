@@ -199,6 +199,27 @@ export function TransactionsIndex() {
     return { income, expense, net: income - expense };
   }, [filtered]);
 
+  const heroTitle = useMemo(() => {
+    if (filter === "income") return "Total Income";
+    if (filter === "transfer") return "Total Transfers";
+    if (categoryId) {
+      const cat = filtered.find((t) => t.category?.name)?.category?.name;
+      if (cat) return `${cat} Total`;
+    }
+    if (totals.expense === 0 && totals.income > 0) return "Total Income";
+    return "Total Spendings";
+  }, [filter, categoryId, filtered, totals]);
+
+  const heroAmount = useMemo(() => {
+    if (filter === "income") return totals.income;
+    if (filter === "expense") return totals.expense;
+    if (filter === "transfer") return filtered.reduce((s, t) => s + t.amount, 0);
+    if (categoryId) {
+      return filtered.reduce((s, t) => s + t.amount, 0);
+    }
+    return totals.expense > 0 ? totals.expense : totals.income;
+  }, [filter, categoryId, filtered, totals]);
+
   const grouped = useMemo(() => groupByDay(filtered), [filtered]);
 
   const confirmDelete = async () => {
@@ -281,28 +302,32 @@ export function TransactionsIndex() {
             </div>
           </div>
 
-          {/* Page Hero Card: Net Cashflow for Selected Filter */}
+          {/* Page Hero Card: Spendings / Summary for Selected Filter */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
             className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
           >
-            <div className="flex justify-between items-center gap-2">
-              <p className="text-xs font-semibold text-white/80 uppercase tracking-wider shrink-0">Net Cashflow</p>
-              <div className="flex gap-2">
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full">
-                  +{renderAmount(totals.income, userCurrency)}
-                </span>
-                <span className="text-[10px] bg-rose-500/20 text-rose-300 font-bold px-2 py-0.5 rounded-full">
-                  -{renderAmount(totals.expense, userCurrency)}
-                </span>
+            <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+              <p className="text-xs font-semibold text-white/80 uppercase tracking-wider min-w-0 truncate">{heroTitle}</p>
+              <div className="flex items-center gap-1.5 flex-wrap justify-end shrink-0 max-w-full">
+                {totals.income > 0 && (
+                  <span className="inline-flex items-center text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full whitespace-nowrap tabular-nums leading-tight">
+                    +{renderAmount(totals.income, userCurrency)}
+                  </span>
+                )}
+                {totals.expense > 0 && (
+                  <span className="inline-flex items-center text-[10px] bg-rose-500/20 text-rose-300 font-bold px-2 py-0.5 rounded-full whitespace-nowrap tabular-nums leading-tight">
+                    -{renderAmount(totals.expense, userCurrency)}
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="space-y-1">
               <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-white truncate">
-                {renderAmount(totals.net, userCurrency)}
+                {renderAmount(heroAmount, userCurrency)}
               </h2>
               <div className="flex items-center gap-1.5 text-xs font-bold text-white/70 pt-1">
                 <span>{filtered.length} transactions in this view</span>
