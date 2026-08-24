@@ -276,7 +276,7 @@ body {
    sidebar doesn't overlap content. Auth / 404 pages don't mount the
    navbar, so they stay full-width. */
 @media (min-width: 768px) {
-  body.has-app-nav { padding-left: 16rem; }
+  body.has-app-nav { padding-left: 16rem !important; }
 }
 
 
