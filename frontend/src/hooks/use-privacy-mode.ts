@@ -3,8 +3,8 @@ import { formatCurrency } from "@/lib/finance";
 
 const PRIVACY_MODE_KEY = 'pasona_privacy_mode_default';
 
-let globalIsRevealed = false;
 let globalIsPrivacyMode = localStorage.getItem(PRIVACY_MODE_KEY) === 'true';
+let globalIsRevealed = !globalIsPrivacyMode;
 
 const listeners = new Set<() => void>();
 
@@ -44,27 +44,26 @@ export function usePrivacyMode() {
   }, []);
 
   const toggleReveal = useCallback(() => {
-    if (!globalIsPrivacyMode) return;
     globalIsRevealed = !globalIsRevealed;
     notify();
   }, []);
 
   const renderAmount = useCallback(
     (amount: number | string | null | undefined, currency: string) => {
-      if (state.isPrivacyModeEnabled && !state.isRevealed) {
+      if (!state.isRevealed) {
         return "****";
       }
       const num = typeof amount === "string" ? parseFloat(amount) : (amount || 0);
       return formatCurrency(num, currency);
     },
-    [state.isPrivacyModeEnabled, state.isRevealed]
+    [state.isRevealed]
   );
 
   return {
     isPrivacyModeEnabled: state.isPrivacyModeEnabled,
     setPrivacyMode,
     isRevealed: state.isRevealed,
-    isMasked: state.isPrivacyModeEnabled && !state.isRevealed,
+    isMasked: !state.isRevealed,
     toggleReveal,
     renderAmount,
   };
