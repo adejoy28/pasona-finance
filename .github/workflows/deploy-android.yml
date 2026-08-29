@@ -27,9 +27,21 @@ jobs:
           java-version: '21'
           
       - name: Install Frontend Dependencies & Build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_BACKEND_ORIGIN: ${{ secrets.VITE_BACKEND_ORIGIN }}
+          VITE_APP_NAME: ${{ secrets.VITE_APP_NAME }}
+          VITE_GOOGLE_WEB_CLIENT_ID: ${{ secrets.VITE_GOOGLE_WEB_CLIENT_ID }}
         run: |
           cd frontend
           pnpm install --frozen-lockfile
+          # Write .env.android from secrets so vite build --mode android picks them up
+          cat > .env.android <<EOF
+          VITE_API_BASE_URL=${VITE_API_BASE_URL}
+          VITE_BACKEND_ORIGIN=${VITE_BACKEND_ORIGIN}
+          VITE_APP_NAME=${VITE_APP_NAME}
+          VITE_GOOGLE_WEB_CLIENT_ID=${VITE_GOOGLE_WEB_CLIENT_ID}
+          EOF
           pnpm run android:build
 
       - name: Build Android Release APK
