@@ -17,6 +17,11 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -26,9 +31,8 @@ jobs:
       - name: Install Frontend Dependencies & Build
         run: |
           cd frontend
-          npm install
-          npm run build
-          npx cap sync android
+          pnpm install --frozen-lockfile
+          pnpm run android:build
 
       - name: Build Android Release APK
         run: |
@@ -74,7 +78,6 @@ jobs:
           SIZE_BYTES=$(wc -c < "$SIGNED_APK")
           # Convert bytes to MB with 1 decimal place
           SIZE_MB=$(echo "scale=1; $SIZE_BYTES / 1048576" | bc)
-          VERSION="${GITHUB_SHA:0:7}"
           
           # Use jq to safely encode the JSON
           jq -n \
