@@ -74,6 +74,8 @@ class SendDailyReminders extends Command
 
                 $query = User::query()
                     ->whereNotNull('email')
+                    ->whereNotNull('reminder_time')
+                    ->where('reminder_frequency', '!=', 'off')
                     ->where('timezone', $tz);
 
                 if ($from <= $to) {
@@ -123,6 +125,8 @@ class SendDailyReminders extends Command
     private function processUsers($users, Carbon $tzStartOfDay, bool $smartSkip, bool $dryRun): array
     {
         $today = $tzStartOfDay->toDateString();
+        $dayOfWeekIso = $tzStartOfDay->dayOfWeekIso; // 1 (Mon) - 7 (Sun)
+        $isWeekday = $tzStartOfDay->isWeekday();
 
         $userIds = $users->pluck('id');
 
@@ -144,18 +148,34 @@ class SendDailyReminders extends Command
         $skippedDedupe = 0;
 
         foreach ($users as $user) {
+            $freq = $user->reminder_frequency ?? 'daily';
+
+            if ($freq === 'off') {
+                continue;
+            }
+
+            // Frequency cadence filter
+            if ($freq === 'weekdays' && ! $isWeekday) {
+                continue;
+            }
+
+            if ($freq === 'mon_wed_fri' && ! in_array($dayOfWeekIso, [1, 3, 5], true)) {
+                continue;
+            }
+
             if ($alreadySentToday->has($user->id)) {
                 $skippedDedupe++;
                 continue;
             }
 
-            if ($smartSkip && $usersWithTx->has($user->id)) {
+            $userSmartSkip = $smartSkip || ($freq === 'smart');
+            if ($userSmartSkip && $usersWithTx->has($user->id)) {
                 $skippedSmart++;
                 continue;
             }
 
             if ($dryRun) {
-                $this->line("  would queue: user #{$user->id} ({$user->email}) at {$user->reminder_time} [{$user->timezone}]");
+                $this->line("  would queue: user #{$user->id} ({$user->email}) at {$user->reminder_time} [{$user->timezone}] frequency: {$freq}");
             } else {
                 SendTransactionReminder::dispatch($user->id);
             }

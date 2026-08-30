@@ -59,6 +59,14 @@ export type UserDto = {
    */
   reminder_time?: string | null;
   /**
+   * User's preferred reminder cadence (daily, weekdays, mon_wed_fri, smart, off).
+   */
+  reminder_frequency?: 'daily' | 'weekdays' | 'mon_wed_fri' | 'smart' | 'off' | null;
+  /**
+   * Opt-in preference for marketing & weekly insights emails.
+   */
+  marketing_opt_in?: boolean;
+  /**
    * IANA timezone string (e.g. `Africa/Lagos`). Used to interpret
    * `reminder_time` in the user's local clock. Default `Africa/Lagos`.
    */
@@ -161,6 +169,8 @@ export type ResetPasswordInput = {
 export type UpdateProfileInput = {
   name?: string;
   reminder_time?: string | null;
+  reminder_frequency?: 'daily' | 'weekdays' | 'mon_wed_fri' | 'smart' | 'off';
+  marketing_opt_in?: boolean;
   timezone?: string;
   currency?: string;
 };
