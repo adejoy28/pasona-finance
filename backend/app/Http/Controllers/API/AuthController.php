@@ -245,6 +245,8 @@ class AuthController extends Controller
         $data = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'reminder_time' => ['sometimes', 'nullable', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
+            'reminder_frequency' => ['sometimes', 'required', 'in:daily,weekdays,mon_wed_fri,smart,off'],
+            'marketing_opt_in' => ['sometimes', 'boolean'],
             'timezone' => 'sometimes|string|max:64',
             'currency' => 'sometimes|required|string|size:3|alpha:alpha',
             'password' => 'sometimes|required|string|min:8|confirmed',
@@ -258,6 +260,14 @@ class AuthController extends Controller
 
         if (array_key_exists('reminder_time', $data)) {
             $user->reminder_time = $data['reminder_time'];
+        }
+
+        if (array_key_exists('reminder_frequency', $data)) {
+            $user->reminder_frequency = $data['reminder_frequency'];
+        }
+
+        if (array_key_exists('marketing_opt_in', $data)) {
+            $user->marketing_opt_in = (bool) $data['marketing_opt_in'];
         }
 
         if (array_key_exists('timezone', $data)) {

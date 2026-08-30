@@ -44,6 +44,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'google_id',
         'avatar',
         'reminder_time',
+        'reminder_frequency',
+        'marketing_opt_in',
         'timezone',
         'currency',
         'reminder_announced_at',
@@ -54,7 +56,9 @@ class User extends Authenticatable implements MustVerifyEmail
      * Model-level defaults applied for every new User instance.
      */
     protected $attributes = [
-        'reminder_time' => '21:10',
+        'reminder_time'      => '21:10',
+        'reminder_frequency' => 'daily',
+        'marketing_opt_in'   => true,
     ];
 
     /**
@@ -79,8 +83,46 @@ class User extends Authenticatable implements MustVerifyEmail
             'reminder_last_sent_at'  => 'datetime',
             'reminder_announced_at'  => 'datetime',
             'streak_notified_at'     => 'datetime',
+            'marketing_opt_in'       => 'boolean',
             'password'               => 'hashed',
         ];
+    }
+
+    /**
+     * Calculate the user's consecutive day logging streak.
+     */
+    public function calculateStreak(): int
+    {
+        $tz = $this->timezone ?: 'Africa/Lagos';
+        $today = \Illuminate\Support\Carbon::now($tz)->startOfDay();
+
+        $dates = $this->transactions()
+            ->selectRaw('DATE(transaction_date) as tx_date')
+            ->whereNotNull('transaction_date')
+            ->distinct()
+            ->orderByDesc('tx_date')
+            ->limit(60)
+            ->pluck('tx_date')
+            ->map(fn ($d) => \Illuminate\Support\Carbon::parse($d, $tz)->startOfDay())
+            ->values();
+
+        if ($dates->isEmpty()) {
+            return 0;
+        }
+
+        $streak = 0;
+        $checkDate = $today->copy();
+
+        if (! $dates->contains(fn ($d) => $d->equalTo($today))) {
+            $checkDate->subDay();
+        }
+
+        while ($dates->contains(fn ($d) => $d->equalTo($checkDate))) {
+            $streak++;
+            $checkDate->subDay();
+        }
+
+        return $streak;
     }
 
     /**
