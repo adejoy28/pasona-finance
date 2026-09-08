@@ -17,6 +17,7 @@ import {
   Trash2,
   EyeOff,
   User,
+  Sparkles,
   X,
 } from "lucide-react";
 import { NotificationBell } from "@/components/finance/NotificationBell";
@@ -93,6 +94,11 @@ export function Settings() {
   const userQuery = useMe();
   const user = userQuery.data;
   const [currency, setCurrency] = useState(user?.currency ?? DEFAULT_CURRENCY);
+  const [reminderFrequency, setReminderFrequency] = useState<
+    "daily" | "weekdays" | "mon_wed_fri" | "smart"
+  >((user?.reminder_frequency as "daily" | "weekdays" | "mon_wed_fri" | "smart") ?? "daily");
+  const [marketingOptIn, setMarketingOptIn] = useState<boolean>(user?.marketing_opt_in ?? true);
+
   const browserTz =
     typeof Intl?.DateTimeFormat === "function"
       ? Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -110,6 +116,15 @@ export function Settings() {
     seededFromServer.current = true;
     setReminderTime(user.reminder_time);
   }, [user?.reminder_time]);
+
+  useEffect(() => {
+    if (user?.reminder_frequency) {
+      setReminderFrequency(user.reminder_frequency as "daily" | "weekdays" | "mon_wed_fri" | "smart");
+    }
+    if (user?.marketing_opt_in !== undefined) {
+      setMarketingOptIn(Boolean(user.marketing_opt_in));
+    }
+  }, [user?.reminder_frequency, user?.marketing_opt_in]);
 
   useEffect(() => {
     if (!user?.currency) return;
@@ -209,6 +224,28 @@ export function Settings() {
       popup.success(`Reminder rescheduled to ${next}`);
     } catch {
       // Best-effort
+    }
+  };
+
+  const handleFrequencyChange = async (next: "daily" | "weekdays" | "mon_wed_fri" | "smart") => {
+    setReminderFrequency(next);
+    try {
+      await authApi.updateProfile({ reminder_frequency: next, timezone: browserTz });
+      invalidateMe();
+      popup.success("Reminder schedule updated");
+    } catch {
+      popup.error("Failed to update reminder frequency");
+    }
+  };
+
+  const handleMarketingToggle = async (next: boolean) => {
+    setMarketingOptIn(next);
+    try {
+      await authApi.updateProfile({ marketing_opt_in: next });
+      invalidateMe();
+      popup.success(next ? "Weekly insights & digests enabled" : "Marketing emails disabled");
+    } catch {
+      popup.error("Failed to update email preferences");
     }
   };
 
@@ -382,11 +419,73 @@ export function Settings() {
                 />
               </div>
 
+              {reminderEnabled && (
+                <div className="p-4 space-y-2">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                    Reminder frequency
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: "daily", label: "Every day" },
+                      { id: "weekdays", label: "Weekdays (Mon–Fri)" },
+                      { id: "mon_wed_fri", label: "3x / week (M, W, F)" },
+                      { id: "smart", label: "Smart (If unlogged)" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => void handleFrequencyChange(opt.id as any)}
+                        className={
+                          "px-3 py-2 text-xs font-bold rounded-xl border text-left transition-all " +
+                          (reminderFrequency === opt.id
+                            ? "bg-blue-50 border-blue-300 text-blue-700 shadow-sm"
+                            : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100")
+                        }
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Weekly Money Insights & Facts Toggle */}
+              <div className="p-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                    <Sparkles size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-800">Weekly Money Facts & Insights</p>
+                    <p className="text-[10px] text-slate-400">
+                      Curated financial tips, facts & periodic product news.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={marketingOptIn}
+                  onClick={() => void handleMarketingToggle(!marketingOptIn)}
+                  className={
+                    "w-10 h-5 rounded-full p-0.5 transition-colors relative shrink-0 " +
+                    (marketingOptIn ? "bg-amber-500" : "bg-slate-200")
+                  }
+                >
+                  <div
+                    className={
+                      "w-4 h-4 rounded-full bg-white transition-transform " +
+                      (marketingOptIn ? "translate-x-5" : "translate-x-0")
+                    }
+                  />
+                </button>
+              </div>
+
               {!isNative && (
                 <div className="p-4 space-y-3">
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                     {reminderEnabled
-                      ? `Email reminder active at ${reminderTime}.`
+                      ? `Email reminder active at ${reminderTime} (${reminderFrequency}).`
                       : "Email reminder is off."}
                   </p>
 
