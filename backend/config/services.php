@@ -50,4 +50,9 @@ return [
         'subject'     => env('VAPID_SUBJECT', 'mailto:support@pasona.app'),
     ],
 
+    'groq' => [
+        'api_key' => env('GROQ_API_KEY'),
+        'model'   => env('GROQ_MODEL', env('AI_MODEL', 'qwen/qwen3.8-27b')),
+    ],
+
 ];
