@@ -60,22 +60,33 @@ class SendTransactionReminder implements ShouldQueue
             return;
         }
 
-        Mail::to($user->email)->send(new TransactionReminderMail($user));
+        $mailable = new TransactionReminderMail($user);
+        Mail::to($user->email)->send($mailable);
+
+        /** @var \App\Services\MoneyFactsService $moneyFactsService */
+        $moneyFactsService = app(\App\Services\MoneyFactsService::class);
+        $copy = $moneyFactsService->getDynamicCopy(
+            $user,
+            now($user->timezone ?: 'Africa/Lagos'),
+            $mailable->loggedToday,
+            $mailable->streak,
+            $mailable->todayExpense
+        );
 
         AppNotification::send(
             $user,
             'reminder',
-            'Daily reminder',
-            "Time to log today's transactions. Don't let anything slip!",
+            $copy['pushTitle'],
+            $copy['pushBody'],
             ['url' => '/transactions/add'],
         );
 
-        $this->sendPushNotification($user);
+        $this->sendPushNotification($user, $copy['pushTitle'], $copy['pushBody']);
 
         $user->forceFill(['reminder_last_sent_at' => now()])->save();
     }
 
-    private function sendPushNotification(User $user): void
+    private function sendPushNotification(User $user, string $title, string $body): void
     {
         $subscriptions = $user->pushSubscriptions;
 
@@ -103,8 +114,8 @@ class SendTransactionReminder implements ShouldQueue
             $webPush = new WebPush($auth);
 
             $payload = json_encode([
-                'title' => 'Time to log your expenses',
-                'body' => "Daily reminder for {$user->reminder_time}. Tap to record today's spending.",
+                'title' => $title,
+                'body' => $body,
                 'icon' => '/icons/icon-192x192.svg',
                 'data' => ['url' => '/'],
                 'vibrate' => [200, 100, 200],
