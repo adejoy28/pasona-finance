@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\API\AccountController;
+use App\Http\Controllers\API\AiController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\CategoryController;
 use App\Http\Controllers\API\EmailVerificationController;
@@ -129,4 +130,10 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     // Dashboard Summary
     Route::get('summary', [SummaryController::class, 'index']);
+
+    // AI Assistant
+    Route::post('ai/chat', [AiController::class, 'chat'])
+        ->middleware('throttle:30,1');
+    Route::post('ai/insights', [AiController::class, 'insights'])
+        ->middleware('throttle:30,1');
 });

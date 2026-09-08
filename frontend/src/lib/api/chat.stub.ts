@@ -1,7 +1,7 @@
 // Stubbed AI chat function — previously a TanStack Start server function.
 // TODO: Replace with a real Laravel API endpoint.
 
-import { api } from "./client";
+import { api, ApiError } from "./client";
 
 export type AiChatResult =
   | { kind: "ok"; answer: string; question: string; generatedAt: string }
@@ -19,8 +19,7 @@ type AiChatInput = {
 };
 
 /**
- * Stub for AI chat. Calls `POST /ai/chat` on the backend.
- * If the endpoint doesn't exist yet, returns a "not configured" result.
+ * AI chat API caller. Calls `POST /ai/chat` on the backend.
  */
 export async function getAiChatResponse(input: {
   data: AiChatInput;
@@ -28,11 +27,32 @@ export async function getAiChatResponse(input: {
   try {
     const result = await api.post<AiChatResult>("/ai/chat", input.data);
     return result;
-  } catch {
+  } catch (err: unknown) {
+    if (err instanceof ApiError) {
+      if (
+        err.payload &&
+        typeof err.payload === "object" &&
+        "kind" in err.payload &&
+        typeof (err.payload as Record<string, unknown>).kind === "string"
+      ) {
+        return err.payload as AiChatResult;
+      }
+      if (err.status === 404) {
+        return {
+          kind: "not_configured",
+          message: "AI chat endpoint is not available.",
+        };
+      }
+      return {
+        kind: "error",
+        message: err.message || "An unexpected error occurred talking to AI chat.",
+        retryable: true,
+      };
+    }
     return {
-      kind: "not_configured",
-      message:
-        "AI chat is not yet available. Set up a /api/ai/chat endpoint on your backend.",
+      kind: "error",
+      message: err instanceof Error ? err.message : "Something went wrong.",
+      retryable: true,
     };
   }
 }
