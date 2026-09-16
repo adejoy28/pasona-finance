@@ -319,7 +319,7 @@ export function AccountDetail() {
                 <p className="text-[22px] sm:text-2xl font-bold truncate mt-0.5">{renderAmount(account.balance, userCurrency)}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
-                <Building2 size={20} />
+                {getTypeIcon(account.type)}
               </div>
             </div>
           ) : null}
