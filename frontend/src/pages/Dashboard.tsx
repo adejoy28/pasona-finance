@@ -172,9 +172,33 @@ export function Dashboard() {
     : [...derived.byCategory.entries()]
       .map(([category_name, data]) => ({ category_name, category_id: data.id, total: data.amount }))
   const maxTotal = Math.max(...categoryBreakdown.map((c) => c.total), 1);
+  const totalSpending = categoryBreakdown.reduce((sum, item) => sum + item.total, 0) || 1;
   const netSavings = monthlyIncome - monthlyExpense;
   const isPositiveTrend = netSavings >= 0;
   const hasMonthRecords = monthTx.length > 0 || monthlyIncome > 0 || monthlyExpense > 0 || categoryBreakdown.length > 0;
+  const expenseRatio = monthlyIncome > 0
+    ? Math.min(100, Math.round((monthlyExpense / monthlyIncome) * 100))
+    : monthlyExpense > 0 ? 100 : 0;
+
+  const CATEGORY_COLORS = [
+    "#3b82f6", // Blue
+    "#8b5cf6", // Purple
+    "#10b981", // Emerald
+    "#f59e0b", // Amber
+    "#ec4899", // Pink
+    "#06b6d4", // Cyan
+    "#64748b", // Slate
+  ];
+
+  const accumulatedPercents = categoryBreakdown.reduce<number[]>((acc, item, idx) => {
+    if (idx === 0) {
+      acc.push(0);
+    } else {
+      const prevPct = (categoryBreakdown[idx - 1].total / totalSpending) * 100;
+      acc.push(acc[idx - 1] + prevPct);
+    }
+    return acc;
+  }, []);
 
   if (loading && !summary) {
     return (
@@ -187,110 +211,133 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-32">
+      {/* Sticky Fixed Top Header Bar (Edge-to-edge padding, seamlessly connects with hero) */}
+      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-6 shadow-sm border-b border-white/5 transition-all">
+        <div className="max-w-5xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-2.5">
+            <Link
+              to="/settings"
+              className={`w-9 h-9 rounded-full flex items-center justify-center text-white transition-all shadow-sm relative overflow-hidden ring-2 ring-offset-2 ring-offset-[#0b1434] ${
+                isOnline ? "ring-emerald-400 bg-white/10" : "ring-amber-400 bg-white/10"
+              }`}
+              aria-label="Profile settings"
+              title={isOnline ? "Online" : "Offline"}
+            >
+              <User size={18} />
+            </Link>
+            <h1 className="text-sm sm:text-base font-bold tracking-tight text-white truncate">
+              {userQuery.data?.name ? `Hi, ${userQuery.data.name.trim().split(" ")[0]}` : "Hi, User"}
+            </h1>
+          </div>
+
+          <NotificationBell />
+        </div>
+      </header>
+
       <NewLookBanner />
       <VerifyEmailBanner />
 
-      {/* Top Header & Vibrant Hero Card Section */}
-      <motion.header
+      {/* Hero Navy Card Section */}
+      <motion.section
         variants={fadeSlideDown}
         initial="hidden"
         animate="visible"
-        className="px-6 pt-8 pb-10 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
+        className="px-6 pt-2 pb-6 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
       >
         <div className="max-w-5xl mx-auto">
-          {/* Top Header Bar: Avatar with Online Dot (left), Title (center), Notifications (right) */}
-          <div className="flex justify-between items-center mb-6">
-            <div className="relative">
-              <Link
-                to="/settings"
-                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors shadow-sm block relative overflow-hidden"
-                aria-label="Profile settings"
-              >
-                <User size={20} />
-              </Link>
-              {/* Status Dot overlay on Avatar */}
-              <span
-                className={
-                  "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#101b45] " +
-                  (isOnline ? "bg-green-400" : "bg-amber-400")
-                }
-                title={isOnline ? "Online" : "Offline"}
-              />
-            </div>
-
-            <h1 className="text-lg font-extrabold tracking-tight">Dashboard</h1>
-
-            <NotificationBell />
-          </div>
-
-          {/* Hero Navy Card: Total Balance + Add Transaction button & Column-aligned dynamic trend */}
+          {/* Hero Navy Card: PalmPay-Style Compact 3-Row Grid */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-            className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
+            className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 space-y-2.5 shadow-inner"
           >
-            <div className="flex justify-between items-center gap-2">
-              <div className="flex items-center gap-2 shrink-0">
-                <p className="text-xs font-semibold text-white/80 uppercase tracking-wider">Total Balance</p>
-                <button 
-                  onClick={toggleReveal} 
-                  className="text-white/60 hover:text-white transition-colors"
+            {/* Row 1: Total Balance + Eye toggle on left, History shortcut on right */}
+            <div className="flex justify-between items-center text-[11px] text-white/80">
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block shrink-0" />
+                <span className="uppercase tracking-wider font-semibold text-[10px]">Total Balance</span>
+                <button
+                  onClick={toggleReveal}
+                  className="text-white/60 hover:text-white transition-colors p-0.5"
                   aria-label={isRevealed ? "Hide balances" : "Show balances"}
                 >
-                  {isRevealed ? <EyeOff size={14} /> : <Eye size={14} />}
+                  {isRevealed ? <EyeOff size={13} /> : <Eye size={13} />}
                 </button>
               </div>
+
               <Link
-                to="/transactions/add"
-                data-tour-target="add-transaction"
-                className="px-2 py-1.5 bg-white text-[#101b45] hover:bg-slate-100 rounded-full text-[8px] sm:text-xs font-bold flex items-center gap-1 shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 whitespace-nowrap"
+                to="/transactions"
+                className="flex items-center gap-0.5 text-white/70 hover:text-white transition-colors text-[11px] font-medium"
               >
-                <Plus size={12} strokeWidth={2.5} className="shrink-0" />
-                <span>Add Transaction</span>
+                <span>History</span>
+                <ChevronRight size={13} />
               </Link>
             </div>
 
-            <div className="space-y-1">
-              <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-white truncate">
+            {/* Row 2: Balance on Left + [+ Add] Pill CTA on Right (SAME ROW) */}
+            <div className="flex justify-between items-center gap-3">
+              <h2 className="text-[22px] sm:text-2xl font-bold tracking-tight leading-none text-white truncate min-w-0">
                 {renderAmount(totalBalance, userCurrency)}
               </h2>
+
+              <Link
+                to="/transactions/add"
+                data-tour-target="add-transaction"
+                className="px-3 py-1.5 bg-white text-[#101b45] hover:bg-slate-100 rounded-full text-xs font-bold flex items-center gap-1 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0"
+              >
+                <Plus size={13} strokeWidth={2.5} />
+                <span>Add</span>
+              </Link>
+            </div>
+
+            {/* Row 3: Integrated Cashflow Insight Strip */}
+            <div className="pt-2 border-t border-white/10 flex justify-between items-center text-[11px]">
               <div
-                className={`flex items-center gap-1 text-xs font-bold pt-1 ${
-                  isPositiveTrend ? "text-green-400" : "text-rose-400"
+                className={`flex items-center gap-1 font-semibold ${
+                  isPositiveTrend ? "text-emerald-300" : "text-rose-300"
                 }`}
               >
-                <span>{isPositiveTrend ? "▲" : "▼"}</span>
+                <span aria-hidden="true">{isPositiveTrend ? "▲" : "▼"}</span>
+                <span className="sr-only">
+                  {isPositiveTrend ? "Positive cashflow:" : "Negative cashflow:"}
+                </span>
                 <span>
                   {isPositiveTrend ? "+" : "-"}
-                  {renderAmount(Math.abs(netSavings), userCurrency)} net cashflow
+                  {renderAmount(Math.abs(netSavings), userCurrency)} net this month
                 </span>
               </div>
+
+              <span className="text-[10px] text-white/60 font-medium">
+                {monthLabel}
+              </span>
             </div>
           </motion.div>
         </div>
-      </motion.header>
+      </motion.section>
 
       {/* Main Content Area */}
       <motion.div
         variants={fadeSlideUp}
         initial="hidden"
         animate="visible"
-        className="px-6 space-y-6 pt-4 max-w-5xl mx-auto w-full"
+        className={`px-6 space-y-5 pt-3 max-w-5xl mx-auto w-full transition-opacity duration-200 ${
+          loading ? "opacity-60" : "opacity-100"
+        }`}
       >
-        {/* Month Selector Row (positioned between Hero Balance Card and Cashflow / Income & Expenses) */}
+        {/* Month Selector Row */}
         <div className="flex justify-center items-center gap-3">
           <button
             type="button"
             aria-label="Previous month"
-            disabled={loading || !hasMonthRecords}
+            disabled={loading}
             onClick={() => setMonthOffset((o) => o - 1)}
-            className="w-7 h-7 rounded-full flex items-center justify-center bg-white shadow-sm border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white"
-            title={!hasMonthRecords ? "No records for this month" : "Previous month"}
+            className="w-9 h-9 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white shadow-sm border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
+            title="Previous month"
           >
             <ChevronLeft size={16} />
           </button>
-          <span className="text-xs font-extrabold uppercase tracking-widest text-slate-700 min-w-[9rem] text-center">
+          <span className="text-xs font-bold uppercase tracking-widest text-slate-700 min-w-[9rem] text-center">
             {monthLabel}
           </span>
           <button
@@ -298,62 +345,88 @@ export function Dashboard() {
             aria-label="Next month"
             disabled={loading || monthOffset >= 0}
             onClick={() => setMonthOffset((o) => Math.min(0, o + 1))}
-            className="w-7 h-7 rounded-full flex items-center justify-center bg-white shadow-sm border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white"
+            className="w-9 h-9 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white shadow-sm border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
+            title="Next month"
           >
             <ChevronRight size={16} />
           </button>
         </div>
 
-        {/* Income & Expenses (Cashflow) Summary Cards */}
+        {/* Unified Monthly Cashflow Card (Slim & Compact) */}
         <motion.div
-          variants={staggerContainer}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-2 gap-4"
+          variants={staggerItem}
+          className="bg-white rounded-2xl card-shadow border border-slate-100 p-3.5 space-y-2.5 overflow-hidden"
         >
-          <motion.div variants={staggerItem} className="bg-white p-5 rounded-2xl card-shadow border border-slate-50 flex flex-col justify-between h-32 overflow-hidden">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.3, type: "spring", stiffness: 300, damping: 15 }}
-              className="w-10 h-10 rounded-2xl bg-green-50 flex items-center justify-center text-green-600"
-            >
-              <ArrowDownLeft size={20} />
-            </motion.div>
-            <div className="overflow-hidden">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Income
+          {/* Header row: Label */}
+          <div className="flex justify-between items-center px-0.5">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Monthly Cash Flow
+            </p>
+            <p className="text-[10.5px] font-semibold text-slate-400">
+              {monthLabel}
+            </p>
+          </div>
+
+          {/* Stacked Metrics: Income on top of Expenses */}
+          <div className="space-y-2">
+            {/* Income */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                  <ArrowDownLeft size={13} />
+                </div>
+                <p className="text-[11.5px] font-semibold text-slate-600">Income</p>
+              </div>
+              <p className="text-xs sm:text-sm font-bold text-slate-900">
+                {renderAmount(monthlyIncome, userCurrency)}
               </p>
-              <p className="text-sm sm:text-lg font-black text-slate-900 truncate">{renderAmount(monthlyIncome, userCurrency)}</p>
             </div>
-          </motion.div>
-          <motion.div variants={staggerItem} className="bg-white p-5 rounded-2xl card-shadow border border-slate-50 flex flex-col justify-between h-32 overflow-hidden">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.4, type: "spring", stiffness: 300, damping: 15 }}
-              className="w-10 h-10 rounded-2xl bg-red-50 flex items-center justify-center text-red-600"
-            >
-              <ArrowUpRight size={20} />
-            </motion.div>
-            <div className="overflow-hidden">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Expenses
+
+            {/* Divider */}
+            <div className="border-t border-slate-50" />
+
+            {/* Expenses */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600 shrink-0">
+                  <ArrowUpRight size={13} />
+                </div>
+                <p className="text-[11.5px] font-semibold text-slate-600">Expenses</p>
+              </div>
+              <p className="text-xs sm:text-sm font-bold text-slate-900">
+                {renderAmount(monthlyExpense, userCurrency)}
               </p>
-              <p className="text-sm sm:text-lg font-black text-slate-900 truncate">{renderAmount(monthlyExpense, userCurrency)}</p>
             </div>
-          </motion.div>
+          </div>
+
+          {/* Cashflow Ratio Bar */}
+          {monthlyIncome > 0 && (
+            <div className="space-y-1 pt-1 border-t border-slate-50">
+              <div className="flex justify-between text-[10px] font-medium text-slate-500">
+                <span>{expenseRatio}% spent</span>
+                <span className="text-slate-400">{Math.max(0, 100 - expenseRatio)}% saved</span>
+              </div>
+              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                <div
+                  style={{ width: `${Math.min(100, expenseRatio)}%` }}
+                  className={`h-full transition-all duration-500 rounded-full ${
+                    expenseRatio > 90 ? "bg-rose-500" : expenseRatio > 70 ? "bg-amber-500" : "bg-blue-600"
+                  }`}
+                />
+              </div>
+            </div>
+          )}
         </motion.div>
 
-        {/* My Accounts Section with View All & Horizontal Scrolling Overflow */}
+        {/* Compact My Accounts Section with View All */}
         <motion.section
           variants={fadeSlideUp}
           initial="hidden"
           animate="visible"
-          className="space-y-4"
+          className="space-y-2.5"
         >
           <div className="flex justify-between items-center px-1">
-            <h3 className="text-lg font-black text-slate-900 leading-none">My Accounts</h3>
+            <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-none">My Accounts</h3>
             <Link to="/accounts" className="text-xs font-bold text-blue-600 hover:underline">
               View All
             </Link>
@@ -362,13 +435,13 @@ export function Dashboard() {
             variants={staggerContainer}
             initial="hidden"
             animate="visible"
-            className="flex overflow-x-auto gap-4 pb-3 -mx-2 px-2 scrollbar-hide"
+            className="flex overflow-x-auto gap-2.5 pb-2 -mx-2 px-2 scrollbar-hide"
           >
             {accountList.length === 0 && !loading && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex-1 text-center py-8 text-xs font-bold text-slate-400 uppercase tracking-widest bg-white rounded-2xl"
+                className="flex-1 text-center py-6 text-xs font-bold text-slate-400 uppercase tracking-widest bg-white rounded-2xl"
               >
                 No accounts yet
               </motion.div>
@@ -377,23 +450,29 @@ export function Dashboard() {
               <motion.div key={account.id} variants={staggerItem}>
                 <Link
                   to={`/accounts/${account.id}`}
-                  className="flex-shrink-0 w-44 bg-white p-5 rounded-2xl card-shadow border border-slate-50 space-y-4 block hover:border-blue-200 transition-colors"
+                  className="flex-shrink-0 w-32 bg-white p-2.5 rounded-xl card-shadow border border-slate-50 space-y-1.5 block hover:border-blue-200 transition-colors"
                 >
-                  <div
-                    className={`p-2.5 inline-flex rounded-2xl ${account.type === "bank"
-                      ? "bg-blue-50 text-blue-600"
-                      : account.type === "mobile"
-                        ? "bg-purple-50 text-purple-600"
-                        : "bg-amber-50 text-amber-600"
+                  <div className="flex items-center justify-between">
+                    <div
+                      className={`p-1.5 inline-flex rounded-lg ${
+                        account.type === "bank"
+                          ? "bg-blue-50 text-blue-600"
+                          : account.type === "mobile"
+                            ? "bg-purple-50 text-purple-600"
+                            : "bg-amber-50 text-amber-600"
                       }`}
-                  >
-                    {account.type === "bank" ? <CreditCard size={18} /> : <Wallet size={18} />}
+                    >
+                      {account.type === "bank" ? <CreditCard size={13} /> : <Wallet size={13} />}
+                    </div>
+                    <span className="text-[8.5px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 px-1 py-0.5 rounded">
+                      {account.type}
+                    </span>
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                    <p className="text-[10px] font-semibold text-slate-500 truncate">
                       {account.name}
                     </p>
-                    <p className="text-base font-black text-slate-800 truncate">
+                    <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">
                       {renderAmount(account.balance, userCurrency)}
                     </p>
                   </div>
@@ -403,60 +482,112 @@ export function Dashboard() {
           </motion.div>
         </motion.section>
 
-        {/* Spending Category Breakdown Section */}
+        {/* Spending Category Breakdown with Visual Donut Chart */}
         <motion.div
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
           className="grid grid-cols-1 gap-6"
         >
-          <motion.section variants={staggerItem} className="space-y-4" data-tour-target="spending">
+          <motion.section variants={staggerItem} className="space-y-3" data-tour-target="spending">
             <div className="flex justify-between items-center px-1">
-              <h3 className="text-lg font-black text-slate-900 leading-none">Spending</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase">{monthLabel}</p>
+              <h3 className="text-base font-bold text-slate-900 leading-none">Spending</h3>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase">{monthLabel}</p>
             </div>
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-              className="bg-white rounded-2xl card-shadow border border-slate-50 p-6 space-y-4"
+              className="bg-white rounded-2xl card-shadow border border-slate-50 p-5 space-y-4"
             >
               {categoryBreakdown.length === 0 && !loading && (
                 <p className="text-center py-6 text-xs font-bold text-slate-400 uppercase tracking-widest opacity-60">
                   No spending in {monthLabel}
                 </p>
               )}
-              {categoryBreakdown.map((item, idx) => {
-                const percentage = (item.total / maxTotal) * 100;
-                return (
-                  <motion.div
-                    key={idx}
-                    onClick={() => { if (item.category_id) navigate(`/transactions?category_id=${item.category_id}`); }}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.35 + idx * 0.08, duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-                    className={`space-y-2 ${item.category_id ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
-                  >
-                    <div className="flex justify-between items-center px-1 min-w-0">
-                      <span className="text-xs font-bold text-slate-700 truncate">{item.category_name}</span>
-                      <span className="text-xs font-black text-slate-900 shrink-0 ml-2">
-                        {renderAmount(item.total, userCurrency)}
+
+              {categoryBreakdown.length > 0 && (
+                <div className="flex flex-col sm:flex-row items-center gap-6">
+                  {/* Visual Donut Ring */}
+                  <div className="relative w-32 h-32 shrink-0 flex items-center justify-center">
+                    <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="38"
+                        fill="transparent"
+                        stroke="#f1f5f9"
+                        strokeWidth="11"
+                      />
+                      {categoryBreakdown.map((item, idx) => {
+                        const pct = (item.total / totalSpending) * 100;
+                        const strokeDash = (pct / 100) * 238.76;
+                        const strokeGap = 238.76 - strokeDash;
+                        const strokeOffset = -(accumulatedPercents[idx] / 100) * 238.76;
+                        return (
+                          <circle
+                            key={idx}
+                            cx="50"
+                            cy="50"
+                            r="38"
+                            fill="transparent"
+                            stroke={CATEGORY_COLORS[idx % CATEGORY_COLORS.length]}
+                            strokeWidth="11"
+                            strokeDasharray={`${strokeDash} ${strokeGap}`}
+                            strokeDashoffset={strokeOffset}
+                            className="transition-all duration-500"
+                          />
+                        );
+                      })}
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-2">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Spent</span>
+                      <span className="text-xs sm:text-sm font-black text-slate-900 truncate max-w-[85px] text-center">
+                        {renderAmount(monthlyExpense, userCurrency)}
                       </span>
                     </div>
-                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${percentage}%` }}
-                        transition={{ delay: 0.4 + idx * 0.08, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-                        className="h-full bg-blue-600 rounded-full"
-                      />
-                    </div>
-                  </motion.div>
-                );
-              })}
+                  </div>
+
+                  {/* Category Breakdown List */}
+                  <div className="flex-1 w-full space-y-2">
+                    {categoryBreakdown.map((item, idx) => {
+                      const percentage = Math.round((item.total / totalSpending) * 100);
+                      const color = CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => { if (item.category_id) navigate(`/transactions?category_id=${item.category_id}`); }}
+                          className={`flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-slate-50 transition-colors ${
+                            item.category_id ? "cursor-pointer" : ""
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: color }}
+                            />
+                            <span className="text-xs font-semibold text-slate-700 truncate">
+                              {item.category_name}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[11px] font-bold text-slate-400">
+                              {percentage}%
+                            </span>
+                            <span className="text-xs font-bold text-slate-900">
+                              {renderAmount(item.total, userCurrency)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <Link
                 to="/transactions"
-                className="flex items-center justify-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest pt-4 border-t border-slate-100 hover:text-blue-600 transition-colors"
+                className="flex items-center justify-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest pt-3 border-t border-slate-100 hover:text-blue-600 transition-colors"
               >
                 Full History <ChevronRight size={12} />
               </Link>
