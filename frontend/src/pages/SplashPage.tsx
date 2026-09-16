@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   ArrowRight,
@@ -9,16 +9,52 @@ import {
   Sparkles,
 } from "lucide-react";
 import { GoogleButton } from "@/components/finance/GoogleButton";
+import { hasPreviouslyLoggedIn } from "@/lib/auth/token";
+import { hasBiometricCredentials } from "@/lib/auth/biometric";
 
 export function SplashPage() {
   const navigate = useNavigate();
+  const [checkingAuth, setCheckingAuth] = useState(() => hasPreviouslyLoggedIn());
 
   useEffect(() => {
     document.title = "Pasona — Personal Finance, organised";
-  }, []);
+
+    (async () => {
+      const hasPrevLogin = hasPreviouslyLoggedIn();
+      if (!hasPrevLogin) {
+        setCheckingAuth(false);
+        return;
+      }
+
+      let hasBiometrics = false;
+      try {
+        hasBiometrics = await hasBiometricCredentials();
+      } catch {
+        hasBiometrics = false;
+      }
+
+      if (hasBiometrics) {
+        void navigate("/login?auto_biometric=1", { replace: true });
+      } else {
+        void navigate("/login", { replace: true });
+      }
+    })();
+  }, [navigate]);
 
   const goRegister = () => navigate("/register");
   const goLogin = () => navigate("/login");
+
+  if (checkingAuth) {
+    return (
+      <div className="h-[100dvh] w-full bg-[#030712] flex items-center justify-center p-6">
+        <img
+          src="/img/brand-name-logo-dark.png"
+          alt="Pasona"
+          className="h-7 w-auto object-contain animate-pulse"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="relative h-[100dvh] w-full grid grid-cols-1 md:grid-cols-12 bg-[#030712] font-sans overflow-hidden z-10">

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Fingerprint, Lock, Mail, UserPlus, Eye, EyeOff, Check, Loader2 } from "lucide-react";
 
@@ -17,6 +17,10 @@ import {
 
 export function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const autoBiometric = searchParams.get("auto_biometric") === "1";
+  const autoPromptTriggeredRef = useRef(false);
+
   const [email, setEmail] = useState(() => consumePendingEmail() ?? "");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -42,11 +46,21 @@ export function Login() {
       setBiometricAvailable(avail.available);
       setBiometricType(avail.biometryType);
       if (avail.available) {
-        const has = await getBiometricCredentials().then((c) => c !== null);
+        const creds = await getBiometricCredentials();
+        const has = creds !== null;
         setHasBiometricCreds(has);
+        if (creds?.email) {
+          setEmail((prev) => prev || creds.email);
+        }
+        if (has && autoBiometric && !autoPromptTriggeredRef.current) {
+          autoPromptTriggeredRef.current = true;
+          setTimeout(() => {
+            void handleBiometricSignIn();
+          }, 150);
+        }
       }
     })();
-  }, []);
+  }, [autoBiometric]);
 
   const goToRegister = useCallback(() => {
     handOffEmail(email);
@@ -186,6 +200,15 @@ export function Login() {
 
   return (
     <div className="relative h-[100dvh] w-full grid grid-cols-1 md:grid-cols-12 bg-[#030712] font-sans overflow-hidden z-10">
+      {callback !== "none" && callback.kind === "pending" && (
+        <div className="fixed inset-0 z-[110] bg-[#030712]/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center mb-4 shadow-2xl">
+            <Loader2 size={26} className="text-[#3b82f6] animate-spin" />
+          </div>
+          <h3 className="text-[16px] font-bold text-white tracking-tight">Signing you in…</h3>
+          <p className="text-[12px] text-[#8c93b0] mt-1 font-medium">Authorizing your account</p>
+        </div>
+      )}
       
       {/* Left Column (Promotional) */}
       <div className="hidden md:flex md:col-span-5 lg:col-span-4 bg-gradient-to-b from-[#0a1b39] to-[#040c1b] p-12 lg:p-16 flex-col justify-between relative overflow-hidden border-r border-white/[0.06] h-full">
