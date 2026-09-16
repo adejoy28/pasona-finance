@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import {
   ArrowRight,
   Check,
@@ -29,7 +29,9 @@ export function SplashPage() {
         <div className="absolute top-[-20%] left-[-20%] w-[100%] h-[100%] rounded-full bg-blue-500/10 blur-[100px] pointer-events-none" />
         
         <div className="relative z-10">
-          <img src="/img/brand-name-logo-light.png" alt="Pasona" className="h-7 w-auto object-contain" />
+          <Link to="/" aria-label="Pasona home" className="inline-block transition-opacity hover:opacity-85">
+            <img src="/img/brand-name-logo-dark.png" alt="Pasona" className="h-7 w-auto object-contain" />
+          </Link>
         </div>
 
         <div className="relative z-10 my-auto py-6 space-y-6">
@@ -73,17 +75,19 @@ export function SplashPage() {
       </div>
 
       {/* Right Column (Actions) */}
-      <div className="col-span-1 md:col-span-7 lg:col-span-8 p-8 sm:p-12 lg:p-20 flex flex-col justify-center bg-[#040914] relative h-full overflow-y-auto">
-        <div className="w-full max-w-[360px] mx-auto space-y-6">
+      <div className="col-span-1 md:col-span-7 lg:col-span-8 px-6 py-10 sm:p-12 lg:p-20 flex flex-col justify-start md:justify-center bg-[#040914] relative h-full overflow-y-auto">
+        <div className="w-full max-w-[360px] mx-auto space-y-5">
           
-          {/* Header (visible on mobile only: show small logo) */}
-          <div className="md:hidden flex items-center justify-between mb-2">
-            <img src="/img/brand-name-logo-light.png" alt="Pasona" className="h-6 w-auto object-contain" />
+          {/* Mobile Brand Header */}
+          <div className="md:hidden flex items-center justify-between pb-3.5 mb-5 border-b border-white/[0.06]">
+            <Link to="/" aria-label="Pasona home" className="inline-block transition-opacity hover:opacity-85">
+              <img src="/img/brand-name-logo-dark.png" alt="Pasona" className="h-5.5 w-auto object-contain" />
+            </Link>
           </div>
 
           <div className="space-y-1">
-            <h2 className="text-[26px] font-semibold text-white tracking-tight">Get started</h2>
-            <p className="text-[13px] text-[#8c93b0] font-medium">Create a free account in under a minute.</p>
+            <h1 className="text-[21px] sm:text-[24px] font-semibold text-white tracking-tight">Get started</h1>
+            <p className="text-[12.5px] sm:text-[13px] text-[#8c93b0] font-normal">Create a free account in under a minute.</p>
           </div>
 
           <div className="space-y-5">
@@ -91,7 +95,7 @@ export function SplashPage() {
 
             <div className="flex items-center gap-3 py-1">
               <div className="flex-grow h-px bg-white/[0.06]" />
-              <span className="text-[9px] font-bold uppercase tracking-widest text-[#454c70] whitespace-nowrap">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#8c93b0] whitespace-nowrap">
                 Or
               </span>
               <div className="flex-grow h-px bg-white/[0.06]" />
@@ -101,7 +105,7 @@ export function SplashPage() {
               <button
                 type="button"
                 onClick={goRegister}
-                className="group h-11 inline-flex items-center justify-center gap-2 rounded-xl font-bold text-white text-sm tracking-wide bg-[#3b82f6] hover:bg-[#2563eb] transition-all"
+                className="group h-11 inline-flex items-center justify-center gap-2 rounded-xl font-semibold text-white text-[14px] bg-[#3b82f6] hover:bg-[#2563eb] active:scale-[0.985] transition-all"
               >
                 Create account
                 <ArrowRight
@@ -144,10 +148,10 @@ export function SplashPage() {
 
           {/* Footer Links */}
           <div className="text-center pt-2">
-            <p className="text-[11px] text-[#454c70] leading-normal">
+            <p className="text-[11px] text-[#8c93b0] leading-normal">
               By continuing, you agree to our{" "}
-              <a href="/terms" className="underline hover:text-[#8c93b0]">Terms of Service</a> and{" "}
-              <a href="/privacy" className="underline hover:text-[#8c93b0]">Privacy Policy</a>.
+              <Link to="/terms" className="underline hover:text-white transition-colors">Terms of Service</Link> and{" "}
+              <Link to="/privacy" className="underline hover:text-white transition-colors">Privacy Policy</Link>.
             </p>
           </div>
 

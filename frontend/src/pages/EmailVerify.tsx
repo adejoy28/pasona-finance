@@ -118,7 +118,9 @@ export function EmailVerify() {
         <div className="absolute top-[-20%] left-[-20%] w-[100%] h-[100%] rounded-full bg-blue-500/10 blur-[100px] pointer-events-none" />
         
         <div className="relative z-10">
-          <img src="/img/brand-name-logo-light.png" alt="Pasona" className="h-7 w-auto object-contain" />
+          <Link to="/" aria-label="Pasona home" className="inline-block transition-opacity hover:opacity-85">
+            <img src="/img/brand-name-logo-dark.png" alt="Pasona" className="h-7 w-auto object-contain" />
+          </Link>
         </div>
 
         <div className="relative z-10 my-auto py-8">
@@ -137,17 +139,19 @@ export function EmailVerify() {
       </div>
 
       {/* Right Column (Content) */}
-      <div className="col-span-1 md:col-span-7 lg:col-span-8 p-8 sm:p-12 lg:p-20 flex flex-col justify-center bg-[#040914] relative h-full overflow-y-auto">
-        <div className="w-full max-w-[360px] mx-auto space-y-6">
+      <div className="col-span-1 md:col-span-7 lg:col-span-8 px-6 py-10 sm:p-12 lg:p-20 flex flex-col justify-start md:justify-center bg-[#040914] relative h-full overflow-y-auto">
+        <div className="w-full max-w-[360px] mx-auto space-y-5">
           
-          {/* Header (visible on mobile only: show small logo) */}
-          <div className="md:hidden flex items-center justify-between mb-2">
-            <img src="/img/brand-name-logo-light.png" alt="Pasona" className="h-6 w-auto object-contain" />
+          {/* Mobile Brand Header */}
+          <div className="md:hidden flex items-center justify-between pb-3.5 mb-5 border-b border-white/[0.06]">
+            <Link to="/" aria-label="Pasona home" className="inline-block transition-opacity hover:opacity-85">
+              <img src="/img/brand-name-logo-dark.png" alt="Pasona" className="h-5.5 w-auto object-contain" />
+            </Link>
           </div>
 
           <div className="space-y-1">
-            <h1 className="text-[26px] font-semibold text-white tracking-tight">{title}</h1>
-            <p className="text-[13px] text-[#8c93b0] font-medium">{subtitle}</p>
+            <h1 className="text-[21px] sm:text-[24px] font-semibold text-white tracking-tight">{title}</h1>
+            <p className="text-[12.5px] sm:text-[13px] text-[#8c93b0] font-normal">{subtitle}</p>
           </div>
 
           {content}
