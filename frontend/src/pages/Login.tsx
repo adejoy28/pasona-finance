@@ -1,12 +1,7 @@
 import { Link, useNavigate } from "react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Fingerprint, Lock, Mail, UserPlus, Eye, EyeOff, Check } from "lucide-react";
-import {
-  AuthShell,
-  authButtonClass,
-  authInputClass,
-  authLabelClass,
-} from "@/components/finance/AuthShell";
+import { Fingerprint, Lock, Mail, UserPlus, Eye, EyeOff, Check, Loader2 } from "lucide-react";
+
 import { GoogleButton } from "@/components/finance/GoogleButton";
 import { ApiError, auth as authApi } from "@/lib/api";
 import { completeGoogleCallback } from "@/lib/auth/google";
@@ -197,7 +192,9 @@ export function Login() {
         <div className="absolute top-[-20%] left-[-20%] w-[100%] h-[100%] rounded-full bg-blue-500/10 blur-[100px] pointer-events-none" />
         
         <div className="relative z-10">
-          <img src="/img/brand-name-logo-light.png" alt="Pasona" className="h-7 w-auto object-contain" />
+          <Link to="/" aria-label="Pasona home" className="inline-block transition-opacity hover:opacity-85">
+            <img src="/img/brand-name-logo-dark.png" alt="Pasona" className="h-7 w-auto object-contain" />
+          </Link>
         </div>
 
         <div className="relative z-10 my-auto py-8">
@@ -209,26 +206,28 @@ export function Login() {
           </p>
         </div>
 
-        {/* Carousel indicators */}
+        {/* Carousel indicators: Third dot active for Sign In */}
         <div className="relative z-10 flex items-center gap-1.5">
+          <span className="w-2 h-1 rounded-full bg-white/10" />
+          <span className="w-2 h-1 rounded-full bg-white/10" />
           <span className="w-8 h-1 rounded-full bg-[#3b82f6]" />
-          <span className="w-2 h-1 rounded-full bg-white/10" />
-          <span className="w-2 h-1 rounded-full bg-white/10" />
         </div>
       </div>
 
       {/* Right Column (Form) */}
-      <div className="col-span-1 md:col-span-7 lg:col-span-8 p-8 sm:p-12 lg:p-20 flex flex-col justify-center bg-[#040914] relative h-full overflow-y-auto">
+      <div className="col-span-1 md:col-span-7 lg:col-span-8 px-6 py-10 sm:p-12 lg:p-20 flex flex-col justify-start md:justify-center bg-[#040914] relative h-full overflow-y-auto">
         <div className="w-full max-w-[360px] mx-auto space-y-5">
           
-          {/* Header (visible on mobile only: show small logo) */}
-          <div className="md:hidden flex items-center justify-between mb-2">
-            <img src="/img/brand-name-logo-light.png" alt="Pasona" className="h-6 w-auto object-contain" />
+          {/* Mobile Brand Header */}
+          <div className="md:hidden flex items-center justify-between pb-3.5 mb-5 border-b border-white/[0.06]">
+            <Link to="/" aria-label="Pasona home" className="inline-block transition-opacity hover:opacity-85">
+              <img src="/img/brand-name-logo-dark.png" alt="Pasona" className="h-5.5 w-auto object-contain" />
+            </Link>
           </div>
 
           <div className="space-y-1">
-            <h1 className="text-[26px] font-semibold text-white tracking-tight">Sign In</h1>
-            <p className="text-[13px] text-[#8c93b0] font-medium">Secure access to your Pasona account.</p>
+            <h1 className="text-[21px] sm:text-[24px] font-semibold text-white tracking-tight">Sign In</h1>
+            <p className="text-[12.5px] sm:text-[13px] text-[#8c93b0] font-normal">Secure access to your Pasona account.</p>
           </div>
 
           {error && (
@@ -309,7 +308,7 @@ export function Login() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#5b6389] hover:text-[#8c93b0] z-10"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-[#5b6389] hover:text-[#8c93b0] z-10"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -320,16 +319,36 @@ export function Login() {
             <button
               type="submit"
               disabled={submitting || !emailLooksValid || !password}
-              className="w-full h-11 mt-2 rounded-xl bg-[#3b82f6] hover:bg-[#2563eb] active:scale-[0.985] text-white font-semibold text-[14px] transition-all flex items-center justify-center disabled:opacity-50 disabled:pointer-events-none"
+              className="w-full h-11 mt-2 rounded-xl bg-[#3b82f6] hover:bg-[#2563eb] active:scale-[0.985] text-white font-semibold text-[14px] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
             >
-              {submitting ? "Signing in…" : "Sign In"}
+              {submitting ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Signing in…</span>
+                </>
+              ) : (
+                "Sign In"
+              )}
             </button>
           </form>
+
+          {/* Biometric login (elevated priority when available and credentials exist) */}
+          {biometricAvailable && hasBiometricCreds && (
+            <button
+              type="button"
+              onClick={handleBiometricSignIn}
+              disabled={biometricBusy}
+              className="w-full h-11 rounded-xl border border-[#3b82f6]/30 bg-[#3b82f6]/10 text-[#60a5fa] hover:bg-[#3b82f6]/20 font-semibold text-[14px] flex items-center justify-center gap-2 transition-all"
+            >
+              <Fingerprint size={18} />
+              {biometricBusy ? "Verifying..." : `Sign in with ${labelBiometric}`}
+            </button>
+          )}
 
           {/* Divider */}
           <div className="flex items-center gap-3 py-1">
             <div className="flex-1 h-px bg-white/[0.06]" />
-            <span className="text-[9px] font-bold uppercase tracking-widest text-[#454c70] whitespace-nowrap">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#8c93b0] whitespace-nowrap">
               Or continue with
             </span>
             <div className="flex-1 h-px bg-white/[0.06]" />
@@ -337,19 +356,6 @@ export function Login() {
 
           {/* Google Sign In */}
           <GoogleButton variant="dark" />
-
-          {/* Biometric login */}
-          {biometricAvailable && hasBiometricCreds && (
-            <button
-              type="button"
-              onClick={handleBiometricSignIn}
-              disabled={biometricBusy}
-              className="w-full h-11 rounded-xl border border-dashed border-white/[0.1] bg-transparent text-[#8c93b0] hover:text-white hover:border-white/[0.2] font-semibold text-[13px] flex items-center justify-center gap-2 transition-all"
-            >
-              <Fingerprint size={16} />
-              {biometricBusy ? "Verifying..." : labelBiometric}
-            </button>
-          )}
 
           {/* Footer Links */}
           <div className="text-center space-y-4 pt-1">
@@ -362,10 +368,10 @@ export function Login() {
                 Create an account
               </Link>
             </p>
-            <p className="text-[11px] text-[#454c70] leading-normal">
+            <p className="text-[11px] text-[#8c93b0] leading-normal">
               By continuing, you agree to our{" "}
-              <a href="/terms" className="underline hover:text-[#8c93b0]">Terms of Service</a> and{" "}
-              <a href="/privacy" className="underline hover:text-[#8c93b0]">Privacy Policy</a>.
+              <Link to="/terms" className="underline hover:text-white transition-colors">Terms of Service</Link> and{" "}
+              <Link to="/privacy" className="underline hover:text-white transition-colors">Privacy Policy</Link>.
             </p>
           </div>
 
@@ -375,9 +381,9 @@ export function Login() {
       {/* Biometrics Enable Modal */}
       {showEnableBiometric && (
         <div className="fixed inset-0 z-50 bg-[#030712]/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#070e1e] border border-white/[0.08] rounded-[24px] p-6 max-w-sm w-full space-y-5 text-center">
-            <div className="w-14 h-14 rounded-2xl mx-auto mb-4 bg-gradient-to-br from-amber to-amber-deep flex items-center justify-center shadow-[0_8px_20px_rgba(217,142,42,0.35)]">
-              <Fingerprint size={24} className="text-navy-950" />
+          <div className="bg-[#070e1e] border border-white/[0.08] rounded-[24px] p-6 max-w-sm w-full space-y-5 text-center shadow-2xl">
+            <div className="w-14 h-14 rounded-2xl mx-auto mb-2 bg-[#3b82f6]/10 border border-[#3b82f6]/20 flex items-center justify-center text-[#3b82f6]">
+              <Fingerprint size={28} />
             </div>
             <div className="space-y-2">
               <h3 className="font-display font-medium text-[20px] text-white">
@@ -391,14 +397,14 @@ export function Login() {
               <button
                 type="button"
                 onClick={enableBiometrics}
-                className="w-full h-11 rounded-xl border-none bg-amber text-navy-950 font-bold text-[14.5px]"
+                className="w-full h-11 rounded-xl bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold text-[14.5px] transition-colors"
               >
                 Enable {labelBiometric}
               </button>
               <button
                 type="button"
                 onClick={skipBiometrics}
-                className="bg-none border-none text-[#9099C2] font-semibold text-[13px] p-1.5"
+                className="w-full py-2 text-[#8c93b0] hover:text-white font-semibold text-[13px] transition-colors"
               >
                 Maybe later
               </button>
