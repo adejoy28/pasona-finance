@@ -207,11 +207,11 @@ export function ImportPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28">
-      <header className="bg-white border-b border-slate-100 px-6 pt-10 pb-6 sticky top-0 z-30 card-shadow">
+    <div className="min-h-screen bg-slate-50 pb-32">
+      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3.5 px-6 shadow-sm border-b border-white/5 transition-all text-white">
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">Import Transactions</h1>
-          <p className="text-xs text-slate-400 font-medium">Batch upload bank statements (CSV or PDF)</p>
+          <h1 className="text-base font-bold text-white tracking-tight">Import Transactions</h1>
+          <p className="text-[11px] text-slate-300 font-medium">Batch upload bank statements (CSV or PDF)</p>
         </div>
       </header>
 
