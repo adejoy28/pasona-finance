@@ -102,6 +102,7 @@ export function Login() {
       await authApi.login({ email: loginEmail, password: loginPassword });
       if (!fromBiometric && hasBiometricCreds === false && biometricAvailable) {
         setShowEnableBiometric(true);
+        return;
       }
       await navigate("/dashboard");
     } catch (err) {
