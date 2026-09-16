@@ -5,7 +5,7 @@
 // it falls back to the `Notification` API, which only fires while the app is
 // open.
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 
@@ -77,6 +77,11 @@ export function useLocalNotifications(): UseLocalNotificationsResult {
       display: p === "granted" ? "granted" : p === "denied" ? "denied" : "prompt",
     };
   }, [isNativePlatform]);
+
+  // Read the real permission state on mount so callers never see a stale null.
+  useEffect(() => {
+    resolvePermission().then(setPermission);
+  }, [resolvePermission]);
 
   const requestPermission = useCallback(async (): Promise<PermissionStatus> => {
     setRequesting(true);
