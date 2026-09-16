@@ -2,7 +2,7 @@ import { Link, useNavigate } from "react-router";
 import { useEffect } from "react";
 import { ArrowLeft, Mail, Shield } from "lucide-react";
 
-const LAST_UPDATED = "June 10, 2026";
+const LAST_UPDATED = "September 16, 2026";
 
 export function PrivacyPage() {
   const navigate = useNavigate();
@@ -131,6 +131,23 @@ export function PrivacyPage() {
               <li>
                 <span className="font-bold text-slate-700">Resend:</span> our transactional and
                 reminder email provider, as described in the "Email Communications" section above.
+              </li>
+              <li>
+                <span className="font-bold text-slate-700">Groq:</span> our AI inference provider
+                powering optional AI Chat and Insights. When you use AI features, anonymized summary
+                metrics and categorized transaction amounts are analyzed to provide budgeting observations.
+                Personal identifiers (such as your name) and raw transaction descriptions or references are
+                never transmitted. Groq does not use customer data to train artificial intelligence models.
+                See{" "}
+                <a
+                  href="https://groq.com/privacy-policy/"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="text-blue-600 hover:text-blue-700 underline"
+                >
+                  groq.com/privacy-policy
+                </a>
+                .
               </li>
             </ul>
           </Section>
