@@ -267,61 +267,63 @@ export function AccountDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28">
-      <header className="bg-white border-b border-slate-100 px-6 pt-6 pb-6 sticky top-0 z-30 card-shadow">
-        <div className="flex items-center gap-3 mb-4">
-          <Link
-            to="/accounts"
-            className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors shrink-0"
-            aria-label="Back to accounts"
-          >
-            <ArrowLeft size={18} />
-          </Link>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-black text-slate-900 tracking-tight truncate">
-              {loading && !account ? "Loading..." : account?.name ?? "Account"}
-            </h1>
-            <p className="text-xs text-slate-400 font-medium capitalize">
-              {account?.type ?? "Account Details"}
-            </p>
-          </div>
-          {account && (
-            <>
-              <button
-                type="button"
-                onClick={openAccountEdit}
-                className="w-9 h-9 rounded-xl bg-[var(--navy-900)] text-white flex items-center justify-center hover:bg-[var(--navy-800)] transition-colors shrink-0"
-                aria-label="Edit account"
-              >
-                <Pencil size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setDeletingAccount(true)}
-                className="w-9 h-9 rounded-xl bg-white border border-rose-200 text-rose-600 flex items-center justify-center hover:bg-rose-50 transition-colors shrink-0"
-                aria-label="Delete account"
-              >
-                <Trash2 size={16} />
-              </button>
-            </>
-          )}
-        </div>
-
-        {loading && !account ? (
-          <AccountCardSkeleton />
-        ) : account ? (
-          <div className="bg-slate-900 text-white p-5 rounded-2xl flex justify-between items-center shadow-lg shadow-slate-200">
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                Available Balance
+    <div className="min-h-screen bg-slate-50 pb-32">
+      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-4 px-6 shadow-sm border-b border-white/5 transition-all text-white">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center gap-3 mb-3">
+            <Link
+              to="/accounts"
+              className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors shrink-0"
+              aria-label="Back to accounts"
+            >
+              <ArrowLeft size={18} />
+            </Link>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-base font-bold text-white tracking-tight truncate">
+                {loading && !account ? "Loading..." : account?.name ?? "Account"}
+              </h1>
+              <p className="text-[11px] text-slate-300 font-medium capitalize truncate">
+                {account?.type ?? "Account Details"}
               </p>
-              <p className="text-2xl font-black truncate">{renderAmount(account.balance, userCurrency)}</p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
-              {getTypeIcon(account.type)}
-            </div>
+            {account && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={openAccountEdit}
+                  className="w-9 h-9 rounded-xl bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors shrink-0"
+                  aria-label="Edit account"
+                >
+                  <Pencil size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeletingAccount(true)}
+                  className="w-9 h-9 rounded-xl bg-rose-500/20 border border-rose-400/30 text-rose-300 flex items-center justify-center hover:bg-rose-500/30 transition-colors shrink-0"
+                  aria-label="Delete account"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            )}
           </div>
-        ) : null}
+
+          {loading && !account ? (
+            <AccountCardSkeleton />
+          ) : account ? (
+            <div className="bg-white/10 backdrop-blur-md text-white p-4 rounded-2xl flex justify-between items-center border border-white/15 shadow-inner">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                  Available Balance
+                </p>
+                <p className="text-[22px] sm:text-2xl font-bold truncate mt-0.5">{renderAmount(account.balance, userCurrency)}</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
+                <Building2 size={20} />
+              </div>
+            </div>
+          ) : null}
+        </div>
       </header>
 
       <main className="p-6 space-y-6">

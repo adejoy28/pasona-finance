@@ -316,58 +316,54 @@ export function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28">
-      {/* Top Header & Page Hero Card Section */}
-      <motion.header
+    <div className="min-h-screen bg-slate-50 pb-32">
+      {/* Sticky Fixed Top Header Bar */}
+      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-6 shadow-sm border-b border-white/5 transition-all">
+        <div className="max-w-5xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-2.5">
+            <div
+              className={`w-9 h-9 rounded-full flex items-center justify-center text-white transition-all shadow-sm relative overflow-hidden ring-2 ring-offset-2 ring-offset-[#0b1434] ${
+                isOnline ? "ring-emerald-400 bg-white/10" : "ring-amber-400 bg-white/10"
+              }`}
+              aria-label="User Avatar"
+              title={isOnline ? "Online" : "Offline"}
+            >
+              <User size={18} />
+            </div>
+            <h1 className="text-base font-bold tracking-tight text-white">Settings</h1>
+          </div>
+
+          <NotificationBell />
+        </div>
+      </header>
+
+      {/* Page Hero Card Section */}
+      <motion.section
         variants={fadeSlideDown}
         initial="hidden"
         animate="visible"
-        className="px-6 pt-8 pb-10 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
+        className="px-6 pt-2 pb-6 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
       >
         <div className="max-w-5xl mx-auto">
-          {/* Top Header Bar: Avatar with Online Dot (left), Title (center), Notifications (right) */}
-          <div className="flex justify-between items-center mb-6">
-            <div className="relative">
-              <div
-                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white shadow-sm relative overflow-hidden"
-                aria-label="User Avatar"
-              >
-                <User size={20} />
-              </div>
-              {/* Status Dot overlay on Avatar */}
-              <span
-                className={
-                  "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#101b45] " +
-                  (isOnline ? "bg-green-400" : "bg-amber-400")
-                }
-                title={isOnline ? "Online" : "Offline"}
-              />
-            </div>
-
-            <h1 className="text-lg font-extrabold tracking-tight">Settings</h1>
-
-            <NotificationBell />
-          </div>
-
           {/* Page Hero Card: User Profile Info */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-            className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
+            className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 space-y-2.5 shadow-inner"
           >
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="w-12 h-12 rounded-2xl bg-white/10 text-white flex items-center justify-center font-black text-lg shrink-0">
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-white/15 text-white flex items-center justify-center font-bold text-base shrink-0">
                 {user?.name ? user!.name[0].toUpperCase() : "P"}
               </div>
               <div className="min-w-0">
-                <p className="font-black text-white text-base truncate">{user?.name ?? "User"}</p>
+                <p className="font-bold text-white text-sm sm:text-base truncate">{user?.name ?? "User"}</p>
                 <p className="text-xs text-white/70 truncate">{user?.email ?? ""}</p>
               </div>
             </div>
           </motion.div>
         </div>
-      </motion.header>
+      </motion.section>
 
       <main className="p-6 max-w-5xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">

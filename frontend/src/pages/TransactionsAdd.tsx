@@ -197,20 +197,20 @@ export function TransactionsAdd() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28">
-      <header className="bg-white border-b border-slate-100 px-6 pt-10 pb-6 sticky top-0 z-30 card-shadow">
+    <div className="min-h-screen bg-slate-50 pb-32">
+      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3.5 px-6 shadow-sm border-b border-white/5 transition-all text-white">
         <div className="max-w-lg mx-auto flex items-center gap-3">
           <button
             type="button"
             onClick={handleBack}
-            className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors"
+            className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors shrink-0"
             aria-label="Back"
           >
             <ArrowLeft size={18} />
           </button>
-          <div>
-            <h1 className="text-xl font-black text-slate-900 tracking-tight">New Transaction</h1>
-            <p className="text-xs text-slate-400 font-medium">Record an income, expense, or transfer</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-base font-bold text-white tracking-tight">New Transaction</h1>
+            <p className="text-[11px] text-slate-300 font-medium truncate">Record an income, expense, or transfer</p>
           </div>
         </div>
       </header>
