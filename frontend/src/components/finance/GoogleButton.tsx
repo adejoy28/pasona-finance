@@ -4,7 +4,7 @@ import { Capacitor } from "@capacitor/core";
 import { startGoogleLogin } from "@/lib/auth/google";
 
 export function GoogleButton({
-  label = "Google",
+  label = "Continue with Google",
   variant = "light",
 }: {
   label?: string;
@@ -34,7 +34,7 @@ export function GoogleButton({
 
   const buttonClasses =
     variant === "dark"
-      ? "w-full h-12 flex items-center justify-center gap-2.5 rounded-xl bg-[#0e172e] border border-white/[0.08] text-white font-semibold text-[14.5px] transition-all hover:bg-[#162244] active:scale-[0.985] disabled:opacity-60"
+      ? "w-full h-11 flex items-center justify-center gap-2.5 rounded-xl bg-[#0e172e] border border-white/[0.08] text-white font-semibold text-[14px] transition-all hover:bg-[#162244] active:scale-[0.985] disabled:opacity-60"
       : "w-full h-[52px] flex items-center justify-center gap-2.5 rounded-2xl bg-cream-50 border-[1.5px] border-cream-200 text-navy-700 font-bold text-[15px] transition-colors hover:border-navy-600 hover:shadow-[0_6px_16px_-8px_rgba(24,36,89,0.25)] active:scale-[0.985] disabled:opacity-60 disabled:cursor-not-allowed";
 
   return (
@@ -42,7 +42,11 @@ export function GoogleButton({
       {error && (
         <p
           role="alert"
-          className="flex items-start gap-2 bg-rose-soft border border-[#e8bcb8] text-rose text-[13px] font-semibold px-3 py-2.5 rounded-xl"
+          className={
+            variant === "dark"
+              ? "flex items-start gap-2 bg-rose-950/40 border border-rose-900/50 text-rose-200 text-[13px] font-medium px-3.5 py-2.5 rounded-xl animate-shake"
+              : "flex items-start gap-2 bg-rose-soft border border-[#e8bcb8] text-rose text-[13px] font-semibold px-3 py-2.5 rounded-xl"
+          }
         >
           {error}
         </p>
