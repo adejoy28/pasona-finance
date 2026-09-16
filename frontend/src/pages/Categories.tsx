@@ -118,56 +118,46 @@ export function Categories() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28">
-      {/* Top Header & Page Hero Card Section */}
-      <motion.header
+    <div className="min-h-screen bg-slate-50 pb-32">
+      {/* Sticky Fixed Top Header Bar */}
+      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-6 shadow-sm border-b border-white/5 transition-all">
+        <div className="max-w-5xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-2.5">
+            <Link
+              to="/settings"
+              className={`w-9 h-9 rounded-full flex items-center justify-center text-white transition-all shadow-sm relative overflow-hidden ring-2 ring-offset-2 ring-offset-[#0b1434] ${
+                isOnline ? "ring-emerald-400 bg-white/10" : "ring-amber-400 bg-white/10"
+              }`}
+              aria-label="Profile settings"
+              title={isOnline ? "Online" : "Offline"}
+            >
+              <User size={18} />
+            </Link>
+            <h1 className="text-base font-bold tracking-tight text-white">Categories</h1>
+          </div>
+
+          <NotificationBell />
+        </div>
+      </header>
+
+      {/* Page Hero Card Section */}
+      <motion.section
         variants={fadeSlideDown}
         initial="hidden"
         animate="visible"
-        className="px-6 pt-8 pb-10 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
+        className="px-6 pt-2 pb-6 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
       >
         <div className="max-w-5xl mx-auto">
-          {/* Top Header Bar: Back/Avatar with Online Dot (left), Title (center), Notifications (right) */}
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-2">
-              <Link
-                to="/settings"
-                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors shadow-sm block relative overflow-hidden"
-                aria-label="Profile settings"
-              >
-                <User size={20} />
-              </Link>
-            </div>
-
-            <h1 className="text-lg font-extrabold tracking-tight">Categories</h1>
-
-            <NotificationBell />
-          </div>
-
-          {/* Page Hero Card: Category Stats + Add Button */}
+          {/* Page Hero Card: Category Stats + Add Button on same row */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-            className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
+            className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 space-y-2.5 shadow-inner"
           >
             <div className="flex justify-between items-center gap-2">
-              <p className="text-xs font-semibold text-white/80 uppercase tracking-wider shrink-0">Labels</p>
-              <button
-                type="button"
-                onClick={openCreate}
-                className="px-3 py-1.5 bg-white text-[#101b45] hover:bg-slate-100 rounded-full text-[11px] sm:text-xs font-bold flex items-center gap-1 shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 whitespace-nowrap"
-              >
-                <Plus size={14} strokeWidth={2.5} className="shrink-0" />
-                <span>New Category</span>
-              </button>
-            </div>
-
-            <div className="space-y-1">
-              <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-white truncate">
-                {categories.length} Total
-              </h2>
-              <div className="flex items-center gap-2 text-xs font-bold text-white/70 pt-1">
+              <p className="text-[10px] font-semibold text-white/80 uppercase tracking-wider shrink-0">Labels</p>
+              <div className="flex items-center gap-1.5 text-[10.5px] font-medium text-white/70">
                 <span className="bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full">
                   {expenseCategories.length} Expenses
                 </span>
@@ -176,9 +166,23 @@ export function Categories() {
                 </span>
               </div>
             </div>
+
+            <div className="flex justify-between items-center gap-3">
+              <h2 className="text-[22px] sm:text-2xl font-bold tracking-tight leading-none text-white truncate min-w-0">
+                {categories.length} Total
+              </h2>
+              <button
+                type="button"
+                onClick={openCreate}
+                className="px-3 py-1.5 bg-white text-[#101b45] hover:bg-slate-100 rounded-full text-xs font-bold flex items-center gap-1 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 whitespace-nowrap"
+              >
+                <Plus size={13} strokeWidth={2.5} className="shrink-0" />
+                <span>New Category</span>
+              </button>
+            </div>
           </motion.div>
         </div>
-      </motion.header>
+      </motion.section>
 
       <main className="p-6 max-w-5xl mx-auto w-full space-y-6">
         {error && (

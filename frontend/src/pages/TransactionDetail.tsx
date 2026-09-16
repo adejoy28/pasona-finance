@@ -195,17 +195,17 @@ export function TransactionDetail() {
   return (
     <div className="min-h-screen bg-slate-50/60 pb-36">
       {/* Header Bar */}
-      <header className="bg-white/95 border-b border-slate-200/60 px-4 sm:px-6 py-4 sticky top-0 z-30 shadow-xs backdrop-blur-md">
+      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3.5 px-4 sm:px-6 border-b border-white/5 shadow-sm text-white transition-all">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="w-9 h-9 rounded-xl bg-slate-100/80 flex items-center justify-center text-slate-600 hover:bg-slate-200/80 transition-colors"
+            className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
             aria-label="Back"
           >
             <ArrowLeft size={18} />
           </button>
-          <span className="text-sm font-black text-slate-900 tracking-tight">Transaction Details</span>
+          <span className="text-base font-bold text-white tracking-tight">Transaction Details</span>
           <div className="w-9" />
         </div>
       </header>
@@ -233,13 +233,13 @@ export function TransactionDetail() {
               </span>
             </div>
 
-            <div className="relative mt-6">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-white/70">Amount</p>
-              <h1 className="text-4xl font-black tracking-tight tabular-nums mt-1">
+            <div className="relative mt-5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">Amount</p>
+              <h1 className="text-[26px] sm:text-3xl font-bold tracking-tight tabular-nums mt-1">
                 {isIncome ? "+" : isExpense ? "-" : ""}
                 {renderAmount(numericAmount, userCurrency)}
               </h1>
-              <p className="text-sm font-semibold text-white/90 mt-2">
+              <p className="text-sm font-semibold text-white/90 mt-1.5">
                 {dto.description || (isTransfer ? "Transfer Record" : "Untitled Entry")}
               </p>
               {!isTransfer && (
