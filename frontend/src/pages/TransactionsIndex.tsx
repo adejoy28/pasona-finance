@@ -247,70 +247,66 @@ export function TransactionsIndex() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-32">
-      {/* Top Header & Page Hero Card Section */}
-      <motion.header
+      {/* Sticky Fixed Top Header Bar */}
+      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-6 shadow-sm border-b border-white/5 transition-all">
+        <div className="max-w-5xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-2.5">
+            <Link
+              to="/settings"
+              className={`w-9 h-9 rounded-full flex items-center justify-center text-white transition-all shadow-sm relative overflow-hidden ring-2 ring-offset-2 ring-offset-[#0b1434] ${
+                isOnline ? "ring-emerald-400 bg-white/10" : "ring-amber-400 bg-white/10"
+              }`}
+              aria-label="Profile settings"
+              title={isOnline ? "Online" : "Offline"}
+            >
+              <User size={18} />
+            </Link>
+            <h1 className="text-base font-bold tracking-tight text-white">History</h1>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setShowSearchInput((prev) => !prev);
+                if (showSearchInput) setSearch("");
+              }}
+              className={cn(
+                "w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all",
+                (showSearchInput || search) && "bg-white text-indigo-950 font-bold",
+              )}
+              aria-label="Toggle Search"
+            >
+              <Search size={16} />
+            </button>
+            <Link
+              to="/transactions/add"
+              className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all"
+              aria-label="Add Transaction"
+            >
+              <Plus size={18} />
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Page Hero Card Section */}
+      <motion.section
         variants={fadeSlideDown}
         initial="hidden"
         animate="visible"
-        className="px-6 pt-8 pb-10 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
+        className="px-6 pt-2 pb-6 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
       >
         <div className="max-w-5xl mx-auto">
-          {/* Top Header Bar: Avatar with Online Dot (left), Title (center), Notifications & Search (right) */}
-          <div className="flex justify-between items-center mb-6">
-            <div className="relative">
-              <Link
-                to="/settings"
-                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors shadow-sm block relative overflow-hidden"
-                aria-label="Profile settings"
-              >
-                <User size={20} />
-              </Link>
-              {/* Status Dot overlay on Avatar */}
-              <span
-                className={
-                  "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#101b45] " +
-                  (isOnline ? "bg-green-400" : "bg-amber-400")
-                }
-                title={isOnline ? "Online" : "Offline"}
-              />
-            </div>
-
-            <h1 className="text-lg font-extrabold tracking-tight">History</h1>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowSearchInput((prev) => !prev);
-                  if (showSearchInput) setSearch("");
-                }}
-                className={cn(
-                  "w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors",
-                  (showSearchInput || search) && "bg-white text-indigo-950 font-bold",
-                )}
-                aria-label="Toggle Search"
-              >
-                <Search size={18} />
-              </button>
-              <Link
-                to="/transactions/add"
-                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-                aria-label="Add Transaction"
-              >
-                <Plus size={20} />
-              </Link>
-            </div>
-          </div>
-
           {/* Page Hero Card: Spendings / Summary for Selected Filter */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-            className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3 shadow-inner"
+            className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 space-y-2.5 shadow-inner"
           >
             <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-              <p className="text-xs font-semibold text-white/80 uppercase tracking-wider min-w-0 truncate">{heroTitle}</p>
+              <p className="text-[10px] font-semibold text-white/80 uppercase tracking-wider min-w-0 truncate">{heroTitle}</p>
               <div className="flex items-center gap-1.5 flex-wrap justify-end shrink-0 max-w-full">
                 {totals.income > 0 && (
                   <span className="inline-flex items-center text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full whitespace-nowrap tabular-nums leading-tight">
@@ -325,17 +321,17 @@ export function TransactionsIndex() {
               </div>
             </div>
 
-            <div className="space-y-1">
-              <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-white truncate">
+            <div className="flex justify-between items-baseline gap-2">
+              <h2 className="text-[22px] sm:text-2xl font-bold tracking-tight leading-none text-white truncate">
                 {renderAmount(heroAmount, userCurrency)}
               </h2>
-              <div className="flex items-center gap-1.5 text-xs font-bold text-white/70 pt-1">
-                <span>{filtered.length} transactions in this view</span>
-              </div>
+              <span className="text-[11px] font-medium text-white/70 shrink-0">
+                {filtered.length} transactions
+              </span>
             </div>
           </motion.div>
         </div>
-      </motion.header>
+      </motion.section>
 
       {/* Main Content Area */}
       <main className="max-w-5xl mx-auto px-6 space-y-6 pt-4 w-full">
