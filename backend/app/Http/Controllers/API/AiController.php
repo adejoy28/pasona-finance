@@ -79,7 +79,8 @@ class AiController extends Controller
     }
 
     /**
-     * Resolve financial context, supplementing from DB if client provided none.
+     * Resolve financial context, querying database records for the authenticated user
+     * to guarantee data isolation and privacy.
      *
      * @param \App\Models\User $user
      * @param array<string, mixed> $validated
@@ -87,15 +88,21 @@ class AiController extends Controller
      */
     private function resolveContext($user, array $validated): array
     {
-        $accounts = $validated['accounts'] ?? null;
-        if (empty($accounts)) {
-            $accounts = $user->accounts()->select(['id', 'name', 'type', 'currency'])->get()->toArray();
-        }
+        // Authoritative accounts from DB
+        $accounts = $user->accounts()->select(['id', 'name', 'type', 'currency'])->get()->toArray();
+
+        // Authoritative recent transactions (sanitized: no descriptions or references)
+        $transactions = $user->transactions()
+            ->with('category:id,name')
+            ->latest('transaction_date')
+            ->limit(30)
+            ->get(['id', 'category_id', 'type', 'amount', 'transaction_date'])
+            ->toArray();
 
         return [
             'summary'      => $validated['summary'] ?? null,
             'accounts'     => $accounts,
-            'transactions' => $validated['transactions'] ?? null,
+            'transactions' => $transactions,
             'currency'     => $validated['currency'] ?? $user->currency ?? 'NGN',
         ];
     }
