@@ -1,12 +1,7 @@
 import { Link, useNavigate } from "react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Check, Lock, LogIn, Mail, User, Eye, EyeOff } from "lucide-react";
-import {
-  AuthShell,
-  authButtonClass,
-  authInputClass,
-  authLabelClass,
-} from "@/components/finance/AuthShell";
+import { Check, Lock, LogIn, Mail, User, Eye, EyeOff, Loader2 } from "lucide-react";
+
 import { GoogleButton } from "@/components/finance/GoogleButton";
 import { ApiError, auth as authApi } from "@/lib/api";
 import { handOffEmail } from "@/lib/auth/email-handoff";
@@ -56,6 +51,7 @@ export function Register() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { exists: emailExists } = useEmailCheck(email);
@@ -117,7 +113,9 @@ export function Register() {
         <div className="absolute top-[-20%] left-[-20%] w-[100%] h-[100%] rounded-full bg-blue-500/10 blur-[100px] pointer-events-none" />
         
         <div className="relative z-10">
-          <img src="/img/brand-name-logo-light.png" alt="Pasona" className="h-7 w-auto object-contain" />
+          <Link to="/" aria-label="Pasona home" className="inline-block transition-opacity hover:opacity-85">
+            <img src="/img/brand-name-logo-dark.png" alt="Pasona" className="h-7 w-auto object-contain" />
+          </Link>
         </div>
 
         <div className="relative z-10 my-auto py-8">
@@ -138,17 +136,19 @@ export function Register() {
       </div>
 
       {/* Right Column (Form) */}
-      <div className="col-span-1 md:col-span-7 lg:col-span-8 p-8 sm:p-12 lg:p-20 flex flex-col justify-center bg-[#040914] relative h-full overflow-y-auto">
+      <div className="col-span-1 md:col-span-7 lg:col-span-8 px-6 py-10 sm:p-12 lg:p-20 flex flex-col justify-start md:justify-center bg-[#040914] relative h-full overflow-y-auto">
         <div className="w-full max-w-[360px] mx-auto space-y-5">
           
-          {/* Header (visible on mobile only: show small logo) */}
-          <div className="md:hidden flex items-center justify-between mb-2">
-            <img src="/img/brand-name-logo-light.png" alt="Pasona" className="h-6 w-auto object-contain" />
+          {/* Mobile Brand Header */}
+          <div className="md:hidden flex items-center justify-between pb-3.5 mb-5 border-b border-white/[0.06]">
+            <Link to="/" aria-label="Pasona home" className="inline-block transition-opacity hover:opacity-85">
+              <img src="/img/brand-name-logo-dark.png" alt="Pasona" className="h-5.5 w-auto object-contain" />
+            </Link>
           </div>
 
           <div className="space-y-1">
-            <h1 className="text-[26px] font-semibold text-white tracking-tight">Create Account</h1>
-            <p className="text-[13px] text-[#8c93b0] font-medium">It only takes a minute to get started.</p>
+            <h1 className="text-[21px] sm:text-[24px] font-semibold text-white tracking-tight">Create Account</h1>
+            <p className="text-[12.5px] sm:text-[13px] text-[#8c93b0] font-normal">It only takes a minute to get started.</p>
           </div>
 
           {error && (
@@ -214,7 +214,8 @@ export function Register() {
             </div>
 
             {/* Password and Confirm Side-by-Side */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Password and Confirm: Stack on mobile, side-by-side on tablet/desktop */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Password */}
               <div className="space-y-1.25">
                 <label htmlFor="reg-password" className="text-[10px] font-bold uppercase tracking-wider text-[#8c93b0]">
@@ -230,14 +231,14 @@ export function Register() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="8+ characters"
-                    className="w-full h-11 rounded-xl border border-white/[0.08] bg-[#0b1329]/50 pl-11 pr-10 text-[14px] text-white placeholder-[#454c70] outline-none transition-all focus:border-[#3b82f6] focus:bg-[#0b1329]/80 focus:ring-2 focus:ring-[#3b82f6]/20"
+                    className="w-full h-11 rounded-xl border border-white/[0.08] bg-[#0b1329]/50 pl-11 pr-11 text-[14px] text-white placeholder-[#454c70] outline-none transition-all focus:border-[#3b82f6] focus:bg-[#0b1329]/80 focus:ring-2 focus:ring-[#3b82f6]/20"
                     autoComplete="new-password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5b6389] hover:text-[#8c93b0] z-10"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-[#5b6389] hover:text-[#8c93b0] z-10"
                   >
                     {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
@@ -252,30 +253,52 @@ export function Register() {
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5b6389] z-10" />
                   <input
-                    type="password"
+                    type={showConfirmPassword ? "text" : "password"}
                     id="reg-confirm"
                     required
                     minLength={8}
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
                     placeholder="Repeat"
-                    className="w-full h-11 rounded-xl border border-white/[0.08] bg-[#0b1329]/50 pl-11 pr-10 text-[14px] text-white placeholder-[#454c70] outline-none transition-all focus:border-[#3b82f6] focus:bg-[#0b1329]/80 focus:ring-2 focus:ring-[#3b82f6]/20"
+                    className={`w-full h-11 rounded-xl border ${
+                      confirm.length > 0 && !passwordMatches
+                        ? "border-rose-500/50"
+                        : "border-white/[0.08]"
+                    } bg-[#0b1329]/50 pl-11 pr-16 text-[14px] text-white placeholder-[#454c70] outline-none transition-all focus:border-[#3b82f6] focus:bg-[#0b1329]/80 focus:ring-2 focus:ring-[#3b82f6]/20`}
                     autoComplete="new-password"
                   />
-                  {passwordMatches && (
-                    <Check
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald"
-                      aria-hidden
-                    />
-                  )}
+                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center z-10">
+                    {passwordMatches && (
+                      <Check
+                        className="w-4 h-4 text-emerald mr-0.5"
+                        aria-hidden
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                      className="w-10 h-10 flex items-center justify-center text-[#5b6389] hover:text-[#8c93b0]"
+                    >
+                      {showConfirmPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Password strength & match indicators below the inputs */}
             {showMeter && (
-              <div className="mt-2 space-y-1.5">
-                <div className="flex gap-1">
+              <div
+                className="mt-2 space-y-1.5"
+                role="meter"
+                aria-label="Password strength"
+                aria-valuenow={score}
+                aria-valuemin={0}
+                aria-valuemax={4}
+                aria-valuetext={STRENGTH_LABEL[score]}
+              >
+                <div className="flex gap-1" aria-hidden="true">
                   {[0, 1, 2, 3].map((i) => (
                     <div
                       key={i}
@@ -307,15 +330,22 @@ export function Register() {
             <button
               type="submit"
               disabled={!canSubmit}
-              className="w-full h-11 mt-2 rounded-xl bg-[#3b82f6] hover:bg-[#2563eb] active:scale-[0.985] text-white font-semibold text-[14px] transition-all flex items-center justify-center disabled:opacity-50 disabled:pointer-events-none"
+              className="w-full h-11 mt-2 rounded-xl bg-[#3b82f6] hover:bg-[#2563eb] active:scale-[0.985] text-white font-semibold text-[14px] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
             >
-              {submitting ? "Creating account…" : "Create Account"}
+              {submitting ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Creating account…</span>
+                </>
+              ) : (
+                "Create Account"
+              )}
             </button>
           </form>
 
           <div className="flex items-center gap-3 py-1">
             <div className="flex-1 h-px bg-white/[0.06]" />
-            <span className="text-[9px] font-bold uppercase tracking-widest text-[#454c70] whitespace-nowrap">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#8c93b0] whitespace-nowrap">
               Or continue with
             </span>
             <div className="flex-1 h-px bg-white/[0.06]" />
@@ -325,7 +355,7 @@ export function Register() {
           <GoogleButton variant="dark" />
 
           {/* Footer Links */}
-          <div className="text-center pt-1">
+          <div className="text-center pt-1 space-y-3">
             <p className="text-[13px] text-[#8c93b0]">
               Already with us?{" "}
               <Link
@@ -334,6 +364,11 @@ export function Register() {
               >
                 Sign in
               </Link>
+            </p>
+            <p className="text-[11px] text-[#8c93b0] leading-normal">
+              By continuing, you agree to our{" "}
+              <Link to="/terms" className="underline hover:text-white transition-colors">Terms of Service</Link> and{" "}
+              <Link to="/privacy" className="underline hover:text-white transition-colors">Privacy Policy</Link>.
             </p>
           </div>
 

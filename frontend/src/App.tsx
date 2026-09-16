@@ -22,6 +22,7 @@ import { Categories } from "@/pages/Categories";
 import { Settings } from "@/pages/Settings";
 import { ImportPage } from "@/pages/ImportPage";
 import { PrivacyPage } from "@/pages/PrivacyPage";
+import { TermsPage } from "@/pages/TermsPage";
 import { TestInputPage } from "@/pages/TestInputPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { DownloadPage } from "@/pages/DownloadPage";
@@ -68,6 +69,7 @@ export function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/email/verify" element={<EmailVerify />} />
           <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
           <Route path="/download" element={<DownloadPage />} />
           <Route path="/test-input" element={<TestInputPage />} />
 
