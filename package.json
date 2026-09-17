@@ -27,5 +27,8 @@
     "@google/gemini-cli": "^0.44.1",
     "next.js": "^1.0.3",
     "opencode-ai": "^1.15.13"
+  },
+  "devDependencies": {
+    "hyperframes": "^0.8.46"
   }
 }

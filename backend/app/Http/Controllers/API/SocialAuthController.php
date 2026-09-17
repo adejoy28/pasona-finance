@@ -35,6 +35,17 @@ class SocialAuthController extends Controller
      */
     public function handleGoogleCallback(Request $request)
     {
+        $frontendUrl = config('app.frontend_url');
+
+        // If user cancelled or denied consent on Google's screen
+        if ($request->has('error')) {
+            $error = $request->get('error');
+            if ($error === 'access_denied' || str_contains(strtolower($error), 'cancel') || str_contains(strtolower($error), 'denied')) {
+                return redirect("{$frontendUrl}/login?cancelled=1");
+            }
+            return redirect("{$frontendUrl}/login?error=" . urlencode($error));
+        }
+
         try {
             $googleUser = Socialite::driver('google')->stateless()->user();
 
