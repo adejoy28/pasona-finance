@@ -14,17 +14,13 @@ import { hasBiometricCredentials } from "@/lib/auth/biometric";
 
 export function SplashPage() {
   const navigate = useNavigate();
-  const [checkingAuth, setCheckingAuth] = useState(() => hasPreviouslyLoggedIn());
 
   useEffect(() => {
     document.title = "Pasona — Personal Finance, organised";
 
     (async () => {
       const hasPrevLogin = hasPreviouslyLoggedIn();
-      if (!hasPrevLogin) {
-        setCheckingAuth(false);
-        return;
-      }
+      if (!hasPrevLogin) return;
 
       let hasBiometrics = false;
       try {
@@ -43,18 +39,6 @@ export function SplashPage() {
 
   const goRegister = () => navigate("/register");
   const goLogin = () => navigate("/login");
-
-  if (checkingAuth) {
-    return (
-      <div className="h-[100dvh] w-full bg-[#030712] flex items-center justify-center p-6">
-        <img
-          src="/img/brand-name-logo-dark.png"
-          alt="Pasona"
-          className="h-7 w-auto object-contain animate-pulse"
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="relative h-[100dvh] w-full grid grid-cols-1 md:grid-cols-12 bg-[#030712] font-sans overflow-hidden z-10">
@@ -216,5 +200,38 @@ function MarketingPoint({
         <p className="text-[11px] text-[#8c93b0] leading-relaxed">{copy}</p>
       </div>
     </li>
+  );
+}
+
+function TaperingDotSpinner({ className }: { className?: string }) {
+  const dots = [
+    { cx: 20, cy: 7, r: 3.5, opacity: 1 },
+    { cx: 29.2, cy: 10.8, r: 3.1, opacity: 0.85 },
+    { cx: 33, cy: 20, r: 2.7, opacity: 0.7 },
+    { cx: 29.2, cy: 29.2, r: 2.3, opacity: 0.55 },
+    { cx: 20, cy: 33, r: 2.0, opacity: 0.4 },
+    { cx: 10.8, cy: 29.2, r: 1.7, opacity: 0.28 },
+    { cx: 7, cy: 20, r: 1.4, opacity: 0.18 },
+    { cx: 10.8, cy: 10.8, r: 1.2, opacity: 0.1 },
+  ];
+
+  return (
+    <svg
+      className={`h-9 w-9 animate-spin ${className ?? ""}`}
+      viewBox="0 0 40 40"
+      fill="currentColor"
+      role="status"
+      aria-label="Loading"
+    >
+      {dots.map((dot, idx) => (
+        <circle
+          key={idx}
+          cx={dot.cx}
+          cy={dot.cy}
+          r={dot.r}
+          opacity={dot.opacity}
+        />
+      ))}
+    </svg>
   );
 }

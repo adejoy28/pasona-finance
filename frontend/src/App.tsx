@@ -30,6 +30,7 @@ import { DownloadPage } from "@/pages/DownloadPage";
 import { initCapacitor } from "@/lib/capacitor";
 import { AppInstallBanner } from "@/components/finance/AppInstallBanner";
 import { SyncIndicator } from "@/components/finance/SyncIndicator";
+import { SplashScreen } from "@/components/finance/SplashScreen";
 
 function UnauthorizedHandler() {
   const navigate = useNavigate();
@@ -56,6 +57,7 @@ export function App() {
 
   return (
     <BrowserRouter>
+      <SplashScreen duration={1500} />
       <AppInstallBanner />
       <SyncIndicator />
       <UnauthorizedHandler />
