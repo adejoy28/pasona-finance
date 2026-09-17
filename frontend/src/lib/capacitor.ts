@@ -10,7 +10,7 @@ export function initCapacitor() {
 
   // Configure Status Bar styling for Android
   StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
-  StatusBar.setBackgroundColor({ color: '#1B2D6B' }).catch(() => {});
+  StatusBar.setBackgroundColor({ color: '#0B1434' }).catch(() => {});
 
   // Initialize Google Sign-In
   GoogleSignIn.initialize({

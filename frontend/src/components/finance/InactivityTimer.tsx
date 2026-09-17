@@ -48,6 +48,7 @@ export function InactivityTimer() {
     setShowWarning(false);
     setIsLocked(true);
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
   }, []);
 
   const handleInactivityTimeout = useCallback(() => {
@@ -58,11 +59,13 @@ export function InactivityTimer() {
     }
   }, [hasBiometrics, lockApp, performLogout]);
 
-  const resetTimer = useCallback(() => {
-    if (showWarning || isLocked) return;
-
+  const armTimer = useCallback(() => {
     lastActivityRef.current = Date.now();
-    localStorage.setItem("last_activity", lastActivityRef.current.toString());
+    try {
+      localStorage.setItem("last_activity", lastActivityRef.current.toString());
+    } catch {
+      // ignore
+    }
 
     if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
 
@@ -74,7 +77,12 @@ export function InactivityTimer() {
         setCountdown(COUNTDOWN_SECONDS);
       }
     }, INACTIVITY_LIMIT_MS);
-  }, [showWarning, isLocked, hasBiometrics, lockApp]);
+  }, [hasBiometrics, lockApp]);
+
+  const resetTimer = useCallback(() => {
+    if (showWarning || isLocked) return;
+    armTimer();
+  }, [showWarning, isLocked, armTimer]);
 
   useEffect(() => {
     if (isCheckingBiometrics) return; // Wait until biometrics check is complete
@@ -129,14 +137,15 @@ export function InactivityTimer() {
 
   const handleStaySignedIn = () => {
     setShowWarning(false);
-    resetTimer();
+    armTimer();
   };
 
   const unlockApp = async () => {
     const success = await verifyBiometricIdentity();
     if (success) {
       setIsLocked(false);
-      resetTimer();
+      setShowWarning(false);
+      armTimer();
     }
   };
 
