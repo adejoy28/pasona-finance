@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Capacitor } from "@capacitor/core";
+import { Loader2 } from "lucide-react";
 import { startGoogleLogin } from "@/lib/auth/google";
 
 export function GoogleButton({
@@ -38,7 +39,18 @@ export function GoogleButton({
       : "w-full h-[52px] flex items-center justify-center gap-2.5 rounded-2xl bg-cream-50 border-[1.5px] border-cream-200 text-navy-700 font-bold text-[15px] transition-colors hover:border-navy-600 hover:shadow-[0_6px_16px_-8px_rgba(24,36,89,0.25)] active:scale-[0.985] disabled:opacity-60 disabled:cursor-not-allowed";
 
   return (
-    <div className="space-y-2">
+    <>
+      {redirecting && (
+        <div className="fixed inset-0 z-[110] bg-[#030712]/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-200">
+          <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center mb-4 shadow-2xl">
+            <Loader2 size={26} className="text-[#3b82f6] animate-spin" />
+          </div>
+          <h3 className="text-[16px] font-bold text-white tracking-tight">Signing you in…</h3>
+          <p className="text-[12px] text-[#8c93b0] mt-1 font-medium">Connecting with Google</p>
+        </div>
+      )}
+
+      <div className="space-y-2">
       {error && (
         <p
           role="alert"
@@ -60,7 +72,8 @@ export function GoogleButton({
         <GoogleLogo />
         {redirecting ? "Redirecting…" : label}
       </button>
-    </div>
+      </div>
+    </>
   );
 }
 
