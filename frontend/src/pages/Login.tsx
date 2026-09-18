@@ -4,7 +4,7 @@ import { Fingerprint, Lock, Mail, UserPlus, Eye, EyeOff, Check, Loader2 } from "
 
 import { GoogleButton } from "@/components/finance/GoogleButton";
 import { ApiError, auth as authApi } from "@/lib/api";
-import { completeGoogleCallback } from "@/lib/auth/google";
+import { completeGoogleCallback, humanizeError } from "@/lib/auth/google";
 import { consumePendingEmail, handOffEmail } from "@/lib/auth/email-handoff";
 import { useEmailCheck } from "@/hooks/use-email-check";
 import {
@@ -75,8 +75,18 @@ export function Login() {
     const params = new URLSearchParams(normalizedSearch);
     const token = params.get("token") ?? params.get("access_token");
     const callbackError = params.get("error");
+    const cancelled = params.get("cancelled") === "1";
+
+    if (cancelled || callbackError === "access_denied" || callbackError?.toLowerCase().includes("cancel")) {
+      window.history.replaceState(null, "", window.location.pathname);
+      return "none";
+    }
+
     if (token) return { kind: "pending", search: normalizedSearch };
-    if (callbackError) return { kind: "error", message: callbackError };
+    if (callbackError) {
+      window.history.replaceState(null, "", window.location.pathname);
+      return { kind: "error", message: humanizeError(callbackError) };
+    }
     return "none";
   });
   const isCallback = callback !== "none";
