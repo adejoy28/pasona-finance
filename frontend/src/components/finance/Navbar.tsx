@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   LayoutDashboard,
@@ -11,6 +11,7 @@ import {
   LogOut,
   Settings as SettingsIcon,
   ChevronsUpDown,
+  MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -151,6 +152,7 @@ export function FinanceNavbar() {
       >
         <div className="mx-auto max-w-md px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
           <div className="relative flex items-center justify-between gap-0.5 rounded-2xl border border-border/60 bg-card/85 px-2 py-1.5 backdrop-blur-xl card-shadow">
+            {/* 1. Home & 2. History */}
             {navItems.slice(0, 2).map((item) => (
               <NavPill key={item.href} item={item} active={isActive(item.href)} />
             ))}
@@ -164,13 +166,112 @@ export function FinanceNavbar() {
               <Plus size={24} strokeWidth={2.4} />
             </Link>
 
-            {navItems.slice(2).map((item) => (
-              <NavPill key={item.href} item={item} active={isActive(item.href)} />
-            ))}
+            {/* 3. Accounts */}
+            <NavPill item={navItems[2]} active={isActive(navItems[2].href)} />
+
+            {/* 4. More (Pops up Settings & Categories) */}
+            <MoreNavPill navigate={navigate} />
           </div>
         </div>
       </nav>
     </>
+  );
+}
+
+function MoreNavPill({ navigate }: { navigate: (path: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const pathname = useLocation().pathname;
+
+  const isCategories = pathname === "/categories" || pathname.startsWith("/categories/");
+  const isSettings = pathname === "/settings" || pathname.startsWith("/settings/");
+  const isMoreActive = isCategories || isSettings;
+
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="More options"
+          className={cn(
+            "relative flex flex-1 min-w-0 h-12 flex-col items-center justify-center rounded-xl transition-colors duration-200 px-1 cursor-pointer outline-none",
+            isMoreActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <MoreHorizontal size={19} strokeWidth={isMoreActive ? 2.3 : 1.8} className="shrink-0" />
+          <span
+            className={cn(
+              "mt-0.5 text-[9px] font-medium uppercase tracking-normal truncate max-w-full text-center leading-none",
+              isMoreActive ? "text-foreground" : "text-muted-foreground/70",
+            )}
+          >
+            More
+          </span>
+          {isMoreActive && (
+            <motion.div
+              layoutId="active-nav-pill"
+              className="absolute -bottom-0.5 left-1/2 h-1 w-1 rounded-full bg-foreground"
+              style={{ x: "-50%" }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            />
+          )}
+        </button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent
+        side="top"
+        align="end"
+        sideOffset={14}
+        className="w-56 p-2 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-2xl space-y-1 z-50 animate-in fade-in-0 zoom-in-95"
+      >
+        <DropdownMenuItem
+          onClick={() => {
+            setOpen(false);
+            navigate("/categories");
+          }}
+          className={cn(
+            "flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-colors outline-none",
+            isCategories ? "bg-blue-50 text-blue-900 font-semibold" : "hover:bg-slate-100/80 text-slate-800",
+          )}
+        >
+          <div
+            className={cn(
+              "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-xs",
+              isCategories ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600",
+            )}
+          >
+            <Tag size={16} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold leading-none">Categories</p>
+            <p className="text-[10px] text-slate-400 mt-1">Tags & classification</p>
+          </div>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          onClick={() => {
+            setOpen(false);
+            navigate("/settings");
+          }}
+          className={cn(
+            "flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-colors outline-none",
+            isSettings ? "bg-blue-50 text-blue-900 font-semibold" : "hover:bg-slate-100/80 text-slate-800",
+          )}
+        >
+          <div
+            className={cn(
+              "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-xs",
+              isSettings ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600",
+            )}
+          >
+            <SettingsIcon size={16} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold leading-none">Settings</p>
+            <p className="text-[10px] text-slate-400 mt-1">Preferences & account</p>
+          </div>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

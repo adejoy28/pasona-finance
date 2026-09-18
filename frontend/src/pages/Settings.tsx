@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useLocation } from "react-router";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -67,6 +67,7 @@ function readStoredEnabled(): boolean {
 
 export function Settings() {
   const navigate = useNavigate();
+  const location = useLocation();
   const popup = usePopup();
   const { isInstallable, install } = usePwaInstall();
   const isOnline = useOnline();
@@ -78,6 +79,21 @@ export function Settings() {
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [biometricBusy, setBiometricBusy] = useState(false);
+
+  useEffect(() => {
+    if (location.hash === "#notifications") {
+      setTimeout(() => {
+        const el = document.getElementById("notifications");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.classList.add("ring-2", "ring-blue-500", "ring-offset-4");
+          setTimeout(() => {
+            el.classList.remove("ring-2", "ring-blue-500", "ring-offset-4");
+          }, 2000);
+        }
+      }, 150);
+    }
+  }, [location.hash]);
 
   useEffect(() => {
     document.title = "Settings — Pasona";
@@ -370,7 +386,7 @@ export function Settings() {
           {/* Left Column */}
           <div className="space-y-6">
             {/* Notifications */}
-            <section className="bg-white rounded-2xl card-shadow border border-slate-50 overflow-hidden divide-y divide-slate-50">
+            <section id="notifications" className="bg-white rounded-2xl card-shadow border border-slate-50 overflow-hidden divide-y divide-slate-50 scroll-mt-28 transition-all">
               <div className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
