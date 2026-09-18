@@ -14,7 +14,7 @@ export function initCapacitor() {
 
   // Initialize Google Sign-In
   GoogleSignIn.initialize({
-    clientId: import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID || 'YOUR_WEB_CLIENT_ID_FROM_GOOGLE',
+    clientId: import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID || '247677231726-c7h2ccu3kqoje3bfdm2vj02pj7o7vd65.apps.googleusercontent.com',
   }).catch(console.error);
 
   // Handle Hardware Back Button on Android
