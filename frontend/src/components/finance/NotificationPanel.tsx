@@ -219,7 +219,7 @@ export function NotificationPanel({
           /* ========================================================= */
           <>
             {/* Header with Back Arrow to List */}
-            <SheetHeader className="px-4 py-3.5 bg-white/95 backdrop-blur-md border-b border-slate-100 flex-row items-center justify-between space-y-0 text-left">
+            <SheetHeader className="px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-3.5 bg-white/95 backdrop-blur-md border-b border-slate-100 flex-row items-center justify-between space-y-0 text-left">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -251,7 +251,7 @@ export function NotificationPanel({
             </SheetHeader>
 
             {/* Content view inside popup */}
-            <div className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-5">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-5">
               <div className="flex items-start gap-3.5">
                 <div
                   className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
@@ -302,7 +302,7 @@ export function NotificationPanel({
           /* ========================================================= */
           <>
             {/* Header matching mockup */}
-            <SheetHeader className="px-4 py-3.5 bg-white/95 backdrop-blur-md border-b border-slate-100 flex-row items-center justify-between space-y-0 text-left">
+            <SheetHeader className="px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-3.5 bg-white/95 backdrop-blur-md border-b border-slate-100 flex-row items-center justify-between space-y-0 text-left">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -345,7 +345,7 @@ export function NotificationPanel({
             </SheetHeader>
 
             {/* Body */}
-            <div className="flex-1 overflow-y-auto overscroll-contain flex flex-col">
+            <div className="flex-1 overflow-y-auto overscroll-contain pb-[max(1.5rem,env(safe-area-inset-bottom))] flex flex-col">
               {loading && notifications.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center py-24">
                   <Loader2 size={32} className="animate-spin text-blue-500" />
