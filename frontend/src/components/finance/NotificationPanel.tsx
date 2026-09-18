@@ -1,14 +1,17 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import {
+  ArrowLeft,
+  Settings as SettingsIcon,
+  Trash2,
   Bell,
-  CheckCheck,
-  CreditCard,
-  Download,
-  Loader2,
-  Mail,
-  Megaphone,
-  PartyPopper,
+  Wallet,
+  UserCheck,
+  ShieldCheck,
   Sparkles,
+  Info,
+  Loader2,
+  CheckCheck,
 } from "lucide-react";
 import {
   Sheet,
@@ -29,46 +32,121 @@ type NotificationPanelProps = {
   loadMore: () => Promise<void>;
   markRead: (id: number) => Promise<void>;
   markAllRead: () => Promise<void>;
+  removeNotification: (id: number) => Promise<void>;
+  clearAll: () => Promise<void>;
   refresh: () => Promise<void>;
 };
 
-const TYPE_ICON: Record<string, React.ReactNode> = {
-  welcome: <PartyPopper size={16} className="text-amber-500" />,
-  reminder: <Bell size={16} className="text-blue-500" />,
-  account_created: <CreditCard size={16} className="text-emerald-500" />,
-  import_complete: <Download size={16} className="text-violet-500" />,
-  announcement: <Megaphone size={16} className="text-rose-500" />,
-  streak_report: <Sparkles size={16} className="text-amber-500" />,
-};
+function formatNotificationDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return dateStr;
 
-function relativeTime(dateStr: string): string {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diffMs = now - then;
-  const diffMins = Math.floor(diffMs / 60_000);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  const diffHrs = Math.floor(diffMins / 60);
-  if (diffHrs < 24) return `${diffHrs}h ago`;
-  const diffDays = Math.floor(diffHrs / 24);
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return new Date(dateStr).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
+  const timeStr = d.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
   });
+
+  const isToday =
+    d.getDate() === now.getDate() &&
+    d.getMonth() === now.getMonth() &&
+    d.getFullYear() === now.getFullYear();
+
+  if (isToday) {
+    return `Today | ${timeStr}`;
+  }
+
+  if (diffDays === 1) {
+    return `1 day ago | ${timeStr}`;
+  }
+
+  if (diffDays > 1 && diffDays < 7) {
+    return `${diffDays} days ago | ${timeStr}`;
+  }
+
+  const day = d.getDate();
+  const month = d.toLocaleDateString("en-US", { month: "short" });
+  const year = d.getFullYear();
+  return `${day} ${month}. ${year} | ${timeStr}`;
 }
 
-function dateGroup(dateStr: string): string {
-  const d = new Date(dateStr);
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
+function getNotificationVisual(type: string, title: string) {
+  const lowerType = (type || "").toLowerCase();
+  const lowerTitle = (title || "").toLowerCase();
 
-  if (d.toDateString() === today.toDateString()) return "Today";
-  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
-  return "Earlier";
+  if (
+    lowerType.includes("security") ||
+    lowerTitle.includes("security") ||
+    lowerTitle.includes("2fa") ||
+    lowerTitle.includes("authentication")
+  ) {
+    return {
+      bg: "bg-blue-50",
+      textColor: "text-blue-500",
+      icon: <ShieldCheck size={22} className="text-blue-500" />,
+    };
+  }
+
+  if (
+    lowerType.includes("card_feature") ||
+    lowerTitle.includes("card feature") ||
+    lowerTitle.includes("multiple card") ||
+    lowerTitle.includes("mastercard")
+  ) {
+    return {
+      bg: "bg-amber-50",
+      textColor: "text-amber-500",
+      icon: <Sparkles size={20} className="text-amber-500" />,
+    };
+  }
+
+  if (
+    lowerType.includes("update") ||
+    lowerType.includes("announcement") ||
+    lowerTitle.includes("update")
+  ) {
+    return {
+      bg: "bg-rose-50",
+      textColor: "text-rose-500",
+      icon: <Info size={20} className="text-rose-500" />,
+    };
+  }
+
+  if (
+    lowerType.includes("account_created") ||
+    lowerType.includes("credit_card") ||
+    lowerTitle.includes("card connected") ||
+    lowerTitle.includes("card linked")
+  ) {
+    return {
+      bg: "bg-purple-50",
+      textColor: "text-purple-500",
+      icon: <Wallet size={20} className="text-purple-500" />,
+    };
+  }
+
+  if (
+    lowerType.includes("welcome") ||
+    lowerType.includes("setup") ||
+    lowerTitle.includes("account setup") ||
+    lowerTitle.includes("successful")
+  ) {
+    return {
+      bg: "bg-emerald-50",
+      textColor: "text-emerald-500",
+      icon: <UserCheck size={20} className="text-emerald-500" />,
+    };
+  }
+
+  return {
+    bg: "bg-blue-50",
+    textColor: "text-blue-500",
+    icon: <Bell size={20} className="text-blue-500" />,
+  };
 }
 
 export function NotificationPanel({
@@ -81,155 +159,332 @@ export function NotificationPanel({
   loadMore,
   markRead,
   markAllRead,
+  removeNotification,
+  clearAll,
   refresh,
 }: NotificationPanelProps) {
-  // Fetch first page when panel opens
+  const navigate = useNavigate();
+  const [selectedNotif, setSelectedNotif] = useState<NotificationDto | null>(null);
+
+  // Fetch when panel opens if empty
   useEffect(() => {
     if (open && notifications.length === 0) {
       void refresh();
     }
   }, [open, notifications.length, refresh]);
 
-  // Group notifications by date
-  const groups: { label: string; items: NotificationDto[] }[] = [];
-  for (const n of notifications) {
-    const label = dateGroup(n.created_at);
-    const last = groups[groups.length - 1];
-    if (last && last.label === label) {
-      last.items.push(n);
-    } else {
-      groups.push({ label, items: [n] });
+  // Reset selected notification when closing panel
+  useEffect(() => {
+    if (!open) {
+      setSelectedNotif(null);
     }
-  }
+  }, [open]);
+
+  const handleOpenDetail = (notif: NotificationDto) => {
+    setSelectedNotif(notif);
+    if (!notif.read_at) {
+      void markRead(notif.id);
+    }
+  };
+
+  const handleDelete = (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    void removeNotification(id);
+    if (selectedNotif?.id === id) {
+      setSelectedNotif(null);
+    }
+  };
+
+  const handleClearAll = () => {
+    if (window.confirm("Remove all notifications?")) {
+      void clearAll();
+      setSelectedNotif(null);
+    }
+  };
+
+  const handleGoToSettings = () => {
+    onOpenChange(false);
+    navigate("/settings#notifications");
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-[400px] p-0 flex flex-col bg-slate-50 border-l border-slate-200"
+        className="w-full sm:max-w-[420px] p-0 flex flex-col bg-white border-l border-slate-200 outline-none [&>button.absolute]:hidden"
       >
-        {/* Header */}
-        <SheetHeader className="px-5 pt-5 pb-3 bg-white border-b border-slate-100 space-y-0">
-          <div className="flex items-center justify-between">
-            <SheetTitle className="text-base font-extrabold text-slate-900">
-              Notifications
-            </SheetTitle>
-            {unreadCount > 0 && (
-              <button
-                type="button"
-                onClick={() => void markAllRead()}
-                className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
-              >
-                <CheckCheck size={14} />
-                Mark all read
-              </button>
-            )}
-          </div>
-          <SheetDescription className="text-xs text-slate-400">
-            {unreadCount > 0
-              ? `${unreadCount} unread`
-              : "You're all caught up"}
-          </SheetDescription>
-        </SheetHeader>
-
-        {/* Notification list */}
-        <div className="flex-1 overflow-y-auto overscroll-contain">
-          {notifications.length === 0 && !loading ? (
-            <div className="flex flex-col items-center justify-center h-full py-20 px-6 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-                <Mail size={24} className="text-slate-300" />
+        {selectedNotif ? (
+          /* ========================================================= */
+          /* 1. DETAIL VIEW WITHIN THE POPUP                           */
+          /* ========================================================= */
+          <>
+            {/* Header with Back Arrow to List */}
+            <SheetHeader className="px-4 py-3.5 bg-white/95 backdrop-blur-md border-b border-slate-100 flex-row items-center justify-between space-y-0 text-left">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedNotif(null)}
+                  aria-label="Back to notification list"
+                  className="w-9 h-9 -ml-1 rounded-full flex items-center justify-center text-slate-800 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+                <SheetTitle className="text-base font-bold text-slate-900 tracking-tight">
+                  Notification
+                </SheetTitle>
+                <SheetDescription className="sr-only">
+                  Notification content details
+                </SheetDescription>
               </div>
-              <p className="text-sm font-bold text-slate-600 mb-1">
-                No notifications yet
-              </p>
-              <p className="text-xs text-slate-400 leading-relaxed max-w-[240px]">
-                When you get reminders, add accounts, or import transactions, they'll show up here.
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {groups.map((group) => (
-                <div key={group.label}>
-                  <div className="px-5 pt-4 pb-1.5">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                      {group.label}
-                    </p>
-                  </div>
-                  {group.items.map((n) => (
-                    <button
-                      key={n.id}
-                      type="button"
-                      onClick={() => {
-                        if (!n.read_at) void markRead(n.id);
-                      }}
-                      className={
-                        "w-full text-left px-5 py-3.5 flex gap-3 items-start transition-colors hover:bg-white cursor-pointer " +
-                        (!n.read_at
-                          ? "bg-blue-50/60 border-l-[3px] border-l-blue-400"
-                          : "border-l-[3px] border-l-transparent")
-                      }
-                    >
-                      <div className="w-8 h-8 rounded-xl bg-white border border-slate-100 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                        {TYPE_ICON[n.type] ?? (
-                          <Bell size={16} className="text-slate-400" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <p
-                            className={
-                              "text-xs truncate " +
-                              (!n.read_at
-                                ? "font-bold text-slate-800"
-                                : "font-semibold text-slate-600")
-                            }
-                          >
-                            {n.title}
-                          </p>
-                          <span className="text-[10px] text-slate-400 whitespace-nowrap shrink-0">
-                            {relativeTime(n.created_at)}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 mt-0.5 leading-snug line-clamp-2">
-                          {n.body}
-                        </p>
-                      </div>
-                      {!n.read_at && (
-                        <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-2" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              ))}
 
-              {/* Load more */}
-              {hasMore && (
-                <div className="px-5 py-4 flex justify-center">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={(e) => handleDelete(e, selectedNotif.id)}
+                  title="Remove this notification"
+                  aria-label="Remove this notification"
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 active:scale-95 transition-all cursor-pointer"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            </SheetHeader>
+
+            {/* Content view inside popup */}
+            <div className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-5">
+              <div className="flex items-start gap-3.5">
+                <div
+                  className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
+                    getNotificationVisual(selectedNotif.type, selectedNotif.title).bg
+                  }`}
+                >
+                  {getNotificationVisual(selectedNotif.type, selectedNotif.title).icon}
+                </div>
+                <div className="min-w-0 flex-1 pt-0.5">
+                  <h2 className="text-base font-bold text-slate-900 leading-snug">
+                    {selectedNotif.title}
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1 font-medium">
+                    {formatNotificationDate(selectedNotif.created_at)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-slate-50/80 p-5 rounded-2xl border border-slate-100 shadow-xs">
+                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap select-text">
+                  {selectedNotif.body}
+                </p>
+              </div>
+
+              <div className="pt-4 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={(e) => handleDelete(e, selectedNotif.id)}
+                  className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                >
+                  <Trash2 size={15} />
+                  Remove
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedNotif(null)}
+                  className="px-5 py-2.5 text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                >
+                  Back to list
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          /* ========================================================= */
+          /* 2. NOTIFICATIONS LIST / EMPTY VIEW WITHIN THE POPUP        */
+          /* ========================================================= */
+          <>
+            {/* Header matching mockup */}
+            <SheetHeader className="px-4 py-3.5 bg-white/95 backdrop-blur-md border-b border-slate-100 flex-row items-center justify-between space-y-0 text-left">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  aria-label="Close notifications"
+                  className="w-9 h-9 -ml-1 rounded-full flex items-center justify-center text-slate-800 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+                <SheetTitle className="text-lg font-bold text-slate-900 tracking-tight">
+                  Notification
+                </SheetTitle>
+                <SheetDescription className="sr-only">
+                  Your notifications list
+                </SheetDescription>
+              </div>
+
+              <div className="flex items-center gap-1">
+                {notifications.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => void loadMore()}
-                    disabled={loading}
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50 cursor-pointer"
+                    onClick={handleClearAll}
+                    title="Clear all notifications"
+                    aria-label="Clear all notifications"
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 active:scale-95 transition-all cursor-pointer"
                   >
-                    {loading ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      "Load more"
-                    )}
+                    <Trash2 size={18} />
                   </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleGoToSettings}
+                  aria-label="Notification Settings"
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-slate-800 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
+                >
+                  <SettingsIcon size={20} />
+                </button>
+              </div>
+            </SheetHeader>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto overscroll-contain flex flex-col">
+              {loading && notifications.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center py-24">
+                  <Loader2 size={32} className="animate-spin text-blue-500" />
+                  <p className="text-xs text-slate-400 mt-3 font-medium">
+                    Loading notifications...
+                  </p>
+                </div>
+              ) : notifications.length === 0 ? (
+                /* Empty State matching mockup */
+                <div className="flex-1 flex flex-col items-center justify-center px-6 py-20 text-center select-none">
+                  <div className="relative w-56 h-56 flex items-center justify-center mb-6">
+                    {/* Back tilted clipboard */}
+                    <div
+                      className="absolute w-36 h-48 bg-white border border-slate-200/90 rounded-2xl shadow-sm -rotate-12 -translate-x-4 -translate-y-2 p-3 flex flex-col"
+                      style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.04))" }}
+                    >
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-5 bg-blue-500 rounded-md shadow-xs flex items-center justify-center">
+                        <div className="w-2.5 h-2.5 rounded-full border-2 border-white/80" />
+                      </div>
+                      <div className="w-full flex-1 bg-slate-100/80 rounded-xl mt-2" />
+                    </div>
+
+                    {/* Front clipboard */}
+                    <div
+                      className="relative z-10 w-36 h-48 bg-white border border-slate-200/90 rounded-2xl shadow-lg translate-x-3 translate-y-2 p-3 flex flex-col"
+                      style={{ filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.06))" }}
+                    >
+                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 w-16 h-5 bg-blue-600 rounded-md shadow-sm flex items-center justify-center">
+                        <div className="w-2.5 h-2.5 rounded-full border-2 border-white" />
+                      </div>
+                      <div className="w-full flex-1 bg-slate-100 rounded-xl mt-2" />
+                    </div>
+                  </div>
+
+                  <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-2">
+                    Empty
+                  </h2>
+                  <p className="text-sm text-slate-400 max-w-[260px] leading-relaxed">
+                    You don't have any notification at this time
+                  </p>
+                </div>
+              ) : (
+                /* Notification List */
+                <div className="py-1 divide-y divide-slate-100">
+                  {unreadCount > 0 && (
+                    <div className="px-5 py-2.5 flex items-center justify-between bg-slate-50/70 border-b border-slate-100">
+                      <span className="text-xs font-semibold text-slate-500">
+                        {unreadCount} unread {unreadCount === 1 ? "notification" : "notifications"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => void markAllRead()}
+                        className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
+                      >
+                        <CheckCheck size={14} />
+                        Mark all as read
+                      </button>
+                    </div>
+                  )}
+
+                  {notifications.map((item) => {
+                    const visual = getNotificationVisual(item.type, item.title);
+                    const isUnread = !item.read_at;
+
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => handleOpenDetail(item)}
+                        className="group relative px-5 py-4 flex items-start gap-3.5 hover:bg-slate-50/70 transition-colors cursor-pointer"
+                      >
+                        {/* Category Circle Icon */}
+                        <div
+                          className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${visual.bg}`}
+                        >
+                          {visual.icon}
+                        </div>
+
+                        {/* Content */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <h3 className="text-sm font-bold text-slate-900 tracking-tight truncate">
+                              {item.title}
+                            </h3>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {isUnread && (
+                                <span className="bg-blue-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full tracking-wide">
+                                  New
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={(e) => handleDelete(e, item.id)}
+                                title="Remove notification"
+                                aria-label="Remove notification"
+                                className="text-slate-300 hover:text-rose-500 p-1 -m-1 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </div>
+
+                          <p className="text-[11px] font-medium text-slate-400 mb-1.5">
+                            {formatNotificationDate(item.created_at)}
+                          </p>
+
+                          <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
+                            {item.body}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Load more button */}
+                  {hasMore && (
+                    <div className="p-4 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => void loadMore()}
+                        disabled={loading}
+                        className="px-4 py-2 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        {loading ? (
+                          <span className="flex items-center gap-2">
+                            <Loader2 size={14} className="animate-spin" /> Loading more...
+                          </span>
+                        ) : (
+                          "Load older notifications"
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-
-          {/* Loading spinner for first load */}
-          {loading && notifications.length === 0 && (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 size={20} className="animate-spin text-slate-400" />
-            </div>
-          )}
-        </div>
+          </>
+        )}
       </SheetContent>
     </Sheet>
   );
 }
+export default NotificationPanel;

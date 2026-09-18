@@ -69,4 +69,26 @@ class NotificationController extends Controller
 
         return response()->json(['updated' => $updated]);
     }
+
+    /**
+     * Delete a single notification.
+     */
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        AppNotification::where('user_id', $request->user()->id)
+            ->where('id', $id)
+            ->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Delete all notifications for the user.
+     */
+    public function destroyAll(Request $request): JsonResponse
+    {
+        $count = AppNotification::where('user_id', $request->user()->id)->delete();
+
+        return response()->json(['deleted' => $count]);
+    }
 }

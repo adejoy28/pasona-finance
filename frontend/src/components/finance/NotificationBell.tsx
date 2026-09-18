@@ -4,10 +4,10 @@ import { NotificationPanel } from "./NotificationPanel";
 import { useNotifications } from "@/hooks/use-notifications";
 
 /**
- * Shared notification bell button used in the top header bar of every page.
+ * Shared notification bell button used in the top header bar of pages.
  *
  * Renders the bell icon with an unread badge dot, and opens the
- * NotificationPanel sheet on click.
+ * NotificationPanel side display on click.
  */
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
@@ -19,7 +19,7 @@ export function NotificationBell() {
         type="button"
         aria-label="Notifications"
         onClick={() => setOpen(true)}
-        className="relative w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors cursor-pointer"
+        className="relative w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors cursor-pointer active:scale-95"
       >
         <Bell size={18} />
         {notifs.unreadCount > 0 && (
@@ -37,6 +37,8 @@ export function NotificationBell() {
         loadMore={notifs.loadMore}
         markRead={notifs.markRead}
         markAllRead={notifs.markAllRead}
+        removeNotification={notifs.removeNotification}
+        clearAll={notifs.clearAll}
         refresh={notifs.refresh}
       />
     </>
