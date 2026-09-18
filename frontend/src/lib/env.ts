@@ -5,21 +5,34 @@
 // staging). Never read `import.meta.env` directly elsewhere — import from
 // here so types stay correct and we have a single place to add validation.
 
+import { Capacitor } from "@capacitor/core";
+
 const DEV_PROXY_API_BASE = "/api";
 const DEV_PROXY_BACKEND_ORIGIN = "http://localhost:8000";
+const NATIVE_DEFAULT_API_BASE = "https://pasona-api.adebayosystems.com.ng/api";
+const NATIVE_DEFAULT_ORIGIN = "https://pasona-api.adebayosystems.com.ng";
 
 function normalizeBaseUrl(value: string | undefined): string {
-  const raw = (value ?? "").trim() || DEV_PROXY_API_BASE;
-  return raw.replace(/\/+$/, "");
+  const raw = (value ?? "").trim();
+  if (Capacitor.isNativePlatform()) {
+    if (!raw || raw === DEV_PROXY_API_BASE || !raw.startsWith("http")) {
+      return NATIVE_DEFAULT_API_BASE;
+    }
+  }
+  return (raw || DEV_PROXY_API_BASE).replace(/\/+$/, "");
 }
 
 function normalizeOrigin(value: string | undefined): string {
-  const raw = (value ?? "").trim() || DEV_PROXY_BACKEND_ORIGIN;
-  return raw.replace(/\/+$/, "");
+  const raw = (value ?? "").trim();
+  if (Capacitor.isNativePlatform()) {
+    if (!raw || raw === DEV_PROXY_BACKEND_ORIGIN || !raw.startsWith("http")) {
+      return NATIVE_DEFAULT_ORIGIN;
+    }
+  }
+  return (raw || DEV_PROXY_BACKEND_ORIGIN).replace(/\/+$/, "");
 }
 
-export const isCapacitor =
-  typeof navigator !== "undefined" && navigator.userAgent.includes("Capacitor");
+export const isCapacitor = Capacitor.isNativePlatform();
 
 export const env = {
   apiBaseUrl: normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL),
