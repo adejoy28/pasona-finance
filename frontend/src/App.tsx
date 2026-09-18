@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useNavigate, Navigate } from "react-route
 import { PopupProvider } from "@/components/ui/popup";
 import { ProtectedRoute } from "@/lib/auth/guard";
 import { onUnauthorized } from "@/lib/api";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 import { SplashPage } from "@/pages/SplashPage";
 import { Dashboard } from "@/pages/Dashboard";
@@ -57,12 +58,13 @@ export function App() {
 
   return (
     <BrowserRouter>
-      <SplashScreen duration={1500} />
-      <AppInstallBanner />
-      <SyncIndicator />
-      <UnauthorizedHandler />
-      <PopupProvider>
-        <Routes>
+      <ErrorBoundary>
+        <SplashScreen duration={1500} />
+        <AppInstallBanner />
+        <SyncIndicator />
+        <UnauthorizedHandler />
+        <PopupProvider>
+          <Routes>
           {/* Public routes */}
           <Route path="/" element={<SplashPage />} />
           <Route path="/login" element={<Login />} />
@@ -146,8 +148,9 @@ export function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </PopupProvider>
-    </BrowserRouter>
-  );
+    </ErrorBoundary>
+  </BrowserRouter>
+);
 }
 
 export default App;
