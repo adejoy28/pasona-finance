@@ -127,6 +127,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
     Route::patch('notifications/{id}/read', [NotificationController::class, 'markRead']);
     Route::post('notifications/read-all', [NotificationController::class, 'markAllRead']);
+    Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
+    Route::delete('notifications', [NotificationController::class, 'destroyAll']);
 
     // Dashboard Summary
     Route::get('summary', [SummaryController::class, 'index']);

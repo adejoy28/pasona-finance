@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router";
+import { BrowserRouter, Routes, Route, useNavigate, Navigate } from "react-router";
 import { PopupProvider } from "@/components/ui/popup";
 import { ProtectedRoute } from "@/lib/auth/guard";
 import { onUnauthorized } from "@/lib/api";
@@ -126,6 +126,11 @@ export function App() {
                 <Settings />
               </ProtectedRoute>
             }
+          />
+
+          <Route
+            path="/notifications"
+            element={<Navigate to="/dashboard" replace />}
           />
 
           <Route

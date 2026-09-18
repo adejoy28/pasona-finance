@@ -4,6 +4,8 @@ import {
   getUnreadCount,
   markRead as apiMarkRead,
   markAllRead as apiMarkAllRead,
+  deleteNotification as apiDeleteNotification,
+  deleteAllNotifications as apiDeleteAllNotifications,
   type NotificationDto,
 } from "@/lib/api/notifications";
 
@@ -18,6 +20,10 @@ type UseNotificationsResult = {
   markRead: (id: number) => Promise<void>;
   /** Mark all notifications as read. */
   markAllRead: () => Promise<void>;
+  /** Delete a single notification. */
+  removeNotification: (id: number) => Promise<void>;
+  /** Delete all notifications. */
+  clearAll: () => Promise<void>;
   /** Re-fetch from page 1 and reset the list. */
   refresh: () => Promise<void>;
 };
@@ -111,6 +117,36 @@ export function useNotifications(): UseNotificationsResult {
     }
   }, []);
 
+  const removeNotification = useCallback(
+    async (id: number) => {
+      // Optimistic update
+      setNotifications((prev) => {
+        const target = prev.find((n) => n.id === id);
+        if (target && !target.read_at) {
+          setUnreadCount((c) => Math.max(0, c - 1));
+        }
+        return prev.filter((n) => n.id !== id);
+      });
+      try {
+        await apiDeleteNotification(id);
+      } catch {
+        // Ignore
+      }
+    },
+    [],
+  );
+
+  const clearAll = useCallback(async () => {
+    // Optimistic update
+    setNotifications([]);
+    setUnreadCount(0);
+    try {
+      await apiDeleteAllNotifications();
+    } catch {
+      // Ignore
+    }
+  }, []);
+
   const refresh = useCallback(async () => {
     setCurrentPage(0);
     setLastPage(1);
@@ -139,6 +175,8 @@ export function useNotifications(): UseNotificationsResult {
     loadMore,
     markRead,
     markAllRead,
+    removeNotification,
+    clearAll,
     refresh,
   };
 }
