@@ -30,15 +30,6 @@ import { GoogleSignIn } from '@capawesome/capacitor-google-sign-in';
 export async function startGoogleLogin(): Promise<void> {
   if (Capacitor.isNativePlatform()) {
     try {
-      const clientId =
-        import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID ||
-        '247677231726-c7h2ccu3kqoje3bfdm2vj02pj7o7vd65.apps.googleusercontent.com';
-      try {
-        await GoogleSignIn.initialize({ clientId });
-      } catch {
-        // already initialized
-      }
-
       const result = await GoogleSignIn.signIn();
       if (!result.idToken) {
         throw new Error("No ID token returned from Google.");
@@ -53,23 +44,13 @@ export async function startGoogleLogin(): Promise<void> {
       setAuthToken(response.token);
       return;
     } catch (err) {
-      if (err instanceof GoogleSignInCancelledError) throw err;
       if (err instanceof ApiError) throw err;
-
-      const code = String((err as any)?.code || "");
-      const message = String((err as any)?.message || "");
-
-      // Capacitor plugin signals cancellation via the SIGN_IN_CANCELED code or specific message
-      if (
-        code === "SIGN_IN_CANCELED" ||
-        message.includes("canceled the sign-in flow") ||
-        message.includes("SIGN_IN_CANCELED")
-      ) {
+      // Capacitor plugin signals cancellation via the SIGN_IN_CANCELED code.
+      const code = (err as any)?.code ?? (err as any)?.message ?? "";
+      if (String(code).includes("SIGN_IN_CANCELED") || String(code).includes("cancelled") || String(code).includes("canceled")) {
         throw new GoogleSignInCancelledError();
       }
-
-      console.error("[GoogleSignIn Error]", err);
-      throw new Error(message || "Unable to sign in with Google on device. Please try again.");
+      throw new Error("Unable to sign in with Google on device. Please try again.");
     }
   }
 
