@@ -12,6 +12,14 @@
 //      stores the token, and strips it from the address bar.
 
 import { ApiError, api } from "../api";
+
+/** Thrown when the user explicitly cancels the Google sign-in popup. */
+export class GoogleSignInCancelledError extends Error {
+  constructor() {
+    super("Google sign-in was cancelled.");
+    this.name = "GoogleSignInCancelledError";
+  }
+}
 import { setAuthToken } from "./token";
 
 type GoogleStartResponse = { url: string };
@@ -37,6 +45,11 @@ export async function startGoogleLogin(): Promise<void> {
       return;
     } catch (err) {
       if (err instanceof ApiError) throw err;
+      // Capacitor plugin signals cancellation via the SIGN_IN_CANCELED code.
+      const code = (err as any)?.code ?? (err as any)?.message ?? "";
+      if (String(code).includes("SIGN_IN_CANCELED") || String(code).includes("cancelled") || String(code).includes("canceled")) {
+        throw new GoogleSignInCancelledError();
+      }
       throw new Error("Unable to sign in with Google on device. Please try again.");
     }
   }
@@ -93,16 +106,15 @@ export function completeGoogleCallback(
   return { ok: true };
 }
 
-function humanizeError(code: string): string {
-  // Backend-supplied error codes from Socialite are usually
-  // `access_denied`, `invalid_request`, etc. Surface the raw value but
-  // with a friendlier prefix so the UI doesn't look bare.
-  switch (code) {
-    case "access_denied":
-      return "Google sign-in was cancelled.";
-    case "invalid_request":
-      return "Google sign-in was rejected. Please try again.";
-    default:
-      return `Google sign-in failed (${code}). Please try again.`;
+export function humanizeError(code: string): string {
+  if (!code || code === "access_denied" || code.toLowerCase().includes("cancel")) {
+    return "Google sign-in was cancelled.";
   }
+  if (code === "invalid_request") {
+    return "Google sign-in was rejected. Please try again.";
+  }
+  if (code.toLowerCase().includes("fail") || code.toLowerCase().includes("please try again")) {
+    return code;
+  }
+  return `Google sign-in failed (${code}). Please try again.`;
 }

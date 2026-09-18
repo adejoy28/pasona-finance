@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Capacitor } from "@capacitor/core";
 import { Loader2 } from "lucide-react";
-import { startGoogleLogin } from "@/lib/auth/google";
+import { startGoogleLogin, GoogleSignInCancelledError } from "@/lib/auth/google";
 
 export function GoogleButton({
   label = "Continue with Google",
@@ -15,6 +15,18 @@ export function GoogleButton({
   const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    // If the user navigates back (e.g., cancelled in Google or hit browser Back),
+    // browser bfcache restores the page with redirecting=true. Reset it on pageshow.
+    const handlePageShow = () => {
+      setRedirecting(false);
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => {
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, []);
+
   const onClick = async () => {
     if (redirecting) return;
     setError(null);
@@ -26,6 +38,11 @@ export function GoogleButton({
         void navigate("/dashboard", { replace: true });
       }
     } catch (err) {
+      // User closed the popup — dismiss silently, no error banner.
+      if (err instanceof GoogleSignInCancelledError) {
+        setRedirecting(false);
+        return;
+      }
       setError(
         err instanceof Error ? err.message : "Unable to start Google sign-in. Please try again.",
       );
