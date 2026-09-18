@@ -39,3 +39,11 @@ export function markRead(id: number) {
 export function markAllRead() {
   return api.post<{ updated: number }>("/notifications/read-all");
 }
+
+export function deleteNotification(id: number) {
+  return api.delete<{ success: boolean }>(`/notifications/${id}`);
+}
+
+export function deleteAllNotifications() {
+  return api.delete<{ deleted: number }>("/notifications");
+}
