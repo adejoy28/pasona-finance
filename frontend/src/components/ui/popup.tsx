@@ -1,8 +1,7 @@
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
-import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type PopupVariant = "success" | "error" | "info";
+type PopupVariant = "success" | "error" | "info" | "fact";
 
 interface PopupItem {
   id: number;
@@ -16,6 +15,7 @@ interface PopupContextValue {
   success: (message: string, opts?: { description?: string; duration?: number }) => void;
   error: (message: string, opts?: { description?: string; duration?: number }) => void;
   info: (message: string, opts?: { description?: string; duration?: number }) => void;
+  fact: (message: string, opts?: { description?: string; duration?: number }) => void;
 }
 
 const PopupContext = createContext<PopupContextValue | null>(null);
@@ -26,12 +26,14 @@ const VARIANT_STYLES: Record<PopupVariant, { accent: string; icon: string }> = {
   success: { accent: "bg-[#101b45]", icon: "✓" },
   error: { accent: "bg-rose-500", icon: "!" },
   info: { accent: "bg-blue-500", icon: "i" },
+  fact: { accent: "bg-amber-500", icon: "💡" },
 };
 
 const DEFAULT_DURATIONS: Record<PopupVariant, number> = {
   success: 3000,
   error: 5000,
   info: 3000,
+  fact: 8000,
 };
 
 export function PopupProvider({ children }: { children: ReactNode }) {
@@ -65,6 +67,7 @@ export function PopupProvider({ children }: { children: ReactNode }) {
     success: (msg, opts) => show("success", msg, opts),
     error: (msg, opts) => show("error", msg, opts),
     info: (msg, opts) => show("info", msg, opts),
+    fact: (msg, opts) => show("fact", msg, opts),
   };
 
   return (
@@ -91,7 +94,7 @@ function PopupCard({ item, onDismiss }: { item: PopupItem; onDismiss: () => void
   return (
     <div
       className={cn(
-        "pointer-events-auto w-full max-w-[320px] rounded-3xl bg-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.2)] overflow-hidden p-8 flex flex-col items-center text-center",
+        "pointer-events-auto w-full max-w-[340px] rounded-3xl bg-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)] overflow-hidden p-7 flex flex-col items-center text-center border border-slate-100",
         "animate-[popup-in_250ms_ease-out_forwards]",
         item.removing && "animate-[popup-out_200ms_ease-in_forwards]",
       )}
@@ -100,28 +103,50 @@ function PopupCard({ item, onDismiss }: { item: PopupItem; onDismiss: () => void
     >
       <div
         className={cn(
-          "flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-full text-5xl font-black text-white mb-6 transition-transform duration-500",
+          "flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-full text-4xl font-black text-white mb-5 transition-transform duration-500 shadow-md",
           item.variant === "success" && "animate-[bounce_1s_ease-in-out_infinite]",
           v.accent,
         )}
       >
         {v.icon}
       </div>
-      <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-3">
+      <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mb-2">
         {item.variant === "success" && !item.message.toLowerCase().includes("success") ? "Success!" : ""}
         {item.variant === "error" && !item.message.toLowerCase().includes("error") ? "Uh oh" : ""}
-        {(item.variant === "info" || item.message.toLowerCase().includes("success") || item.message.toLowerCase().includes("error")) ? item.message : ""}
+        {item.variant === "fact" && !item.message.toLowerCase().includes("fact") ? "Money Insight" : ""}
+        {(item.variant === "info" || (item.variant !== "fact" && (item.message.toLowerCase().includes("success") || item.message.toLowerCase().includes("error")))) ? item.message : ""}
       </h3>
-      
-      <p className="text-sm font-medium text-slate-500 mb-8 leading-relaxed">
-        {(item.variant === "success" && !item.message.toLowerCase().includes("success")) || (item.variant === "error" && !item.message.toLowerCase().includes("error")) ? item.message : ""}
-        {item.description && <><br /><span className="opacity-80">{item.description}</span></>}
-      </p>
+
+      <div className="text-xs sm:text-sm font-medium text-slate-600 mb-6 leading-relaxed max-h-[220px] overflow-y-auto overscroll-contain">
+        {item.variant === "fact" ? (
+          <div className="space-y-2 text-left bg-amber-50/60 p-3.5 rounded-2xl border border-amber-100/80">
+            <p className="font-bold text-amber-900 text-xs sm:text-sm">{item.message}</p>
+            {item.description && (
+              <p className="text-xs text-slate-700 whitespace-pre-line leading-relaxed">
+                {item.description}
+              </p>
+            )}
+          </div>
+        ) : (
+          <>
+            {((item.variant === "success" && !item.message.toLowerCase().includes("success")) ||
+              (item.variant === "error" && !item.message.toLowerCase().includes("error")))
+              ? item.message
+              : ""}
+            {item.description && (
+              <>
+                <br />
+                <span className="opacity-80 whitespace-pre-line">{item.description}</span>
+              </>
+            )}
+          </>
+        )}
+      </div>
 
       <button
         onClick={onDismiss}
         className={cn(
-          "w-full py-3.5 rounded-2xl font-bold text-base text-white transition-opacity hover:opacity-90 active:scale-[0.98]",
+          "w-full py-3.5 rounded-2xl font-bold text-sm sm:text-base text-white transition-opacity hover:opacity-90 active:scale-[0.98] shadow-md cursor-pointer",
           v.accent,
         )}
       >

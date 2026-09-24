@@ -37,7 +37,12 @@ import {
 import { FinanceNavbar } from "@/components/finance/Navbar";
 import { CURRENCIES, DEFAULT_CURRENCY } from "@/lib/currencies";
 import { ApiError, auth as authApi } from "@/lib/api";
-import { nextOccurrenceOfTime, useLocalNotifications } from "@/hooks/use-local-notifications";
+import {
+  useLocalNotifications,
+  scheduleAllAppNotifications,
+  cancelAllAppNotifications,
+} from "@/hooks/use-local-notifications";
+import { getDailyMoneyFact } from "@/lib/facts";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { useMe, invalidateMe } from "@/hooks/use-me";
 import { useOnline } from "@/hooks/use-online";
@@ -51,9 +56,10 @@ import {
   verifyBiometricIdentity,
 } from "@/lib/auth/biometric";
 
-const REMINDER_NOTIFICATION_ID = 1001;
 const REMINDER_STORAGE_KEY = "pasona.reminder.time";
 const REMINDER_ENABLED_KEY = "pasona.reminder.enabled";
+const FACT_TIME_STORAGE_KEY = "pasona.notification.fact_time";
+const CAPABILITY_TIME_STORAGE_KEY = "pasona.notification.capability_time";
 
 function readStoredTime(): string {
   if (typeof localStorage === "undefined") return "21:00";
@@ -65,6 +71,16 @@ function readStoredEnabled(): boolean {
   return localStorage.getItem(REMINDER_ENABLED_KEY) === "1";
 }
 
+function readStoredFactTime(): string {
+  if (typeof localStorage === "undefined") return "09:00";
+  return localStorage.getItem(FACT_TIME_STORAGE_KEY) ?? "09:00";
+}
+
+function readStoredCapabilityTime(): string {
+  if (typeof localStorage === "undefined") return "14:00";
+  return localStorage.getItem(CAPABILITY_TIME_STORAGE_KEY) ?? "14:00";
+}
+
 export function Settings() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -72,6 +88,8 @@ export function Settings() {
   const { isInstallable, install } = usePwaInstall();
   const isOnline = useOnline();
   const [reminderTime, setReminderTime] = useState(readStoredTime);
+  const [factTime, setFactTime] = useState(readStoredFactTime);
+  const [capabilityTime, setCapabilityTime] = useState(readStoredCapabilityTime);
   const [reminderEnabled, setReminderEnabled] = useState(readStoredEnabled);
   const [signingOut, setSigningOut] = useState(false);
   const { isPrivacyModeEnabled, setPrivacyMode } = usePrivacyMode();
@@ -154,6 +172,16 @@ export function Settings() {
 
   useEffect(() => {
     if (typeof localStorage === "undefined") return;
+    localStorage.setItem(FACT_TIME_STORAGE_KEY, factTime);
+  }, [factTime]);
+
+  useEffect(() => {
+    if (typeof localStorage === "undefined") return;
+    localStorage.setItem(CAPABILITY_TIME_STORAGE_KEY, capabilityTime);
+  }, [capabilityTime]);
+
+  useEffect(() => {
+    if (typeof localStorage === "undefined") return;
     localStorage.setItem(REMINDER_ENABLED_KEY, reminderEnabled ? "1" : "0");
   }, [reminderEnabled]);
 
@@ -179,11 +207,11 @@ export function Settings() {
     try {
       if (!next) {
         if (isNative) {
-          await cancelAlarm(REMINDER_NOTIFICATION_ID);
+          await cancelAllAppNotifications();
         }
         await authApi.updateProfile({ reminder_time: null, timezone: browserTz });
         invalidateMe();
-        popup.success("Daily reminder disabled");
+        popup.success("Daily notifications disabled");
         return;
       }
 
@@ -196,18 +224,16 @@ export function Settings() {
             return;
           }
         }
-        const at = nextOccurrenceOfTime(reminderTime);
-        await scheduleAlarm({
-          id: REMINDER_NOTIFICATION_ID,
-          title: "Time to log your expenses",
-          body: `Daily reminder for ${reminderTime}. Tap to record today's spending.`,
-          at,
-          repeats: true,
+        await scheduleAllAppNotifications({
+          reminderTime,
+          factTime,
+          capabilityTime,
+          userSeed: user?.id,
         });
       }
       await authApi.updateProfile({ reminder_time: reminderTime, timezone: browserTz });
       invalidateMe();
-      popup.success(isNative ? `Reminder set for ${reminderTime}` : "Daily reminder enabled");
+      popup.success(isNative ? "3 daily app alerts active" : "Daily reminder enabled");
     } catch {
       setReminderEnabled(prev);
       popup.error("Could not toggle reminder");
@@ -229,15 +255,45 @@ export function Settings() {
     }
     if (!reminderEnabled || !isNative) return;
     try {
-      const at = nextOccurrenceOfTime(next);
-      await scheduleAlarm({
-        id: REMINDER_NOTIFICATION_ID,
-        title: "Time to log your expenses",
-        body: `Daily reminder for ${next}. Tap to record today's spending.`,
-        at,
-        repeats: true,
+      await scheduleAllAppNotifications({
+        reminderTime: next,
+        factTime,
+        capabilityTime,
+        userSeed: user?.id,
       });
       popup.success(`Reminder rescheduled to ${next}`);
+    } catch {
+      // Best-effort
+    }
+  };
+
+  const handleFactTimeChange = async (next: string) => {
+    setFactTime(next);
+    if (!reminderEnabled || !isNative) return;
+    try {
+      await scheduleAllAppNotifications({
+        reminderTime,
+        factTime: next,
+        capabilityTime,
+        userSeed: user?.id,
+      });
+      popup.success(`Morning wisdom rescheduled to ${next}`);
+    } catch {
+      // Best-effort
+    }
+  };
+
+  const handleCapabilityTimeChange = async (next: string) => {
+    setCapabilityTime(next);
+    if (!reminderEnabled || !isNative) return;
+    try {
+      await scheduleAllAppNotifications({
+        reminderTime,
+        factTime,
+        capabilityTime: next,
+        userSeed: user?.id,
+      });
+      popup.success(`Afternoon spotlight rescheduled to ${next}`);
     } catch {
       // Best-effort
     }
@@ -393,9 +449,9 @@ export function Settings() {
                     <Bell size={18} />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-800">Daily Reminder</p>
+                    <p className="text-xs font-bold text-slate-800">Daily Notifications</p>
                     <p className="text-[10px] text-slate-400 uppercase">
-                      {reminderEnabled ? `Active at ${reminderTime}` : "Off"}
+                      {reminderEnabled ? (isNative ? "3 Daily Alerts Active" : `Active at ${reminderTime}`) : "Off"}
                     </p>
                   </div>
                 </div>
@@ -418,18 +474,121 @@ export function Settings() {
                 </button>
               </div>
 
-              <div className="p-4 flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  Reminder time
-                </span>
-                <input
-                  type="time"
-                  disabled={!reminderEnabled}
-                  value={reminderTime}
-                  onChange={(e) => void handleTimeChange(e.target.value)}
-                  className="bg-slate-50 p-2.5 rounded-xl font-black text-blue-600 outline-none text-sm disabled:opacity-50"
-                />
-              </div>
+              {/* Native App: 3 Daily Push Notifications Schedule */}
+              {reminderEnabled && isNative && (
+                <div className="p-4 space-y-3 bg-slate-50/50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-slate-800">Daily Notification Schedule</p>
+                      <p className="text-[10px] text-slate-500">
+                        3 curated alerts delivered directly to your device
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-black text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      Android
+                    </span>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {/* 1. Morning Financial Wisdom */}
+                    <div className="bg-white rounded-xl p-3 border border-slate-100/80 space-y-1.5 shadow-2xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="text-base shrink-0">☀️</span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-xs font-bold text-slate-800">1. Morning Wisdom</p>
+                              <span className="text-[9px] bg-amber-50 text-amber-700 border border-amber-200/60 font-semibold px-1.5 py-0.2 rounded">
+                                Info Only
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-slate-500 truncate">
+                              Money facts, quotes & cognitive insights (no CTA)
+                            </p>
+                          </div>
+                        </div>
+                        <input
+                          type="time"
+                          value={factTime}
+                          onChange={(e) => void handleFactTimeChange(e.target.value)}
+                          className="bg-slate-50 px-2.5 py-1 rounded-lg font-bold text-blue-600 outline-none text-xs shrink-0 cursor-pointer hover:bg-slate-100 transition-colors"
+                          title="Set morning wisdom time"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 2. Afternoon App Capabilities & Progress */}
+                    <div className="bg-white rounded-xl p-3 border border-slate-100/80 space-y-1.5 shadow-2xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="text-base shrink-0">⚡</span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-xs font-bold text-slate-800">2. Afternoon Spotlight</p>
+                              <span className="text-[9px] bg-blue-50 text-blue-700 border border-blue-200/60 font-semibold px-1.5 py-0.2 rounded">
+                                Info Only
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-slate-500 truncate">
+                              App capabilities, features & streak milestones
+                            </p>
+                          </div>
+                        </div>
+                        <input
+                          type="time"
+                          value={capabilityTime}
+                          onChange={(e) => void handleCapabilityTimeChange(e.target.value)}
+                          className="bg-slate-50 px-2.5 py-1 rounded-lg font-bold text-blue-600 outline-none text-xs shrink-0 cursor-pointer hover:bg-slate-100 transition-colors"
+                          title="Set afternoon spotlight time"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 3. Evening Transaction Reminder */}
+                    <div className="bg-white rounded-xl p-3 border border-blue-200/80 bg-blue-50/20 space-y-1.5 shadow-2xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="text-base shrink-0">🌙</span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-xs font-bold text-blue-950">3. Daily Reminder</p>
+                              <span className="text-[9px] bg-blue-600 text-white font-bold px-1.5 py-0.2 rounded">
+                                With CTA
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-blue-700/80 truncate">
+                              60s check-in to log expenses & protect streaks
+                            </p>
+                          </div>
+                        </div>
+                        <input
+                          type="time"
+                          value={reminderTime}
+                          onChange={(e) => void handleTimeChange(e.target.value)}
+                          className="bg-white border border-blue-300 px-2.5 py-1 rounded-lg font-black text-blue-700 outline-none text-xs shrink-0 cursor-pointer shadow-2xs"
+                          title="Set daily reminder time"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Web / Non-Native Reminder Time Input */}
+              {reminderEnabled && !isNative && (
+                <div className="p-4 flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    Reminder time
+                  </span>
+                  <input
+                    type="time"
+                    disabled={!reminderEnabled}
+                    value={reminderTime}
+                    onChange={(e) => void handleTimeChange(e.target.value)}
+                    className="bg-slate-50 p-2.5 rounded-xl font-black text-blue-600 outline-none text-sm disabled:opacity-50"
+                  />
+                </div>
+              )}
 
               {reminderEnabled && (
                 <div className="p-4 space-y-2">
