@@ -13,7 +13,7 @@ const config: CapacitorConfig = {
       backgroundColor: '#0B1434',
     },
     LocalNotifications: {
-      smallIcon: 'ic_launcher_foreground',
+      smallIcon: 'ic_stat_pasona',
       iconColor: '#101b45',
     },
     PushNotifications: {

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useNavigate, Navigate } from "react-route
 import { PopupProvider } from "@/components/ui/popup";
 import { ProtectedRoute } from "@/lib/auth/guard";
 import { onUnauthorized } from "@/lib/api";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 import { SplashPage } from "@/pages/SplashPage";
 import { Dashboard } from "@/pages/Dashboard";
@@ -31,6 +32,7 @@ import { initCapacitor } from "@/lib/capacitor";
 import { AppInstallBanner } from "@/components/finance/AppInstallBanner";
 import { SyncIndicator } from "@/components/finance/SyncIndicator";
 import { SplashScreen } from "@/components/finance/SplashScreen";
+import { NativeNotificationListener } from "@/components/finance/NativeNotificationListener";
 
 function UnauthorizedHandler() {
   const navigate = useNavigate();
@@ -57,12 +59,14 @@ export function App() {
 
   return (
     <BrowserRouter>
-      <SplashScreen duration={1500} />
-      <AppInstallBanner />
-      <SyncIndicator />
-      <UnauthorizedHandler />
-      <PopupProvider>
-        <Routes>
+      <ErrorBoundary>
+        <PopupProvider>
+          <SplashScreen duration={1500} />
+          <AppInstallBanner />
+          <SyncIndicator />
+          <NativeNotificationListener />
+          <UnauthorizedHandler />
+          <Routes>
           {/* Public routes */}
           <Route path="/" element={<SplashPage />} />
           <Route path="/login" element={<Login />} />
@@ -146,8 +150,9 @@ export function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </PopupProvider>
-    </BrowserRouter>
-  );
+    </ErrorBoundary>
+  </BrowserRouter>
+);
 }
 
 export default App;

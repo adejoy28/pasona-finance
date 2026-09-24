@@ -31,20 +31,42 @@ Route::get('/', function () {
 });
 
 Route::get('/download/metadata', function (Illuminate\Http\Request $request) {
-    $url = $request->query('url');
-    if (!$url || !filter_var($url, FILTER_VALIDATE_URL)) {
-        return response()->json(['error' => 'Invalid URL'], 400);
+    $url = $request->query('url') ?: env('APK_METADATA_URL', 'https://pub-ec0e39289eae45ad9b4b896d31ed8d25.r2.dev/metadata.json');
+    $defaultDownloadUrl = env('APK_DOWNLOAD_URL', 'https://pub-ec0e39289eae45ad9b4b896d31ed8d25.r2.dev/pasona.apk');
+
+    $data = [];
+    if ($url && filter_var($url, FILTER_VALIDATE_URL)) {
+        try {
+            $response = Http::timeout(5)->get($url);
+            if ($response->successful() && is_array($response->json())) {
+                $data = $response->json();
+            }
+        } catch (\Exception $e) {
+            // Network fallback to environment defaults
+        }
     }
 
-    try {
-        $response = Http::timeout(5)->get($url);
-        if ($response->successful()) {
-            return response()->json($response->json());
-        }
-        return response()->json(['error' => 'Failed to fetch metadata'], 502);
-    } catch (\Exception $e) {
-        return response()->json(['error' => 'Failed to fetch metadata'], 502);
-    }
+    $latestVersionCode = (int) ($data['latestVersionCode'] ?? $data['versionCode'] ?? env('APK_LATEST_VERSION_CODE', 1));
+    $latestVersionName = (string) ($data['latestVersionName'] ?? $data['version'] ?? env('APK_LATEST_VERSION_NAME', '1.0.0'));
+    $downloadUrl = (string) ($data['downloadUrl'] ?? $defaultDownloadUrl);
+    $releaseNotes = (string) ($data['releaseNotes'] ?? $data['whatsNew'] ?? 'Bug fixes and performance improvements.');
+    $minimumVersionCode = (int) ($data['minimumVersionCode'] ?? env('APK_MINIMUM_VERSION_CODE', 0));
+    $forceUpdate = (bool) ($data['forceUpdate'] ?? false);
+    $size = (string) ($data['size'] ?? env('APK_SIZE', '12 MB'));
+
+    return response()->json([
+        'latestVersionCode'  => $latestVersionCode,
+        'latestVersionName'  => $latestVersionName,
+        'downloadUrl'        => $downloadUrl,
+        'releaseNotes'       => $releaseNotes,
+        'minimumVersionCode' => $minimumVersionCode,
+        'forceUpdate'        => $forceUpdate,
+
+        // Backwards compatibility for existing web DownloadPage
+        'version'            => $latestVersionName,
+        'size'               => $size,
+        'whatsNew'           => $releaseNotes,
+    ]);
 });
 
 Route::post('/register', [AuthController::class, 'register']);

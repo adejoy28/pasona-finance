@@ -21,6 +21,7 @@ import { OnboardingTour } from "@/components/finance/OnboardingTour";
 import { NotificationBell } from "@/components/finance/NotificationBell";
 import { NewLookBanner } from "@/components/finance/NewLookBanner";
 import { VerifyEmailBanner } from "@/components/finance/VerifyEmailBanner";
+import { BiometricPromptBanner } from "@/components/finance/BiometricPromptBanner";
 import { DEFAULT_CURRENCY } from "@/lib/currencies";
 import { formatCurrency, type Account } from "@/lib/finance";
 import {
@@ -236,6 +237,7 @@ export function Dashboard() {
 
       <NewLookBanner />
       <VerifyEmailBanner />
+      <BiometricPromptBanner />
 
       {/* Hero Navy Card Section */}
       <motion.section
