@@ -1,10 +1,23 @@
+import { useEffect } from "react";
 import { useSyncManager } from "@/hooks/use-sync-manager";
-import { CloudOff, RefreshCw, AlertTriangle, X } from "lucide-react";
+import { usePopup } from "@/components/ui/popup";
+import { CloudOff, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Capacitor } from "@capacitor/core";
 
 export function SyncIndicator() {
   const { isOnline, isSyncing, syncError, clearSyncError } = useSyncManager();
+  const popup = usePopup();
+
+  // Surface sync errors through the standard dismissible popup system,
+  // which works on all platforms and matches the app's normal error display.
+  useEffect(() => {
+    if (!syncError) return;
+    popup.error("A previous action was not successful", {
+      description: syncError,
+    });
+    clearSyncError();
+  }, [syncError]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!Capacitor.isNativePlatform()) {
     return null;
@@ -32,26 +45,6 @@ export function SyncIndicator() {
             className="pointer-events-auto bg-indigo-600 text-white shadow-lg rounded-full px-4 py-2 flex items-center gap-2 text-xs font-bold tracking-wide border border-indigo-500"
           >
             <RefreshCw size={14} className="animate-spin text-indigo-200" /> Syncing...
-          </motion.div>
-        )}
-
-        {syncError && (
-          <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            className="pointer-events-auto bg-rose-600 text-white shadow-lg rounded-full pl-4 pr-2 py-1.5 flex items-center gap-3 text-xs font-bold tracking-wide border border-rose-500 max-w-sm"
-          >
-            <div className="flex items-center gap-2 truncate">
-              <AlertTriangle size={14} className="text-rose-200 shrink-0" />
-              <span className="truncate">{syncError}</span>
-            </div>
-            <button
-              onClick={clearSyncError}
-              className="p-1 hover:bg-rose-700 rounded-full transition-colors shrink-0"
-            >
-              <X size={14} />
-            </button>
           </motion.div>
         )}
       </AnimatePresence>

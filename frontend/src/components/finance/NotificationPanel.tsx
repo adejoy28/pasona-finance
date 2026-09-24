@@ -12,6 +12,7 @@ import {
   Info,
   Loader2,
   CheckCheck,
+  Lightbulb,
 } from "lucide-react";
 import {
   Sheet,
@@ -20,6 +21,8 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import { usePopup } from "@/components/ui/popup";
+import { getDailyMoneyFact } from "@/lib/facts";
 import type { NotificationDto } from "@/lib/api/notifications";
 
 type NotificationPanelProps = {
@@ -164,6 +167,7 @@ export function NotificationPanel({
   refresh,
 }: NotificationPanelProps) {
   const navigate = useNavigate();
+  const popup = usePopup();
   const [selectedNotif, setSelectedNotif] = useState<NotificationDto | null>(null);
 
   // Fetch when panel opens if empty
@@ -276,20 +280,43 @@ export function NotificationPanel({
                 </p>
               </div>
 
-              <div className="pt-4 flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={(e) => handleDelete(e, selectedNotif.id)}
-                  className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
-                >
-                  <Trash2 size={15} />
-                  Remove
-                </button>
+              <div className="pt-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => handleDelete(e, selectedNotif.id)}
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                  >
+                    <Trash2 size={15} />
+                    Remove
+                  </button>
+
+                  {(selectedNotif.type === "reminder" ||
+                    selectedNotif.title.toLowerCase().includes("fact") ||
+                    selectedNotif.body.toLowerCase().includes("fact")) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onOpenChange(false);
+                        const dailyFact = getDailyMoneyFact();
+                        const title = selectedNotif.title.includes("Fact")
+                          ? selectedNotif.title
+                          : `💡 ${dailyFact.title}`;
+                        const desc = `${selectedNotif.body}\n\n💡 Takeaway: ${dailyFact.take}`;
+                        popup.fact(title, { description: desc, duration: 15000 });
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-amber-800 bg-amber-100/70 hover:bg-amber-100 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <Lightbulb size={14} className="text-amber-600" />
+                      View in popup
+                    </button>
+                  )}
+                </div>
 
                 <button
                   type="button"
                   onClick={() => setSelectedNotif(null)}
-                  className="px-5 py-2.5 text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                  className="px-5 py-2 text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
                 >
                   Back to list
                 </button>

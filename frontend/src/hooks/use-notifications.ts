@@ -119,10 +119,11 @@ export function useNotifications(): UseNotificationsResult {
 
   const removeNotification = useCallback(
     async (id: number) => {
-      // Optimistic update
+      // Capture state before optimistic update so we can roll back on failure.
+      let removed: NotificationDto | undefined;
       setNotifications((prev) => {
-        const target = prev.find((n) => n.id === id);
-        if (target && !target.read_at) {
+        removed = prev.find((n) => n.id === id);
+        if (removed && !removed.read_at) {
           setUnreadCount((c) => Math.max(0, c - 1));
         }
         return prev.filter((n) => n.id !== id);
@@ -130,20 +131,36 @@ export function useNotifications(): UseNotificationsResult {
       try {
         await apiDeleteNotification(id);
       } catch {
-        // Ignore
+        // Roll back — restore the notification and unread count.
+        if (removed) {
+          setNotifications((prev) => {
+            // Insert back in original position by id ordering.
+            const idx = prev.findIndex((n) => n.id < removed!.id);
+            const next = [...prev];
+            idx === -1 ? next.push(removed!) : next.splice(idx, 0, removed!);
+            return next;
+          });
+          if (!removed.read_at) {
+            setUnreadCount((c) => c + 1);
+          }
+        }
       }
     },
     [],
   );
 
   const clearAll = useCallback(async () => {
-    // Optimistic update
-    setNotifications([]);
-    setUnreadCount(0);
+    // Capture state before optimistic wipe so we can roll back on failure.
+    let snapshot: NotificationDto[] = [];
+    let snapshotUnread = 0;
+    setNotifications((prev) => { snapshot = prev; return []; });
+    setUnreadCount((c) => { snapshotUnread = c; return 0; });
     try {
       await apiDeleteAllNotifications();
     } catch {
-      // Ignore
+      // Roll back.
+      setNotifications(snapshot);
+      setUnreadCount(snapshotUnread);
     }
   }, []);
 

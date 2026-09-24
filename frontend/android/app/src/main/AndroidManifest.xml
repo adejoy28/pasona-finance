@@ -38,4 +38,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Required for repeating alarms to survive device reboot -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Required for exact alarm delivery on Android 12+ without 2-5 minute batching delays -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <!-- Required on Android 8.0+ (API 26+) for APK self-updates -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 </manifest>
