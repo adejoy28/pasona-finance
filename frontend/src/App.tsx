@@ -32,6 +32,7 @@ import { initCapacitor } from "@/lib/capacitor";
 import { AppInstallBanner } from "@/components/finance/AppInstallBanner";
 import { SyncIndicator } from "@/components/finance/SyncIndicator";
 import { SplashScreen } from "@/components/finance/SplashScreen";
+import { NativeNotificationListener } from "@/components/finance/NativeNotificationListener";
 
 function UnauthorizedHandler() {
   const navigate = useNavigate();
@@ -59,11 +60,12 @@ export function App() {
   return (
     <BrowserRouter>
       <ErrorBoundary>
-        <SplashScreen duration={1500} />
-        <AppInstallBanner />
-        <SyncIndicator />
-        <UnauthorizedHandler />
         <PopupProvider>
+          <SplashScreen duration={1500} />
+          <AppInstallBanner />
+          <SyncIndicator />
+          <NativeNotificationListener />
+          <UnauthorizedHandler />
           <Routes>
           {/* Public routes */}
           <Route path="/" element={<SplashPage />} />
