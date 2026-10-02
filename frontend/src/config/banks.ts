@@ -22,6 +22,8 @@ export type BankConfig = {
   format: string;
   /** One-line subtitle / hint, shown under the label. */
   hint: string;
+  /** Primary format label (e.g. 'csv', 'xlsx'). */
+  format: string;
   /**
    * File extension(s) the picker accepts. Multiple extensions are
    * comma-separated. Used as the `<input accept>` value.
@@ -46,6 +48,7 @@ export const BANKS: Record<BankSlug, BankConfig> = {
     label: "CSV (generic)",
     format: "CSV",
     hint: "A plain CSV with date, amount, type, account, category, description columns.",
+    format: "csv",
     accepts: ".csv,text/csv",
     accept: ".csv,text/csv",
     previewPath: "/import/preview",
@@ -56,6 +59,7 @@ export const BANKS: Record<BankSlug, BankConfig> = {
     label: "Kuda Bank",
     format: "XLSX",
     hint: "XLSX statement exported from the Kuda app.",
+    format: "xlsx",
     accepts: ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     accept: ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     previewPath: "/import/kuda/preview",
@@ -66,6 +70,7 @@ export const BANKS: Record<BankSlug, BankConfig> = {
     label: "OPay",
     format: "XLSX",
     hint: "XLSX statement exported from the OPay app.",
+    format: "xlsx",
     accepts: ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     accept: ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     previewPath: "/import/opay/preview",

@@ -34,6 +34,7 @@ import {
   summary as summaryApi,
   type SummaryDto,
 } from "@/lib/api";
+import { FormattedAiResponse } from "@/components/finance/FormattedAiResponse";
 
 const QUICK_PROMPTS = [
   "Where can I cut down expenses?",
@@ -300,15 +301,14 @@ function AiInsightsCardBody({ isOnline }: { isOnline: boolean }) {
                 </button>
               </div>
             </div>
-            <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-100 rounded-2xl p-5">
-              <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">
-                {displayAnswer}
-                {typewriterActive && <span className="animate-pulse">▌</span>}
-              </p>
+            <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-100 rounded-2xl p-5 text-sm text-slate-800 leading-relaxed">
+              <FormattedAiResponse text={displayAnswer} />
+              {typewriterActive && <span className="inline-block animate-pulse font-mono ml-0.5 text-blue-600">▌</span>}
             </div>
             <p className="text-[10px] text-slate-400 text-center leading-relaxed">
               Your anonymized financial summary was sent to an AI language model to
-              generate this. Transaction descriptions and references are not shared.
+              generate this. Transaction descriptions and references are not shared. For
+              informational budgeting purposes only; not certified financial advice.
             </p>
           </div>
         )}

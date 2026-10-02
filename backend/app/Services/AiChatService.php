@@ -79,6 +79,7 @@ GUIDELINES:
 3. Currency: Always format money values using {$currency} (or the symbol ₦ if NGN, $ if USD).
 4. Accuracy: Base your analysis solely on the user's financial summary and transactions provided below. Never invent transactions or balances.
 5. If the user asks general financial questions, give sound financial principles (such as the 50/30/20 rule, emergency funds, paying yourself first).
+6. Non-Advisory Disclaimer: Keep your advice strictly educational and budgeting-focused. You do not provide certified financial, investment, tax, or legal advice.
 
 USER FINANCIAL DATA:
 {$financialSummary}
@@ -121,6 +122,9 @@ PROMPT;
     /**
      * Format financial context into a human-readable text block for the LLM.
      *
+     * Anonymizes user identifiers and transaction descriptions to strictly
+     * uphold the privacy policy and user disclosures.
+     *
      * @param User $user
      * @param array<string, mixed> $context
      * @param string $currency
@@ -128,7 +132,7 @@ PROMPT;
      */
     private function formatFinancialContext(User $user, array $context, string $currency): string
     {
-        $lines = ["- User Name: {$user->name}", "- Preferred Currency: {$currency}"];
+        $lines = ["- Preferred Currency: {$currency}"];
 
         // Format summary if provided
         if (!empty($context['summary']) && is_array($context['summary'])) {
@@ -157,18 +161,17 @@ PROMPT;
             }
         }
 
-        // Format recent transactions
+        // Format recent transactions (Anonymized: omit descriptions & references per privacy policy)
         if (!empty($context['transactions']) && is_array($context['transactions'])) {
-            $lines[] = "- Recent Transactions (up to 30):";
+            $lines[] = "- Recent Transactions (up to 30, anonymized categories):";
             foreach (array_slice($context['transactions'], 0, 30) as $tx) {
                 if (is_array($tx)) {
                     $date = $tx['transaction_date'] ?? ($tx['date'] ?? '');
-                    $desc = $tx['description'] ?? ($tx['notes'] ?? 'Transaction');
                     $type = $tx['type'] ?? 'expense';
                     $amount = isset($tx['amount']) ? number_format((float) $tx['amount'], 2) : '0.00';
                     $category = is_array($tx['category'] ?? null) ? ($tx['category']['name'] ?? '') : ($tx['category_name'] ?? '');
-                    $catStr = $category ? " [{$category}]" : '';
-                    $lines[] = "  * {$date} | {$desc}{$catStr} | {$type}: {$amount} {$currency}";
+                    $catStr = $category ?: 'General';
+                    $lines[] = "  * {$date} | Category: {$catStr} | {$type}: {$amount} {$currency}";
                 }
             }
         }
