@@ -82,8 +82,8 @@ export function SwipeReveal({
   };
 
   // Touch handlers
-  const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => handleStart(e.touches[0].clientX);
-  const handleTouchMove = (e: TouchEvent<HTMLDivElement>) => handleMove(e.touches[0].clientX);
+  const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => handleStart(e.touches[0]!.clientX);
+  const handleTouchMove = (e: TouchEvent<HTMLDivElement>) => handleMove(e.touches[0]!.clientX);
   const handleTouchEnd = () => handleEnd();
 
   // Pointer handlers (mouse / trackpad / stylus)

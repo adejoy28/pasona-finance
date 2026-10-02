@@ -106,7 +106,7 @@ export function TransactionDialog({
       setToAccountId("");
       setCategoryId("");
       setDescription("");
-      setDate(new Date().toISOString().split("T")[0]);
+      setDate(new Date().toISOString().split("T")[0]!);
     }
     setError(null);
   }, [open, transaction]);

@@ -54,16 +54,31 @@ export async function fetchUpdateMetadata(): Promise<AppUpdateMetadata | null> {
       return null;
     }
     const data = await res.json();
-    if (!data || typeof data.latestVersionCode !== "number") {
+    const rawVersionCode = data?.latestVersionCode ?? data?.versionCode;
+    const latestVersionCode =
+      typeof rawVersionCode === "number"
+        ? rawVersionCode
+        : parseInt(String(rawVersionCode || ""), 10);
+
+    if (!data || isNaN(latestVersionCode) || latestVersionCode <= 0) {
       console.warn("[updater] Invalid metadata response structure:", data);
       return null;
     }
+
+    const rawMinCode = data.minimumVersionCode;
+    const minimumVersionCode =
+      typeof rawMinCode === "number"
+        ? rawMinCode
+        : rawMinCode
+        ? parseInt(String(rawMinCode), 10)
+        : 0;
+
     return {
-      latestVersionCode: data.latestVersionCode,
-      latestVersionName: data.latestVersionName || "1.0.0",
-      downloadUrl: data.downloadUrl,
+      latestVersionCode,
+      latestVersionName: data.latestVersionName || data.version || "1.0.0",
+      downloadUrl: data.downloadUrl || import.meta.env.VITE_ANDROID_APK_URL,
       releaseNotes: data.releaseNotes || data.whatsNew || "",
-      minimumVersionCode: data.minimumVersionCode ?? 0,
+      minimumVersionCode: isNaN(minimumVersionCode) ? 0 : minimumVersionCode,
       forceUpdate: Boolean(data.forceUpdate),
     };
   } catch (err) {

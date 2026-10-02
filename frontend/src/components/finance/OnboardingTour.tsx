@@ -101,7 +101,7 @@ export function OnboardingTour({ hasNoAccounts, force = false }: OnboardingTourP
   }, []);
 
   if (!active) return null;
-  const current = STEPS[step];
+  const current = STEPS[step]!;
   if (step === 0) {
     return (
       <Coachmark
