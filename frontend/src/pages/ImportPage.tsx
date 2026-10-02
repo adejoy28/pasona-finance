@@ -592,15 +592,15 @@ export function ImportPage() {
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <button
             type="button"
-            onClick={() => (step === "preview" ? setStep("upload") : navigate(-1))}
-            className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/15 flex items-center justify-center transition-colors text-white"
+            onClick={() => navigate(-1)}
+            className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors shrink-0"
             aria-label="Back"
           >
-            <ArrowLeft size={16} />
+            <ArrowLeft size={18} />
           </button>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="text-base font-bold text-white tracking-tight">Import Transactions</h1>
-            <p className="text-[11px] text-slate-300 font-medium">Batch upload bank statements (CSV, Excel XLSX, PDF)</p>
+            <p className="text-[11px] text-slate-300 font-medium truncate">Batch upload bank statements (CSV, XLSX)</p>
           </div>
         </div>
       </header>
@@ -625,7 +625,7 @@ export function ImportPage() {
                   className="w-full bg-slate-50 border-0 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 appearance-none outline-none cursor-pointer"
                 >
                   <option value="" disabled>Select account</option>
-                  {accounts.map((acc) => (
+                  {(accounts ?? []).map((acc) => (
                     <option key={acc.id} value={acc.id}>
                       {acc.name}
                     </option>
@@ -657,7 +657,7 @@ export function ImportPage() {
               >
                 <input
                   type="file"
-                  accept=".csv, .xlsx, .xls, .pdf, application/pdf, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, text/csv"
+                  accept={bankConfig.accepts}
                   onChange={(e) => handlePickFile(e.target.files?.[0] ?? null)}
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />
@@ -965,12 +965,14 @@ export function ImportPage() {
                     onChange={(e) => handleBulkToAccountChange(e.target.value)}
                     className="w-full bg-white border border-blue-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-800 appearance-none outline-none cursor-pointer"
                   >
-                    <option value="">Select default destination account</option>
-                    {destinationAccountOptions.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
-                      </option>
-                    ))}
+                    <option value="">Select destination account</option>
+                    {(accounts ?? [])
+                      .filter((a) => String(a.id) !== accountId)
+                      .map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                        </option>
+                      ))}
                   </select>
                   <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
                 </div>
