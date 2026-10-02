@@ -51,20 +51,22 @@ export function VerifyEmailBanner() {
   return (
     <div
       role="status"
-      className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-amber-900"
+      className="flex items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/15 px-4 py-2.5 text-amber-200 backdrop-blur-md shadow-sm"
     >
-      <div className="flex items-center gap-2 min-w-0">
-        <Mail size={16} className="flex-shrink-0 text-amber-600" aria-hidden />
-        <span className="text-xs font-bold truncate">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-300">
+          <Mail size={15} aria-hidden />
+        </div>
+        <span className="text-xs font-semibold text-amber-100 truncate">
           Confirm your email to unlock CSV imports and batch sync.
         </span>
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
         <button
           type="button"
           onClick={handleResend}
           disabled={sending || sent}
-          className="inline-flex items-center gap-1 rounded-full bg-amber-600 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-white transition-colors hover:bg-amber-700 disabled:opacity-70 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1 rounded-xl bg-amber-500 px-3 py-1 text-[11px] font-bold text-slate-950 transition-all hover:bg-amber-400 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
         >
           {sent ? (
             <>
@@ -79,8 +81,8 @@ export function VerifyEmailBanner() {
         <button
           type="button"
           onClick={() => setHidden(true)}
-          aria-label="Dismiss"
-          className="flex h-7 w-7 items-center justify-center rounded-full text-amber-700 transition-colors hover:bg-amber-100"
+          aria-label="Dismiss email verification notice"
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-amber-300/80 transition-colors hover:bg-white/10 hover:text-amber-100 cursor-pointer"
         >
           <X size={14} />
         </button>

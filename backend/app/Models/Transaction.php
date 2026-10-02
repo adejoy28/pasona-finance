@@ -31,6 +31,8 @@ class Transaction extends Model
      */
     protected $fillable = [
         'user_id',
+        'uuid',
+        'import_batch_id',
         'account_id',
         'to_account_id',
         'type',

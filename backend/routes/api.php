@@ -125,16 +125,14 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('transactions/sync', [TransactionController::class, 'sync'])
         ->middleware('verified'); // batch sync writes > 1 row at a time
 
-    // Import — large CSV / bank-statement ingest is gated by
-    // verified email so we have a way to reach the user if
-    // something goes wrong with the import.
-    Route::post('import/preview', [ImportController::class, 'preview']);
+    // Import — client-side parsing; backend only checks existing rows and stores confirmed ones
+    Route::post('import/check', [ImportController::class, 'check']);
+    Route::post('import/batches/{batch_id}/undo', [ImportController::class, 'undoBatch']);
+
     Route::post('import/store', [ImportController::class, 'store'])
         ->middleware('verified');
-    Route::post('import/kuda/preview', [KudaImportController::class, 'preview']);
     Route::post('import/kuda/store', [KudaImportController::class, 'store'])
         ->middleware('verified');
-    Route::post('import/opay/preview', [OpayImportController::class, 'preview']);
     Route::post('import/opay/store', [OpayImportController::class, 'store'])
         ->middleware('verified');
 

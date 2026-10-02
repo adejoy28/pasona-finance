@@ -81,3 +81,10 @@ launch-video/renders/launch-video_2026-09-17_10-57-09.mp4
 launch-video/renders/launch-video_2026-09-17_11-09-22.mp4
 launch-video/renders/launch-video_2026-09-17_11-15-21.mp4
 ffmpeg.zip
+.idea/.gitignore
+.idea/markdown.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/studiobot.xml
+.idea/vcs.xml
+.idea/caches/deviceStreaming.xml

@@ -97,6 +97,8 @@ export type SummaryDto = {
 };
 
 export type ImportPreviewRow = {
+  /** UUID stamped by the server at preview time; echo back in the store payload. */
+  uuid: string;
   transaction_date: string;
   description: string;
   amount: number;

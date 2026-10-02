@@ -1,5 +1,6 @@
 import { api } from "./client";
 import { setAuthToken, clearAuthToken } from "../auth/token";
+import { setCachedUser, invalidateMe } from "@/hooks/use-me";
 import type {
   AuthResponse,
   ForgotPasswordInput,
@@ -13,12 +14,14 @@ import type {
 export async function login(input: LoginInput): Promise<UserDto> {
   const data = await api.post<AuthResponse>("/login", input, { anonymous: true });
   setAuthToken(data.access_token);
+  setCachedUser(data.user);
   return data.user;
 }
 
 export async function register(input: RegisterInput): Promise<UserDto> {
   const data = await api.post<AuthResponse>("/register", input, { anonymous: true });
   setAuthToken(data.access_token);
+  setCachedUser(data.user);
   return data.user;
 }
 
@@ -27,6 +30,7 @@ export async function logout(): Promise<void> {
     await api.post<{ message: string }>("/logout");
   } finally {
     clearAuthToken();
+    invalidateMe();
   }
 }
 

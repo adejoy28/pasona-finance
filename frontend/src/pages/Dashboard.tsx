@@ -19,9 +19,7 @@ import { DashboardSkeleton } from "@/components/finance/Skeletons";
 import { AiChat } from "@/components/finance/AiChat";
 import { OnboardingTour } from "@/components/finance/OnboardingTour";
 import { NotificationBell } from "@/components/finance/NotificationBell";
-import { NewLookBanner } from "@/components/finance/NewLookBanner";
 import { VerifyEmailBanner } from "@/components/finance/VerifyEmailBanner";
-import { BiometricPromptBanner } from "@/components/finance/BiometricPromptBanner";
 import { DEFAULT_CURRENCY } from "@/lib/currencies";
 import { formatCurrency, type Account } from "@/lib/finance";
 import {
@@ -195,8 +193,8 @@ export function Dashboard() {
     if (idx === 0) {
       acc.push(0);
     } else {
-      const prevPct = (categoryBreakdown[idx - 1].total / totalSpending) * 100;
-      acc.push(acc[idx - 1] + prevPct);
+      const prevPct = (categoryBreakdown[idx - 1]!.total / totalSpending) * 100;
+      acc.push(acc[idx - 1]! + prevPct);
     }
     return acc;
   }, []);
@@ -235,10 +233,6 @@ export function Dashboard() {
         </div>
       </header>
 
-      <NewLookBanner />
-      <VerifyEmailBanner />
-      <BiometricPromptBanner />
-
       {/* Hero Navy Card Section */}
       <motion.section
         variants={fadeSlideDown}
@@ -246,7 +240,9 @@ export function Dashboard() {
         animate="visible"
         className="px-6 pt-2 pb-6 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
       >
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl mx-auto space-y-3">
+          <VerifyEmailBanner />
+
           {/* Hero Navy Card: PalmPay-Style Compact 3-Row Grid */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -525,7 +521,7 @@ export function Dashboard() {
                         const pct = (item.total / totalSpending) * 100;
                         const strokeDash = (pct / 100) * 238.76;
                         const strokeGap = 238.76 - strokeDash;
-                        const strokeOffset = -(accumulatedPercents[idx] / 100) * 238.76;
+                        const strokeOffset = -(accumulatedPercents[idx]! / 100) * 238.76;
                         return (
                           <circle
                             key={idx}
