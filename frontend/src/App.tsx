@@ -29,7 +29,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 import { DownloadPage } from "@/pages/DownloadPage";
 
 import { initCapacitor } from "@/lib/capacitor";
-import { AppInstallBanner } from "@/components/finance/AppInstallBanner";
+import { SubtlePopups } from "@/components/finance/SubtlePopups";
 import { SyncIndicator } from "@/components/finance/SyncIndicator";
 import { SplashScreen } from "@/components/finance/SplashScreen";
 import { NativeNotificationListener } from "@/components/finance/NativeNotificationListener";
@@ -62,7 +62,7 @@ export function App() {
       <ErrorBoundary>
         <PopupProvider>
           <SplashScreen duration={1500} />
-          <AppInstallBanner />
+          <SubtlePopups />
           <SyncIndicator />
           <NativeNotificationListener />
           <UnauthorizedHandler />

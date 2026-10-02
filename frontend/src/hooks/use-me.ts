@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { auth as authApi, type UserDto } from "@/lib/api";
+import { getAuthToken } from "@/lib/auth/token";
 
 /**
  * Hook to get the current user. Replaces the TanStack Query-based useMe().
@@ -10,13 +11,20 @@ let cachedUser: UserDto | null = null;
 let fetchPromise: Promise<UserDto> | null = null;
 
 export function useMe() {
+  const token = getAuthToken();
   const [data, setData] = useState<UserDto | null>(cachedUser);
-  const [isLoading, setIsLoading] = useState(!cachedUser);
+  const [isLoading, setIsLoading] = useState(!cachedUser && !!token);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     if (cachedUser) {
       setData(cachedUser);
+      setIsLoading(false);
+      return;
+    }
+
+    if (!getAuthToken()) {
+      setData(null);
       setIsLoading(false);
       return;
     }
@@ -58,4 +66,8 @@ export function useMe() {
 export function invalidateMe(): void {
   cachedUser = null;
   fetchPromise = null;
+}
+
+export function setCachedUser(user: UserDto | null): void {
+  cachedUser = user;
 }

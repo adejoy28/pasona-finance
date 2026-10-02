@@ -426,7 +426,7 @@ export function Settings() {
           >
             <div className="flex items-center gap-3.5 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-white/15 text-white flex items-center justify-center font-bold text-base shrink-0">
-                {user?.name ? user!.name[0].toUpperCase() : "P"}
+                {user?.name ? user!.name[0]!.toUpperCase() : "P"}
               </div>
               <div className="min-w-0">
                 <p className="font-bold text-white text-sm sm:text-base truncate">{user?.name ?? "User"}</p>

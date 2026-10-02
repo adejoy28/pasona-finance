@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Settings as SettingsIcon,
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -231,11 +232,11 @@ export function AppInstallBanner() {
         <motion.aside
           role="region"
           aria-label="Application Update"
-          initial={{ y: -20, opacity: 0, scale: 0.96 }}
+          initial={{ y: 24, opacity: 0, scale: 0.96 }}
           animate={{ y: 0, opacity: 1, scale: 1 }}
-          exit={{ y: -20, opacity: 0, scale: 0.96 }}
+          exit={{ y: 24, opacity: 0, scale: 0.96 }}
           transition={{ type: "spring", stiffness: 380, damping: 26 }}
-          className="fixed top-3 left-3 right-3 sm:left-auto sm:right-5 sm:top-auto sm:bottom-5 sm:max-w-[390px] z-50"
+          className="fixed bottom-4 left-3 right-3 sm:left-6 sm:right-auto sm:bottom-6 sm:max-w-[390px] z-40"
         >
           <div className="relative overflow-hidden rounded-2xl border border-blue-500/25 bg-[#0b132b]/98 p-4 shadow-2xl backdrop-blur-xl card-shadow text-white">
             <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-blue-500/20 blur-2xl" />
@@ -249,7 +250,7 @@ export function AppInstallBanner() {
                   ) : updateState === "error" ? (
                     <AlertCircle size={20} className="text-rose-400" />
                   ) : updateState === "downloading" ? (
-                    <RefreshCw size={19} className="animate-spin text-blue-400" />
+                    <Loader2 size={19} className="animate-spin text-blue-400" />
                   ) : (
                     <Smartphone size={20} className="stroke-[2.2]" />
                   )}
@@ -404,11 +405,11 @@ export function AppInstallBanner() {
         <motion.aside
           role="region"
           aria-label="Android App Download Prompt"
-          initial={{ y: -20, opacity: 0, scale: 0.96 }}
+          initial={{ y: 24, opacity: 0, scale: 0.96 }}
           animate={{ y: 0, opacity: 1, scale: 1 }}
-          exit={{ y: -20, opacity: 0, scale: 0.96 }}
+          exit={{ y: 24, opacity: 0, scale: 0.96 }}
           transition={{ type: "spring", stiffness: 380, damping: 26 }}
-          className="fixed top-3 left-3 right-3 sm:left-auto sm:right-5 sm:top-auto sm:bottom-5 sm:max-w-[370px] z-50"
+          className="fixed bottom-4 left-3 right-3 sm:left-6 sm:right-auto sm:bottom-6 sm:max-w-[370px] z-40"
         >
           <div className="relative overflow-hidden rounded-2xl border border-blue-500/20 bg-[#0b132b]/95 p-3.5 shadow-2xl backdrop-blur-xl card-shadow">
             <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-blue-500/15 blur-2xl" />

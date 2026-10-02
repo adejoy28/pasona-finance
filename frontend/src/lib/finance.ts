@@ -35,15 +35,15 @@ function tokenize(input: string): Token[] | null {
   const tokens: Token[] = [];
   let i = 0;
   while (i < input.length) {
-    const char = input[i];
+    const char = input[i]!;
     if (/\s/.test(char)) {
       i++;
       continue;
     }
     if (/[0-9.]/.test(char)) {
       let numStr = "";
-      while (i < input.length && /[0-9.]/.test(input[i])) {
-        numStr += input[i];
+      while (i < input.length && /[0-9.]/.test(input[i]!)) {
+        numStr += input[i]!;
         i++;
       }
       const num = Number(numStr);
@@ -81,7 +81,7 @@ class MathParser {
   private parseExpr(): number {
     let result = this.parseTerm();
     while (this.pos < this.tokens.length) {
-      const token = this.tokens[this.pos];
+      const token = this.tokens[this.pos]!;
       if (token.type === "op" && (token.value === "+" || token.value === "-")) {
         this.pos++;
         const right = this.parseTerm();
@@ -96,7 +96,7 @@ class MathParser {
   private parseTerm(): number {
     let result = this.parseFactor();
     while (this.pos < this.tokens.length) {
-      const token = this.tokens[this.pos];
+      const token = this.tokens[this.pos]!;
       if (token.type === "op" && (token.value === "*" || token.value === "/")) {
         this.pos++;
         const right = this.parseFactor();
@@ -115,7 +115,7 @@ class MathParser {
 
   private parseFactor(): number {
     if (this.pos >= this.tokens.length) throw new Error("Unexpected end");
-    const token = this.tokens[this.pos];
+    const token = this.tokens[this.pos]!;
 
     if (token.type === "op" && (token.value === "-" || token.value === "+")) {
       this.pos++;
@@ -131,7 +131,8 @@ class MathParser {
     if (token.type === "paren" && token.value === "(") {
       this.pos++;
       const val = this.parseExpr();
-      if (this.pos >= this.tokens.length || this.tokens[this.pos].type !== "paren" || this.tokens[this.pos].value !== ")") {
+      const closing = this.tokens[this.pos];
+      if (this.pos >= this.tokens.length || closing?.type !== "paren" || closing?.value !== ")") {
         throw new Error("Missing closing parenthesis");
       }
       this.pos++;

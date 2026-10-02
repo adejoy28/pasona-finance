@@ -86,11 +86,11 @@ function toTransaction(dto: TransactionDto): Transaction {
 function groupByDay(items: Transaction[]) {
   const groups = new Map<string, Transaction[]>();
   for (const t of items) {
-    const key = t.transaction_date.split(" ")[0];
+    const key = t.transaction_date.split(" ")[0]!;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(t);
   }
-  return Array.from(groups.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
+  return Array.from(groups.entries()).sort((a, b) => (a[0]! < b[0]! ? 1 : -1));
 }
 
 export function TransactionsIndex() {
