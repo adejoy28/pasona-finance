@@ -78,7 +78,7 @@ public class AppUpdatePlugin extends Plugin {
     @PluginMethod
     public void downloadApk(PluginCall call) {
         String downloadUrl = call.getString("url");
-        Long versionCode = call.getLong("versionCode");
+        Long versionCode = extractVersionCode(call);
 
         if (downloadUrl == null || downloadUrl.trim().isEmpty()) {
             call.reject("downloadUrl is required");
@@ -198,7 +198,7 @@ public class AppUpdatePlugin extends Plugin {
 
     @PluginMethod
     public void installApk(PluginCall call) {
-        Long versionCode = call.getLong("versionCode");
+        Long versionCode = extractVersionCode(call);
         if (versionCode == null || versionCode <= 0) {
             call.reject("Valid versionCode is required");
             return;
@@ -245,6 +245,35 @@ public class AppUpdatePlugin extends Plugin {
         } catch (Exception e) {
             call.reject("Failed to trigger installer: " + e.getMessage(), e);
         }
+    }
+
+    private Long extractVersionCode(PluginCall call) {
+        if (call == null || call.getData() == null) return null;
+
+        Object raw = call.getData().opt("versionCode");
+        if (raw instanceof Number) {
+            long val = ((Number) raw).longValue();
+            if (val > 0) return val;
+        }
+
+        if (raw instanceof String) {
+            try {
+                long val = Long.parseLong(((String) raw).trim());
+                if (val > 0) return val;
+            } catch (NumberFormatException ignored) {}
+        }
+
+        Integer intVal = call.getInt("versionCode");
+        if (intVal != null && intVal > 0) {
+            return intVal.longValue();
+        }
+
+        Long longVal = call.getLong("versionCode");
+        if (longVal != null && longVal > 0) {
+            return longVal;
+        }
+
+        return null;
     }
 
     private void cleanOldFiles(File dir, long currentVersionCode) {

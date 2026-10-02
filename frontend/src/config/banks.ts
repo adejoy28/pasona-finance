@@ -18,6 +18,8 @@ export type BankSlug = "generic" | "kuda" | "opay";
 export type BankConfig = {
   /** Human-readable label, shown in the bank picker. */
   label: string;
+  /** Format identifier (CSV, XLSX, etc.). */
+  format: string;
   /** One-line subtitle / hint, shown under the label. */
   hint: string;
   /**
@@ -25,6 +27,8 @@ export type BankConfig = {
    * comma-separated. Used as the `<input accept>` value.
    */
   accepts: string;
+  /** Alias for accepts used by input accept attribute. */
+  accept: string;
   /** POST path for the preview endpoint (after `/api`). */
   previewPath: string;
   /** POST path for the store endpoint (after `/api`). */
@@ -40,24 +44,30 @@ export type BankConfig = {
 export const BANKS: Record<BankSlug, BankConfig> = {
   generic: {
     label: "CSV (generic)",
+    format: "CSV",
     hint: "A plain CSV with date, amount, type, account, category, description columns.",
     accepts: ".csv,text/csv",
+    accept: ".csv,text/csv",
     previewPath: "/import/preview",
     storePath: "/import/store",
     hasTransferSuggestions: false,
   },
   kuda: {
     label: "Kuda Bank",
+    format: "XLSX",
     hint: "XLSX statement exported from the Kuda app.",
     accepts: ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    accept: ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     previewPath: "/import/kuda/preview",
     storePath: "/import/kuda/store",
     hasTransferSuggestions: true,
   },
   opay: {
     label: "OPay",
+    format: "XLSX",
     hint: "XLSX statement exported from the OPay app.",
     accepts: ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    accept: ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     previewPath: "/import/opay/preview",
     storePath: "/import/opay/store",
     hasTransferSuggestions: true,

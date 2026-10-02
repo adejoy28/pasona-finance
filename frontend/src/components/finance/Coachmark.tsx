@@ -62,7 +62,7 @@ function choosePlacement(
     ["left", spaceLeft],
   ];
   rooms.sort((a, b) => b[1] - a[1]);
-  return rooms[0][0];
+  return rooms[0]![0]!;
 }
 
 function positionPopover(

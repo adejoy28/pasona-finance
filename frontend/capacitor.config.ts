@@ -6,6 +6,11 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     androidScheme: 'https',
+    url: 'http://192.168.137.1:5173',
+
+    // If testing on a Physical Phone (connected via USB/Wi-Fi):
+    // url: 'http://192.168.x.x:5173', // (replace with your computer's local IP from step 1)
+    cleartext: true,
   },
   plugins: {
     StatusBar: {

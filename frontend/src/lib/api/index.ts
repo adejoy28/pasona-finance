@@ -9,9 +9,16 @@ export * as summary from "./summary";
 export * as push from "./push";
 export * as notifications from "./notifications";
 export {
-  previewImport,
+  checkImportExisting,
+  storeImportTransactions,
+  undoImportBatch,
   commitImport,
   type ImportBankSlug,
+  type CheckExistingInput,
+  type ExistingTransactionTuple,
+  type StoreImportInput,
+  type StoreImportResult,
+  type UndoBatchResult,
   type CommitImportInput,
   type CommitImportResult,
 } from "./import";

@@ -218,6 +218,7 @@ function TaperingDotSpinner({ className }: { className?: string }) {
   return (
     <svg
       className={`h-9 w-9 animate-spin ${className ?? ""}`}
+      style={{ animationDirection: "reverse" }}
       viewBox="0 0 40 40"
       fill="currentColor"
       role="status"
