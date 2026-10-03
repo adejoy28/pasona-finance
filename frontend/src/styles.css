@@ -43,9 +43,17 @@
   --color-emerald: #2f8f6b;
   --color-emerald-soft: #dcede5;
 
-  --color-ink: #182459;
-  --color-ink-soft: #5b6389;
-  --color-ink-faint: #8c93b0;
+  --color-slate-50: var(--bg);
+  --color-slate-100: var(--chip);
+  --color-slate-200: var(--line);
+  --color-slate-300: var(--baseline);
+  --color-slate-400: var(--muted);
+  --color-slate-500: var(--muted);
+  --color-slate-600: var(--muted);
+  --color-slate-700: var(--ink);
+  --color-slate-800: var(--ink);
+  --color-slate-900: var(--ink);
+  --color-slate-950: var(--ink);
 
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -332,8 +340,8 @@ html[data-skin="fresh"]:not([data-mode="light"]) {
   }
 
   html, body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    background-color: var(--bg);
+    color: var(--ink);
     font-family: var(--font-sans);
     font-feature-settings: "ss01", "cv11";
     -webkit-font-smoothing: antialiased;
@@ -346,6 +354,55 @@ html[data-skin="fresh"]:not([data-mode="light"]) {
     letter-spacing: -0.02em;
     font-weight: 600;
   }
+}
+
+/* ==========================================================================
+   Theme Bridge: Ensures all existing screens react to skin and mode changes
+   ========================================================================== */
+.bg-slate-50,
+.app-bg {
+  background-color: var(--bg) !important;
+}
+
+.bg-white:not(button):not(a):not([class*="bg-white/"]):not(.keep-white) {
+  background-color: var(--surface) !important;
+}
+
+.bg-slate-100 {
+  background-color: var(--chip) !important;
+}
+
+.border-slate-50,
+.border-slate-100,
+.border-slate-200 {
+  border-color: var(--line) !important;
+}
+
+.divide-slate-50 > :not([hidden]) ~ :not([hidden]),
+.divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--line) !important;
+}
+
+.text-slate-900,
+.text-slate-800,
+.text-slate-700 {
+  color: var(--ink) !important;
+}
+
+.text-slate-600,
+.text-slate-500,
+.text-slate-400 {
+  color: var(--muted) !important;
+}
+
+header.bg-\[\#0b1434\],
+header[class*="bg-[#0b1434]"] {
+  background-color: var(--nav-bg) !important;
+}
+
+section.bg-gradient-to-b {
+  background: var(--hero) !important;
 }
 
 /* ===== Pasona utilities (cascade across every page) ===== */
