@@ -6,6 +6,7 @@ import {
   MoreVertical,
   Pencil,
   Plus,
+  Settings as SettingsIcon,
   Smartphone,
   Trash2,
   User,
@@ -16,6 +17,7 @@ import { ConfirmDestructiveDialog } from "@/components/ui/confirm-destructive-di
 import { AccountCardSkeleton, AccountsSkeleton } from "@/components/finance/Skeletons";
 import { AccountDialog } from "@/components/finance/AccountDialog";
 import { NotificationBell } from "@/components/finance/NotificationBell";
+import { getUserInitials } from "@/components/finance/ScreenHeader";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -183,20 +185,28 @@ export function AccountsIndex() {
       <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-6 shadow-sm border-b border-white/5 transition-all">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2.5">
-            <Link
-              to="/settings"
-              className={`w-9 h-9 rounded-full flex items-center justify-center text-white transition-all shadow-sm relative overflow-hidden ring-2 ring-offset-2 ring-offset-[#0b1434] ${
-                isOnline ? "ring-emerald-400 bg-white/10" : "ring-amber-400 bg-white/10"
-              }`}
-              aria-label="Profile settings"
-              title={isOnline ? "Online" : "Offline"}
-            >
-              <User size={18} />
-            </Link>
-            <h1 className="text-base font-bold tracking-tight text-white">My Accounts</h1>
+            <h1 className="text-base font-bold tracking-tight text-white">Accounts</h1>
           </div>
 
-          <NotificationBell />
+          <div className="flex items-center gap-1.5">
+            <NotificationBell />
+            <Link
+              to="/settings"
+              className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all md:hidden"
+              aria-label="Settings"
+              title="Settings"
+            >
+              <SettingsIcon size={16} />
+            </Link>
+            <Link
+              to="/profile"
+              className="w-9 h-9 rounded-full bg-[var(--primary)] text-white font-bold text-xs flex items-center justify-center transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] shadow-sm"
+              aria-label="User Profile"
+              title={`Profile: ${userQuery.data?.name || "User"}`}
+            >
+              {getUserInitials(userQuery.data?.name)}
+            </Link>
+          </div>
         </div>
       </header>
 

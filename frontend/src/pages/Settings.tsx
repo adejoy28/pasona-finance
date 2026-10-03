@@ -838,13 +838,13 @@ export function Settings() {
                 </button>
               </div>
 
-              {/* Theme Skin Segmented Control */}
+              {/* Theme Skin Segmented Control (Addendum B: Colours) */}
               <div className="p-4 space-y-2">
                 <div className="flex items-center gap-3">
                   <Palette size={18} className="text-slate-400" />
                   <div>
-                    <p className="text-xs font-bold text-slate-800">Theme Skin</p>
-                    <p className="text-[10px] text-slate-400">Color palette and feel</p>
+                    <p className="text-xs font-bold text-slate-800">Colours</p>
+                    <p className="text-[10px] text-slate-400">Original or New color palette</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5 bg-[var(--chip)] p-1 rounded-xl">
@@ -862,29 +862,42 @@ export function Settings() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSkin("fresh")}
+                    onClick={() => setSkin("new")}
                     className={cn(
                       "py-1.5 px-3 rounded-lg text-xs font-bold transition-all text-center select-none cursor-pointer",
-                      skin === "fresh"
+                      skin === "new" || (skin as string) === "fresh"
                         ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
                         : "text-[var(--muted)] hover:text-[var(--ink)]"
                     )}
                   >
-                    Fresh (Warm)
+                    New
                   </button>
                 </div>
               </div>
 
-              {/* Appearance Mode Segmented Control */}
+              {/* Appearance Mode Segmented Control (Addendum B: Mode) */}
               <div className="p-4 space-y-2">
                 <div className="flex items-center gap-3">
                   <Sun size={18} className="text-slate-400" />
                   <div>
-                    <p className="text-xs font-bold text-slate-800">Appearance</p>
-                    <p className="text-[10px] text-slate-400">Light, dark, or system preference</p>
+                    <p className="text-xs font-bold text-slate-800">Mode</p>
+                    <p className="text-[10px] text-slate-400">Auto, Light, or Dark mode</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-1.5 bg-[var(--chip)] p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setMode("auto")}
+                    className={cn(
+                      "py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 select-none cursor-pointer",
+                      mode === "auto" || (mode as string) === "system"
+                        ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
+                        : "text-[var(--muted)] hover:text-[var(--ink)]"
+                    )}
+                  >
+                    <Laptop size={13} />
+                    <span>Auto</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => setMode("light")}
@@ -910,19 +923,6 @@ export function Settings() {
                   >
                     <Moon size={13} />
                     <span>Dark</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMode("system")}
-                    className={cn(
-                      "py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 select-none cursor-pointer",
-                      mode === "system"
-                        ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
-                        : "text-[var(--muted)] hover:text-[var(--ink)]"
-                    )}
-                  >
-                    <Laptop size={13} />
-                    <span>System</span>
                   </button>
                 </div>
               </div>

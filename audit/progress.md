@@ -16,7 +16,7 @@
 | 2 | App shell & responsiveness | `phase-2-shell` | ✅ Done | `5d0790c`, `f5b8e7e`, `19dd440`. Superseded in parts by Addendum A/C/E → **Phase 2b**. |
 | 3 | Feedback & error system | `phase-3-feedback` | ⚠️ **Reopened → 3b** | `5248a4b`. Primitives exist but violate G1/G2 and are not wired/adopted. |
 | **3b** | **Feedback compliance (Addendum G)** | `phase-3-feedback` | 🟡 **Up next** | Remove dev switch, one alert system, wire HTTP mapping, adopt components. |
-| **2b** | **Shell & IA revisions (Addendum A/B/C/E)** | `phase-2b-shell-ia` | ⚪ Queued | Tabs, gear/avatar, month dropdown, fluid sizing, theme attrs. |
+| **2b** | **Shell & IA revisions (Addendum A/B/C/E)** | `phase-2b-shell-ia` | ✅ Done | Tabs, gear/avatar, month dropdown, fluid sizing, theme attrs, /profile. |
 | 6 | Categories & savings fix (backend first) | `phase-6-categories` | ⚪ Queued — **recommend before 4** | Phase 4 cannot show Spent/Saved correctly without `kind` + `saved`/`spent`. |
 | 4 | Home (capture-first) | `phase-4-dashboard` | ⚪ Queued | Expanded by G4 + Addendum D. |
 | 5 | Transactions | `phase-5-transactions` | ⚪ Queued | + Save-and-add-another, source badges incl. `mary`. |
@@ -37,11 +37,11 @@
 | HTTP status mapping (Phase 3.8) | 401 → overlay, 429 → message, 5xx → banner | `client.ts` still clears token and `UnauthorizedHandler` redirects to `/login` (loses open forms). No event dispatch for 5xx/network. | ❌ Wire (3b.4) |
 | Sync toast | "Syncing n" → "Synced n changes" | `NetworkStatusBar` listens for `pasona:sync-success`, but `useOfflineSync` emits `pasona:sync-complete` with no count | ❌ Fix (3b.5) |
 | Field errors / modal banner / destructive dialog / busy button | Used everywhere | Built, **not adopted on any screen** | ⏳ Adopt (3b.6) |
-| Theme attributes | **B: `data-skin` on app root, `data-theme` on `<html>`, Auto removes it** | `data-skin` + `data-mode` on `<html>`; labels Original/Fresh, Light/Dark/System | ⏳ Rename (2b.6) |
-| Bottom tabs | **A: Home, History, [Add], Budgets, Accounts** | 6 slots incl. Settings | ⏳ 2b.1 |
-| Month switcher | **C: dropdown button, top right** | Prev/next arrows in `ScreenHeader` | ⏳ 2b.3 |
-| Sidebar width | **E: `clamp(188px, 17cqw, 252px)`, container queries** | Fixed 200px, media queries | ⏳ 2b.5 |
-| Avatar | **A: opens Profile** | Links to `/settings` | ⏳ 2b.2 + 9.1 |
+| Theme attributes | **B: `data-skin` on app root, `data-theme` on `<html>`, Auto removes it** | `data-skin` on root/html, `data-theme` on html (Auto removes it) | ✅ Done (Phase 2b) |
+| Bottom tabs | **A: Home, History, [Add], Budgets, Accounts** | 5 slots, Settings removed | ✅ Done (Phase 2b) |
+| Month switcher | **C: dropdown button, top right** | Dropdown button, own row on mobile | ✅ Done (Phase 2b) |
+| Sidebar width | **E: `clamp(188px, 17cqw, 252px)`, container queries** | Fluid clamp with CQ on `#root` | ✅ Done (Phase 2b) |
+| Avatar | **A: opens Profile** | Links to `/profile`, user initials avatar | ✅ Done (Phase 2b) |
 | Contrast overhaul (`19dd440`) | Phase 1.4 | Done, still valid | ✅ Keep |
 
 ---
@@ -56,14 +56,29 @@
 6. **Adopt primitives.** `ConfirmDestructiveDialog` adopted for account deletion (requires typing "DELETE"), category deletion, undoing import batches, and sign-out. Field errors and busy button states adopted in forms and dialogs.
 7. **Verify.** Verified TypeScript typecheck and `npm run build` production bundling with zero errors.
 
-## Phase 2b — Shell & IA revisions (Addendum A, B, C, E)
+## Phase 2b — Shell & IA revisions (Addendum A, B, C, E) — COMPLETED
 
-1. Bottom tabs: Home, History, [Add], Budgets, Accounts (5-col grid). Sidebar: Home, History, Budgets, Accounts, Settings, Add transaction, **Ask Mary** (placeholder until 9b), user block.
-2. Header: avatar (initials) top-right on every main screen → `/profile`; gear icon → `/settings` on phones.
-3. Month dropdown (calendar icon, "August 2026", chevron) listing available months; own row on phones. Home subtitle "Your overview for {Month YYYY}".
-4. Categories leave primary nav (reachable from Settings > Data, Budgets footer, Profile).
-5. Fluid sizing via container queries: sidebar `clamp(188px,17cqw,252px)`, padding `clamp(18px,3cqw,44px)`, heading `clamp(24px,2.4cqw,34px)`, max width 1560px; Home right column auto-fit ≥340px from 1360px.
-6. Appearance: Colours (Original, New), Mode (Auto, Light, Dark); `data-skin` on app root, `data-theme` on `<html>` (Auto removes it). Migrate the anti-flash script and stored `pasona.theme` value without losing the user's choice.
+1. **Bottom tabs (Addendum A):** Updated mobile navigation in `Navbar.tsx` to 5-column grid: Home, History, [Add], Budgets, Accounts. Removed Settings from bottom tabs.
+2. **Sidebar (Addenda A & F):** Updated desktop sidebar in `Navbar.tsx` with Home, History, Budgets, Accounts, Settings, Add transaction button, Ask Mary button (dispatches `pasona:open-mary`), and user block linking to `/profile`.
+3. **Screen Header & Month Dropdown (Addenda A & C):** Updated `ScreenHeader.tsx` and all main screens (`Dashboard.tsx`, `TransactionsIndex.tsx`, `AccountsIndex.tsx`, `Categories.tsx`):
+   - User initials avatar (`JA`, `U`) on top right linking to `/profile`.
+   - Phone-only gear icon (`md:hidden`) linking to `/settings`.
+   - Month dropdown with calendar icon, month label, and chevron, rendering on its own row on mobile and top right on desktop.
+   - Subtitle: "Your overview for {Month YYYY}" on Dashboard.
+4. **Budgets & Categories IA:** Added "Budgets coming soon" notice on `Categories.tsx` per Q2 decision; Budgets bottom tab points to `/categories` until Phase 7.
+5. **Appearance & Theme (Addendum B):**
+   - Refactored `use-theme.ts` with `Skin = "original" | "new"` and `Mode = "auto" | "light" | "dark"`.
+   - Sets `data-skin` on `#root` and `<html>`, and `data-theme="light" | "dark"` on `<html>` (`auto` removes the attribute).
+   - Updated `index.html` anti-flash inline script and `styles.css` skin/theme selectors.
+   - Updated Settings > Appearance segmented controls to `Colours (Original, New)` and `Mode (Auto, Light, Dark)`.
+6. **Fluid Desktop Layout (Addendum E):**
+   - Configured `#root` with `container-type: inline-size`.
+   - Added clamp tokens: `--sidebar-w: clamp(188px, 17cqw, 252px)`, page padding `clamp(18px, 3cqw, 44px)`, heading size `clamp(24px, 2.4cqw, 34px)`, max page width 1560px.
+   - Added `.home-right-grid` auto-fit rule for viewports ≥ 1360px.
+7. **Profile Screen (`/profile`, Addendum A):**
+   - Created `ProfilePage.tsx` with user details, nickname editing, read-only email badge, time zone selector, Go To list (Settings, Categories, Import history, Help & legal), and confirm destructive dialogs for deleting account (typing "DELETE") and signing out.
+   - Registered `/profile` route in `App.tsx`.
+8. **Verify:** Executed `npm run build` with 0 errors across 2,658 modules.
 
 ## Phase 4 — Home, capture-first (Addendum D + G4)
 

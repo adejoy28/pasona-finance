@@ -15,6 +15,7 @@ import {
   Plus,
   ReceiptText,
   Search,
+  Settings as SettingsIcon,
   Tag,
   Trash2,
   User,
@@ -31,6 +32,7 @@ import { SwipeReveal } from "@/components/finance/SwipeReveal";
 import { useMe } from "@/hooks/use-me";
 import { useOnline } from "@/hooks/use-online";
 import { fadeSlideDown, fadeSlideUp } from "@/lib/animations";
+import { getUserInitials } from "@/components/finance/ScreenHeader";
 
 type Filter = "all" | "expense" | "income" | "transfer";
 
@@ -85,6 +87,7 @@ function groupByDay(items: Transaction[]) {
 }
 
 export function TransactionsIndex() {
+  const { data: user } = useMe();
   const [txDtos, setTxDtos] = useState<TransactionDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
@@ -304,16 +307,6 @@ export function TransactionsIndex() {
       <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-6 shadow-sm border-b border-white/5 transition-all">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2.5">
-            <Link
-              to="/settings"
-              className={`w-9 h-9 rounded-full flex items-center justify-center text-white transition-all shadow-sm relative overflow-hidden ring-2 ring-offset-2 ring-offset-[#0b1434] ${
-                isOnline ? "ring-emerald-400 bg-white/10" : "ring-amber-400 bg-white/10"
-              }`}
-              aria-label="Profile settings"
-              title={isOnline ? "Online" : "Offline"}
-            >
-              <User size={18} />
-            </Link>
             <h1 className="text-base font-bold tracking-tight text-white">History</h1>
           </div>
 
@@ -338,6 +331,22 @@ export function TransactionsIndex() {
               aria-label="Add Transaction"
             >
               <Plus size={18} />
+            </Link>
+            <Link
+              to="/settings"
+              className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all md:hidden"
+              aria-label="Settings"
+              title="Settings"
+            >
+              <SettingsIcon size={16} />
+            </Link>
+            <Link
+              to="/profile"
+              className="w-9 h-9 rounded-full bg-[var(--primary)] text-white font-bold text-xs flex items-center justify-center transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] shadow-sm"
+              aria-label="User Profile"
+              title={`Profile: ${user?.name || "User"}`}
+            >
+              {getUserInitials(user?.name)}
             </Link>
           </div>
         </div>

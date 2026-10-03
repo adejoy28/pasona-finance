@@ -22,6 +22,7 @@ import { TransactionsAdd } from "@/pages/TransactionsAdd";
 import { TransactionDetail } from "@/pages/TransactionDetail";
 import { Categories } from "@/pages/Categories";
 import { Settings } from "@/pages/Settings";
+import { ProfilePage } from "@/pages/ProfilePage";
 import { ImportPage } from "@/pages/ImportPage";
 import { PrivacyPage } from "@/pages/PrivacyPage";
 import { TermsPage } from "@/pages/TermsPage";
@@ -137,6 +138,15 @@ export function App() {
             element={
               <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
               </ProtectedRoute>
             }
           />

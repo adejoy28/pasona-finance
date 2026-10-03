@@ -9,6 +9,8 @@ import {
   Settings as SettingsIcon,
   ChevronsUpDown,
   LogOut,
+  Sparkles,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -20,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useMe, invalidateMe } from "@/hooks/use-me";
 import { auth as authApi } from "@/lib/api";
+import { notify } from "@/hooks/use-toast";
 
 const navItems = [
   { label: "Home", short: "Home", href: "/dashboard", icon: LayoutDashboard, tour: undefined },
@@ -62,7 +65,7 @@ export function FinanceNavbar() {
       {/* ===== Desktop sidebar (≥ 720px) ===== */}
       <aside
         aria-label="Primary"
-        className="pf-side-nav hidden fixed inset-y-0 left-0 w-[200px] flex-col z-40 bg-[var(--nav-bg,#0B1434)] text-white p-4"
+        className="pf-side-nav hidden fixed inset-y-0 left-0 w-[clamp(188px,17cqw,252px)] flex-col z-40 bg-[var(--nav-bg,#0B1434)] text-white p-4"
       >
         {/* Brand logo */}
         <Link
@@ -114,6 +117,19 @@ export function FinanceNavbar() {
           <span>Add transaction</span>
         </Link>
 
+        {/* Ask Mary button (Addendum A & F) */}
+        <button
+          type="button"
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent("pasona:open-mary"));
+            notify.info("Mary AI assistant will be available soon.");
+          }}
+          className="mt-2 flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 hover:bg-white/15 text-white py-2 px-3 text-xs font-bold tracking-tight transition-all duration-150 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-white/60 cursor-pointer"
+        >
+          <Sparkles size={14} className="text-amber-400" />
+          <span>Ask Mary</span>
+        </button>
+
         {/* Sidebar user block: name on 1 line, email on 1 line with ellipsis and tooltip */}
         <div className="mt-auto pt-4 border-t border-white/10">
           <DropdownMenu modal={false}>
@@ -146,6 +162,13 @@ export function FinanceNavbar() {
               className="w-48 rounded-xl border border-white/10 bg-[var(--surface)] text-[var(--ink)] shadow-xl p-1 z-50"
             >
               <DropdownMenuItem
+                onClick={() => navigate("/profile")}
+                className="rounded-lg cursor-pointer py-2 text-xs font-semibold"
+              >
+                <User size={14} className="mr-2 text-[var(--muted)]" />
+                Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem
                 onClick={() => navigate("/settings")}
                 className="rounded-lg cursor-pointer py-2 text-xs font-semibold"
               >
@@ -165,19 +188,19 @@ export function FinanceNavbar() {
         </div>
       </aside>
 
-      {/* ===== Mobile bottom tab bar (< 720px) ===== */}
+      {/* ===== Mobile bottom tab bar (< 720px): 5-column grid (Addendum A) ===== */}
       <nav
         aria-label="Primary"
         className="pf-bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-[var(--surface)] border-t border-[var(--line)] pb-[max(0.25rem,env(safe-area-inset-bottom))]"
       >
-        <div className="max-w-md mx-auto px-1.5 py-1 grid grid-cols-6 items-center">
+        <div className="max-w-md mx-auto px-1.5 py-1 grid grid-cols-5 items-center">
           {/* 1. Home */}
           <NavPill item={navItems[0]} active={isActive(navItems[0].href)} />
 
           {/* 2. History */}
           <NavPill item={navItems[1]} active={isActive(navItems[1].href)} />
 
-          {/* Centered Add Button */}
+          {/* 3. Centered Add Button */}
           <div className="flex justify-center py-0.5">
             <Link
               to="/transactions/add"
@@ -189,14 +212,11 @@ export function FinanceNavbar() {
             </Link>
           </div>
 
-          {/* 3. Budgets */}
+          {/* 4. Budgets */}
           <NavPill item={navItems[2]} active={isActive(navItems[2].href)} />
 
-          {/* 4. Accounts */}
+          {/* 5. Accounts */}
           <NavPill item={navItems[3]} active={isActive(navItems[3].href)} />
-
-          {/* 5. Settings */}
-          <NavPill item={navItems[4]} active={isActive(navItems[4].href)} />
         </div>
       </nav>
     </>
