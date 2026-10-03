@@ -9,8 +9,11 @@ import {
   ArrowRightLeft,
   ArrowUpRight,
   Building2,
+  Check,
+  ChevronRight,
   CreditCard,
   Filter,
+  Info,
   Pencil,
   ReceiptText,
   RefreshCw,
@@ -20,6 +23,8 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import { useLocalMeta } from "@/hooks/use-local-meta";
+import { useUndoToast } from "@/hooks/use-undo-toast";
 import { TransactionDialog } from "@/components/finance/TransactionDialog";
 import { AccountDialog } from "@/components/finance/AccountDialog";
 import { AccountCardSkeleton, TransactionsSkeleton } from "@/components/finance/Skeletons";
@@ -161,6 +166,75 @@ export function AccountDetail() {
 
   const account: Account | undefined = accountDto ? toAccount(accountDto) : undefined;
   const transactions: Transaction[] = txDtos.map(toTransaction);
+
+  const accountStats = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const t of transactions) {
+      if (t.type === "income") income += t.amount;
+      else if (t.type === "expense") expense += t.amount;
+      else if (t.type === "transfer") {
+        if (t.toAccount?.name === account?.name) income += t.amount;
+        else expense += t.amount;
+      }
+    }
+    return { income, expense, entries: transactions.length };
+  }, [transactions, account]);
+
+  interface CheckMeta {
+    iso: string;
+    diff: number;
+    ok: boolean;
+  }
+
+  const [checkState, setCheckState, clearCheckState] = useLocalMeta<CheckMeta>(
+    "account_check",
+    account?.id
+  );
+  const { showUndo } = useUndoToast();
+
+  const [isReconOpen, setIsReconOpen] = useState(false);
+  const [reconInput, setReconInput] = useState("");
+  const [reconResult, setReconResult] = useState<{ done: boolean; diff: number; ok: boolean } | null>(null);
+
+  const handleCompare = () => {
+    const val = parseFloat(reconInput.replace(/,/g, ""));
+    if (Number.isNaN(val)) return;
+    const diff = Math.round((val - (account?.balance ?? 0)) * 100) / 100;
+    const ok = Math.abs(diff) < 0.005;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    setCheckState({ iso: todayStr, diff, ok });
+    setReconResult({ done: true, diff, ok });
+  };
+
+  const handleRecordAdjustment = async () => {
+    if (!reconResult || !account) return;
+    const ad = reconResult.diff;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    try {
+      const created = await transactionsApi.createTransaction({
+        account_id: account.id,
+        type: ad > 0 ? "income" : "expense",
+        amount: Math.abs(ad),
+        description: "Balance adjustment",
+        transaction_date: todayStr,
+      });
+      setCheckState({ iso: todayStr, diff: 0, ok: true });
+      setIsReconOpen(false);
+      void loadData();
+      showUndo("Adjustment recorded", async () => {
+        try {
+          await transactionsApi.deleteTransaction(created.id);
+          clearCheckState();
+          void loadData();
+        } catch (err) {
+          console.error("Failed to undo adjustment", err);
+        }
+      });
+    } catch (err) {
+      popup.error(err instanceof ApiError ? err.message : "Failed to record adjustment");
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -313,15 +387,39 @@ export function AccountDetail() {
           {loading && !account ? (
             <AccountCardSkeleton />
           ) : account ? (
-            <div className="bg-white/10 backdrop-blur-md text-white p-4 rounded-2xl flex justify-between items-center border border-white/15 shadow-inner">
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-300">
-                  Available Balance
-                </p>
-                <p className="text-[22px] sm:text-2xl font-bold truncate mt-0.5">{renderAmount(account.balance, userCurrency)}</p>
+            <div className="bg-white/10 backdrop-blur-md text-white p-4 rounded-2xl border border-white/15 shadow-inner space-y-3">
+              <div className="flex justify-between items-center">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                    Available Balance
+                  </p>
+                  <p className="text-[22px] sm:text-2xl font-bold truncate mt-0.5">{renderAmount(account.balance, userCurrency)}</p>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
+                  <Building2 size={20} />
+                </div>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
-                <Building2 size={20} />
+
+              {/* Task 3.1: In / Out / Entries KPI block */}
+              <div className="pt-2.5 border-t border-white/10 grid grid-cols-3 gap-2">
+                <div className="min-w-0">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-300">In</div>
+                  <div className="font-extrabold text-xs sm:text-sm text-emerald-300 tabular-nums truncate">
+                    +{renderAmount(accountStats.income, userCurrency)}
+                  </div>
+                </div>
+                <div className="min-w-0 border-l border-white/10 pl-2">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-300">Out</div>
+                  <div className="font-extrabold text-xs sm:text-sm text-white tabular-nums truncate">
+                    -{renderAmount(accountStats.expense, userCurrency)}
+                  </div>
+                </div>
+                <div className="min-w-0 border-l border-white/10 pl-2">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-300">Entries</div>
+                  <div className="font-extrabold text-xs sm:text-sm text-white tabular-nums truncate">
+                    {accountStats.entries}
+                  </div>
+                </div>
               </div>
             </div>
           ) : null}
@@ -329,6 +427,54 @@ export function AccountDetail() {
       </header>
 
       <main className="p-6 space-y-6">
+        {/* Task 3.2: Balance check strip */}
+        {account && (
+          <button
+            type="button"
+            onClick={() => {
+              setReconInput("");
+              setReconResult(null);
+              setIsReconOpen(true);
+            }}
+            className="w-full bg-white rounded-2xl p-3.5 card-shadow border border-slate-100 hover:border-blue-200 transition-all flex items-center gap-3 text-left group cursor-pointer"
+          >
+            <div
+              className={cn(
+                "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
+                !checkState
+                  ? "bg-blue-50 text-blue-600"
+                  : checkState.ok
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "bg-amber-50 text-amber-600"
+              )}
+            >
+              {!checkState ? (
+                <Info size={16} />
+              ) : checkState.ok ? (
+                <Check size={16} />
+              ) : (
+                <AlertTriangle size={16} />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                {!checkState
+                  ? "Not checked yet"
+                  : checkState.ok
+                  ? "Matched your bank"
+                  : `Off by ${formatCurrency(Math.abs(checkState.diff), userCurrency)}`}
+              </p>
+              <p className="text-[11px] text-slate-400 font-medium truncate">
+                {!checkState
+                  ? "Compare with your bank app to catch missing entries"
+                  : checkState.ok
+                  ? `Checked ${checkState.iso}`
+                  : `Checked ${checkState.iso}. Tap to check again`}
+              </p>
+            </div>
+            <ChevronRight size={14} className="text-slate-400 group-hover:text-slate-600 shrink-0" />
+          </button>
+        )}
         {queryError && (
           <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-xs font-bold">
             {queryError.message}
@@ -534,14 +680,14 @@ export function AccountDetail() {
                               <button
                                 type="button"
                                 onClick={() => setEditingTransaction(rawDto)}
-                                className="p-1.5 text-slate-300 hover:text-blue-600 transition-colors"
+                                className="p-1.5 text-[var(--muted)] hover:text-[var(--primary)] transition-colors cursor-pointer"
                               >
                                 <Pencil size={14} />
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setDeletingTransaction(tx)}
-                                className="p-1.5 text-slate-300 hover:text-red-600 transition-colors"
+                                className="p-1.5 text-[var(--muted)] hover:text-rose-500 transition-colors cursor-pointer"
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -630,6 +776,203 @@ export function AccountDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Task 3.3: Reconciliation Modal */}
+      <AnimatePresence>
+        {isReconOpen && account && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md p-6 space-y-5 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-center">
+                <h3 className="text-base font-bold text-slate-900">
+                  Check {account.name} balance
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsReconOpen(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800 cursor-pointer"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+
+              {!reconResult ? (
+                /* State A: Input */
+                <div className="space-y-4">
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Open your bank or wallet app and type the balance it shows. Pasona compares it with its own number.
+                  </p>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Balance in your bank app
+                    </label>
+                    <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                      <span className="text-base font-bold text-slate-400">{userCurrency}</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        autoFocus
+                        value={reconInput}
+                        onChange={(e) => setReconInput(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full bg-transparent text-lg font-bold text-slate-900 outline-none tabular-nums"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsReconOpen(false)}
+                      className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCompare}
+                      disabled={!reconInput.trim()}
+                      className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                      Compare
+                    </button>
+                  </div>
+                </div>
+              ) : reconResult.ok ? (
+                /* State B1: Match */
+                <div className="space-y-4">
+                  <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-start gap-3 text-emerald-800">
+                    <Check size={20} className="text-emerald-600 shrink-0 mt-0.5" />
+                    <div className="text-xs space-y-0.5">
+                      <p className="font-bold text-sm">Balances match</p>
+                      <p className="text-emerald-700">Your history agrees with your bank. Nothing to fix.</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsReconOpen(false)}
+                    className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 transition-colors cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
+              ) : (
+                /* State B2: Difference */
+                <div className="space-y-4">
+                  <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3 text-amber-900">
+                    <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5" />
+                    <div className="text-xs space-y-1">
+                      <p className="font-bold text-sm">
+                        Off by {formatCurrency(Math.abs(reconResult.diff), userCurrency)}
+                      </p>
+                      <p className="text-amber-700 leading-relaxed">
+                        {reconResult.diff > 0
+                          ? "Pasona is lower than your bank. Likely a missing income, or an expense counted twice."
+                          : "Pasona is higher than your bank. Likely a missing expense, or an income counted twice."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Matching transactions if any */}
+                  {(() => {
+                    const diffAbs = Math.abs(reconResult.diff);
+                    const matching = transactions.filter(
+                      (t) => Math.abs(t.amount - diffAbs) < 0.005
+                    );
+                    if (matching.length === 0) return null;
+
+                    return (
+                      <div className="space-y-1.5 pt-1">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Entries of exactly {formatCurrency(diffAbs, userCurrency)} on this account
+                        </p>
+                        <div className="bg-slate-50 rounded-xl divide-y divide-slate-100 border border-slate-100 overflow-hidden">
+                          {matching.map((m) => (
+                            <div key={m.id} className="p-2.5 flex items-center justify-between text-xs">
+                              <div>
+                                <p className="font-bold text-slate-800">{m.description || "Transaction"}</p>
+                                <p className="text-[10px] text-slate-400">{m.transaction_date}</p>
+                              </div>
+                              <span className="font-bold tabular-nums text-slate-900">
+                                {formatCurrency(m.amount, userCurrency)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Action Suggestions */}
+                  <div className="space-y-2 pt-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Try these</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsReconOpen(false);
+                        const type = reconResult.diff > 0 ? "income" : "expense";
+                        navigate(
+                          `/transactions/add?amount=${Math.abs(reconResult.diff)}&type=${type}&account_id=${account.id}`
+                        );
+                      }}
+                      className="w-full p-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-slate-50 transition-colors flex items-center justify-between text-left group cursor-pointer"
+                    >
+                      <div>
+                        <p className="text-xs font-bold text-slate-800 group-hover:text-blue-600">
+                          Add the missing entry
+                        </p>
+                        <p className="text-[11px] text-slate-400">
+                          Starts a {reconResult.diff > 0 ? "income" : "expense"} of{" "}
+                          {formatCurrency(Math.abs(reconResult.diff), userCurrency)}
+                        </p>
+                      </div>
+                      <ChevronRight size={14} className="text-slate-400 group-hover:text-slate-600" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleRecordAdjustment}
+                      className="w-full p-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-slate-50 transition-colors flex items-center justify-between text-left group cursor-pointer"
+                    >
+                      <div>
+                        <p className="text-xs font-bold text-slate-800 group-hover:text-blue-600">
+                          Record a balance adjustment
+                        </p>
+                        <p className="text-[11px] text-slate-400">
+                          Creates an adjustment entry so your numbers match
+                        </p>
+                      </div>
+                      <ChevronRight size={14} className="text-slate-400 group-hover:text-slate-600" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setReconResult(null)}
+                      className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition-colors cursor-pointer"
+                    >
+                      Check again
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsReconOpen(false)}
+                      className="flex-1 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-colors cursor-pointer"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

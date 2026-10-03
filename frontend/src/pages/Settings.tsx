@@ -657,10 +657,10 @@ export function Settings() {
                         type="button"
                         onClick={() => void handleFrequencyChange(opt.id as any)}
                         className={
-                          "px-3 py-2 text-xs font-bold rounded-xl border text-left transition-all " +
+                          "px-3 py-2 text-xs font-bold rounded-xl border text-left transition-all cursor-pointer " +
                           (reminderFrequency === opt.id
-                            ? "bg-blue-50 border-blue-300 text-blue-700 shadow-sm"
-                            : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100")
+                            ? "bg-[var(--info-soft)] border-[var(--primary)] text-[var(--accent)] shadow-xs"
+                            : "bg-[var(--surface-2)] border-[var(--line)] text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)]")
                         }
                       >
                         {opt.label}
@@ -829,15 +829,15 @@ export function Settings() {
                     <p className="text-[10px] text-slate-400">Color palette and feel</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-1.5 bg-slate-100/80 p-1 rounded-xl">
+                <div className="grid grid-cols-2 gap-1.5 bg-[var(--chip)] p-1 rounded-xl">
                   <button
                     type="button"
                     onClick={() => setSkin("original")}
                     className={cn(
                       "py-1.5 px-3 rounded-lg text-xs font-bold transition-all text-center select-none cursor-pointer",
                       skin === "original"
-                        ? "bg-white text-slate-900 shadow-xs"
-                        : "text-slate-500 hover:text-slate-800"
+                        ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
+                        : "text-[var(--muted)] hover:text-[var(--ink)]"
                     )}
                   >
                     Original
@@ -848,8 +848,8 @@ export function Settings() {
                     className={cn(
                       "py-1.5 px-3 rounded-lg text-xs font-bold transition-all text-center select-none cursor-pointer",
                       skin === "fresh"
-                        ? "bg-white text-slate-900 shadow-xs"
-                        : "text-slate-500 hover:text-slate-800"
+                        ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
+                        : "text-[var(--muted)] hover:text-[var(--ink)]"
                     )}
                   >
                     Fresh (Warm)
@@ -866,15 +866,15 @@ export function Settings() {
                     <p className="text-[10px] text-slate-400">Light, dark, or system preference</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-1.5 bg-slate-100/80 p-1 rounded-xl">
+                <div className="grid grid-cols-3 gap-1.5 bg-[var(--chip)] p-1 rounded-xl">
                   <button
                     type="button"
                     onClick={() => setMode("light")}
                     className={cn(
                       "py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 select-none cursor-pointer",
                       mode === "light"
-                        ? "bg-white text-slate-900 shadow-xs"
-                        : "text-slate-500 hover:text-slate-800"
+                        ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
+                        : "text-[var(--muted)] hover:text-[var(--ink)]"
                     )}
                   >
                     <Sun size={13} />
@@ -886,8 +886,8 @@ export function Settings() {
                     className={cn(
                       "py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 select-none cursor-pointer",
                       mode === "dark"
-                        ? "bg-white text-slate-900 shadow-xs"
-                        : "text-slate-500 hover:text-slate-800"
+                        ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
+                        : "text-[var(--muted)] hover:text-[var(--ink)]"
                     )}
                   >
                     <Moon size={13} />
@@ -899,8 +899,8 @@ export function Settings() {
                     className={cn(
                       "py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 select-none cursor-pointer",
                       mode === "system"
-                        ? "bg-white text-slate-900 shadow-xs"
-                        : "text-slate-500 hover:text-slate-800"
+                        ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
+                        : "text-[var(--muted)] hover:text-[var(--ink)]"
                     )}
                   >
                     <Laptop size={13} />

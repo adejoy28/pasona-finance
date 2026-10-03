@@ -46,7 +46,7 @@
   --color-slate-50: var(--bg);
   --color-slate-100: var(--chip);
   --color-slate-200: var(--line);
-  --color-slate-300: var(--baseline);
+  --color-slate-300: var(--muted);
   --color-slate-400: var(--muted);
   --color-slate-500: var(--muted);
   --color-slate-600: var(--muted);
@@ -311,18 +311,18 @@ html[data-mode="dark"] {
 /* Dark mode for Fresh Skin */
 html[data-skin="fresh"].dark,
 html[data-skin="fresh"][data-mode="dark"] {
-  --primary: #2B40A0;
+  --primary: #8FA2FF;
   --accent: #AFBCFF;
-  --hero: #22367F;
+  --hero: #1E2B68;
   --add: #F0B33A;
   --add-ink: #2B1D00;
 }
 
 html[data-skin="fresh"]:not([data-mode="light"]) {
   @media (prefers-color-scheme: dark) {
-    --primary: #2B40A0;
+    --primary: #8FA2FF;
     --accent: #AFBCFF;
-    --hero: #22367F;
+    --hero: #1E2B68;
     --add: #F0B33A;
     --add-ink: #2B1D00;
   }
@@ -354,6 +354,23 @@ html[data-skin="fresh"]:not([data-mode="light"]) {
     letter-spacing: -0.02em;
     font-weight: 600;
   }
+
+  /* Placeholder visibility guaranteed across all themes */
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--muted) !important;
+    opacity: 0.75 !important;
+  }
+
+  /* Form controls use primary ink text */
+  select,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]) {
+    color: var(--ink);
+  }
+  select option {
+    background-color: var(--surface);
+    color: var(--ink);
+  }
 }
 
 /* ==========================================================================
@@ -364,7 +381,8 @@ html[data-skin="fresh"]:not([data-mode="light"]) {
   background-color: var(--bg) !important;
 }
 
-.bg-white:not(button):not(a):not([class*="bg-white/"]):not(.keep-white) {
+/* Card and control surfaces: adapt white cards and controls to theme surface */
+.bg-white:not(header .bg-white):not(section.bg-gradient-to-b .bg-white):not(.keep-white) {
   background-color: var(--surface) !important;
 }
 
@@ -384,25 +402,143 @@ html[data-skin="fresh"]:not([data-mode="light"]) {
   border-color: var(--line) !important;
 }
 
+/* Base text color mappings — no !important so hover: and active: states work naturally */
 .text-slate-900,
 .text-slate-800,
 .text-slate-700 {
-  color: var(--ink) !important;
+  color: var(--ink);
 }
 
 .text-slate-600,
 .text-slate-500,
-.text-slate-400 {
-  color: var(--muted) !important;
+.text-slate-400,
+.text-slate-300 {
+  color: var(--muted);
 }
 
+/* Dark mode semantic status text and badge bridges */
+html.dark .text-blue-600,
+html.dark .text-blue-700,
+html.dark .text-indigo-600,
+html.dark .text-indigo-700,
+html[data-mode="dark"] .text-blue-600,
+html[data-mode="dark"] .text-blue-700,
+html[data-mode="dark"] .text-indigo-600,
+html[data-mode="dark"] .text-indigo-700 {
+  color: var(--accent);
+}
+
+html.dark .text-blue-900,
+html.dark .text-blue-950,
+html[data-mode="dark"] .text-blue-900,
+html[data-mode="dark"] .text-blue-950 {
+  color: var(--ink);
+}
+
+html.dark .text-emerald-600,
+html.dark .text-emerald-700,
+html.dark .text-green-600,
+html.dark .text-green-700,
+html[data-mode="dark"] .text-emerald-600,
+html[data-mode="dark"] .text-emerald-700,
+html[data-mode="dark"] .text-green-600,
+html[data-mode="dark"] .text-green-700 {
+  color: var(--pos);
+}
+
+html.dark .text-rose-600,
+html.dark .text-rose-700,
+html.dark .text-red-600,
+html.dark .text-red-700,
+html[data-mode="dark"] .text-rose-600,
+html[data-mode="dark"] .text-rose-700,
+html[data-mode="dark"] .text-red-600,
+html[data-mode="dark"] .text-red-700 {
+  color: var(--neg);
+}
+
+html.dark .text-amber-600,
+html.dark .text-amber-700,
+html[data-mode="dark"] .text-amber-600,
+html[data-mode="dark"] .text-amber-700 {
+  color: var(--warn);
+}
+
+/* In dark mode, ensure soft badge backgrounds are dark tinted, not glaring white */
+html.dark .bg-blue-50,
+html.dark .bg-blue-100,
+html.dark .bg-indigo-50,
+html[data-mode="dark"] .bg-blue-50,
+html[data-mode="dark"] .bg-blue-100,
+html[data-mode="dark"] .bg-indigo-50 {
+  background-color: var(--info-soft);
+  color: var(--accent);
+}
+
+html.dark .bg-emerald-50,
+html.dark .bg-green-50,
+html[data-mode="dark"] .bg-emerald-50,
+html[data-mode="dark"] .bg-green-50 {
+  background-color: var(--pos-soft);
+  color: var(--pos);
+}
+
+html.dark .bg-rose-50,
+html.dark .bg-red-50,
+html[data-mode="dark"] .bg-rose-50,
+html[data-mode="dark"] .bg-red-50 {
+  background-color: var(--neg-soft);
+  color: var(--neg);
+}
+
+html.dark .bg-amber-50,
+html[data-mode="dark"] .bg-amber-50 {
+  background-color: rgba(240, 179, 58, 0.16);
+  color: var(--warn);
+}
+
+/* Dark header, hero section, and sidebar styling: guarantee high-contrast readable text */
 header.bg-\[\#0b1434\],
 header[class*="bg-[#0b1434]"] {
   background-color: var(--nav-bg) !important;
+  color: #ffffff;
 }
 
 section.bg-gradient-to-b {
   background: var(--hero) !important;
+  color: #ffffff;
+}
+
+header.bg-\[\#0b1434\] .text-slate-300,
+header.bg-\[\#0b1434\] .text-slate-400,
+header[class*="bg-[#0b1434]"] .text-slate-300,
+header[class*="bg-[#0b1434]"] .text-slate-400,
+section.bg-gradient-to-b .text-slate-300,
+section.bg-gradient-to-b .text-slate-400,
+section.bg-gradient-to-b .text-slate-500 {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+header.bg-\[\#0b1434\] .text-slate-900,
+header.bg-\[\#0b1434\] .text-slate-800,
+header[class*="bg-[#0b1434]"] .text-slate-900,
+header[class*="bg-[#0b1434]"] .text-slate-800,
+section.bg-gradient-to-b .text-slate-900,
+section.bg-gradient-to-b .text-slate-800 {
+  color: #ffffff !important;
+}
+
+/* Intentional white pill buttons on dark hero cards stay pure white with dark navy text */
+header .bg-white,
+section.bg-gradient-to-b .bg-white,
+.keep-white {
+  background-color: #ffffff !important;
+  color: #0b1434 !important;
+}
+header .bg-white *,
+section.bg-gradient-to-b .bg-white *,
+.keep-white * {
+  color: #0b1434 !important;
 }
 
 /* ===== Pasona utilities (cascade across every page) ===== */

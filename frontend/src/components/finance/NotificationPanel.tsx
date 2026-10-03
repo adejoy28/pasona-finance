@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import {
   ArrowLeft,
@@ -8,11 +8,13 @@ import {
   Wallet,
   UserCheck,
   ShieldCheck,
+  ShieldAlert,
   Sparkles,
   Info,
   Loader2,
   CheckCheck,
   Lightbulb,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Sheet,
@@ -24,6 +26,17 @@ import {
 import { usePopup } from "@/components/ui/popup";
 import { getDailyMoneyFact } from "@/lib/facts";
 import type { NotificationDto } from "@/lib/api/notifications";
+import { accounts as accountsApi, transactions as transactionsApi } from "@/lib/api";
+
+type ActionItem = {
+  id: string;
+  title: string;
+  body: string;
+  badge?: string;
+  icon: React.ReactNode;
+  iconBg: string;
+  href: string;
+};
 
 type NotificationPanelProps = {
   open: boolean;
@@ -169,13 +182,88 @@ export function NotificationPanel({
   const navigate = useNavigate();
   const popup = usePopup();
   const [selectedNotif, setSelectedNotif] = useState<NotificationDto | null>(null);
+  const [actionItems, setActionItems] = useState<ActionItem[]>([]);
+
+  const loadActionItems = useCallback(async () => {
+    try {
+      const items: ActionItem[] = [];
+      const accountsList = await accountsApi.listAccounts().catch(() => []);
+
+      // 1. Account balance check state
+      for (const acc of accountsList) {
+        const stored = localStorage.getItem(`pasona.acct_chk:${acc.id}`);
+        if (!stored) {
+          items.push({
+            id: `acct-check-${acc.id}`,
+            title: `Check your ${acc.name} balance`,
+            body: "Compare with your bank app to ensure no missing transactions.",
+            badge: "Check",
+            icon: <Wallet size={18} className="text-blue-600" />,
+            iconBg: "bg-blue-50",
+            href: `/accounts/${acc.id}`,
+          });
+        } else {
+          try {
+            const parsed = JSON.parse(stored);
+            if (parsed && typeof parsed.diff === "number" && Math.abs(parsed.diff) > 0.01) {
+              items.push({
+                id: `acct-diff-${acc.id}`,
+                title: `${acc.name} off by ₦${Math.abs(parsed.diff).toLocaleString()}`,
+                body: "Pasona balance differs from your last bank check. Tap to reconcile.",
+                badge: "Reconcile",
+                icon: <AlertTriangle size={18} className="text-amber-600" />,
+                iconBg: "bg-amber-50",
+                href: `/accounts/${acc.id}`,
+              });
+            }
+          } catch {
+            // ignore JSON parse error
+          }
+        }
+      }
+
+      // 2. Duplicates check
+      const txRes = await transactionsApi
+        .listTransactions({ per_page: 100 })
+        .catch(() => ({ data: [] }));
+      const txs = txRes.data || [];
+      const seen = new Set<string>();
+      let dupCount = 0;
+      for (const t of txs) {
+        const key = `${t.amount}_${t.date}_${t.account_id ?? ""}`;
+        if (seen.has(key)) {
+          dupCount++;
+        } else {
+          seen.add(key);
+        }
+      }
+      if (dupCount > 0) {
+        items.push({
+          id: "tx-duplicates",
+          title: `${dupCount} duplicate ${dupCount === 1 ? "entry" : "entries"} to review`,
+          body: "Possible duplicate transactions detected across your accounts.",
+          badge: "Review",
+          icon: <ShieldAlert size={18} className="text-purple-600" />,
+          iconBg: "bg-purple-50",
+          href: "/transactions?flag=duplicates",
+        });
+      }
+
+      setActionItems(items);
+    } catch {
+      setActionItems([]);
+    }
+  }, []);
 
   // Fetch when panel opens if empty
   useEffect(() => {
-    if (open && notifications.length === 0) {
-      void refresh();
+    if (open) {
+      if (notifications.length === 0) {
+        void refresh();
+      }
+      void loadActionItems();
     }
-  }, [open, notifications.length, refresh]);
+  }, [open, notifications.length, refresh, loadActionItems]);
 
   // Reset selected notification when closing panel
   useEffect(() => {
@@ -373,14 +461,14 @@ export function NotificationPanel({
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto overscroll-contain pb-[max(1.5rem,env(safe-area-inset-bottom))] flex flex-col">
-              {loading && notifications.length === 0 ? (
+              {loading && notifications.length === 0 && actionItems.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center py-24">
                   <Loader2 size={32} className="animate-spin text-blue-500" />
                   <p className="text-xs text-slate-400 mt-3 font-medium">
                     Loading notifications...
                   </p>
                 </div>
-              ) : notifications.length === 0 ? (
+              ) : notifications.length === 0 && actionItems.length === 0 ? (
                 /* Empty State matching mockup */
                 <div className="flex-1 flex flex-col items-center justify-center px-6 py-20 text-center select-none">
                   <div className="relative w-56 h-56 flex items-center justify-center mb-6">
@@ -411,27 +499,78 @@ export function NotificationPanel({
                     Empty
                   </h2>
                   <p className="text-sm text-slate-400 max-w-[260px] leading-relaxed">
-                    You don't have any notification at this time
+                    You don't have any notifications at this time
                   </p>
                 </div>
               ) : (
-                /* Notification List */
-                <div className="py-1 divide-y divide-slate-100">
-                  {unreadCount > 0 && (
-                    <div className="px-5 py-2.5 flex items-center justify-between bg-slate-50/70 border-b border-slate-100">
-                      <span className="text-xs font-semibold text-slate-500">
-                        {unreadCount} unread {unreadCount === 1 ? "notification" : "notifications"}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => void markAllRead()}
-                        className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
-                      >
-                        <CheckCheck size={14} />
-                        Mark all as read
-                      </button>
+                /* Notification & Actions Content */
+                <div className="flex flex-col">
+                  {/* Actionable Client Items (Above Server Notifications) */}
+                  {actionItems.length > 0 && (
+                    <div className="border-b border-slate-100 bg-slate-50/50">
+                      <div className="px-5 py-2.5 flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                          Suggested Actions
+                        </span>
+                        <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
+                          {actionItems.length}
+                        </span>
+                      </div>
+                      <div className="divide-y divide-slate-100">
+                        {actionItems.map((action) => (
+                          <button
+                            key={action.id}
+                            type="button"
+                            onClick={() => {
+                              onOpenChange(false);
+                              navigate(action.href);
+                            }}
+                            className="w-full text-left px-5 py-3.5 flex items-start gap-3.5 hover:bg-white transition-colors cursor-pointer group"
+                          >
+                            <div
+                              className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${action.iconBg}`}
+                            >
+                              {action.icon}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <h4 className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+                                  {action.title}
+                                </h4>
+                                {action.badge && (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200/70 text-slate-700 shrink-0">
+                                    {action.badge}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">
+                                {action.body}
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
+
+                  {/* Server Notification List */}
+                  {notifications.length > 0 && (
+                    <div className="py-1 divide-y divide-slate-100">
+                      {unreadCount > 0 && (
+                        <div className="px-5 py-2.5 flex items-center justify-between bg-slate-50/70 border-b border-slate-100">
+                          <span className="text-xs font-semibold text-slate-500">
+                            {unreadCount} unread {unreadCount === 1 ? "notification" : "notifications"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => void markAllRead()}
+                            className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
+                          >
+                            <CheckCheck size={14} />
+                            Mark all as read
+                          </button>
+                        </div>
+                      )}
 
                   {notifications.map((item) => {
                     const visual = getNotificationVisual(item.type, item.title);
@@ -458,7 +597,7 @@ export function NotificationPanel({
                             </h3>
                             <div className="flex items-center gap-2 shrink-0">
                               {isUnread && (
-                                <span className="bg-blue-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full tracking-wide">
+                                <span className="bg-[var(--primary)] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full tracking-wide">
                                   New
                                 </span>
                               )}
@@ -467,7 +606,7 @@ export function NotificationPanel({
                                 onClick={(e) => handleDelete(e, item.id)}
                                 title="Remove notification"
                                 aria-label="Remove notification"
-                                className="text-slate-300 hover:text-rose-500 p-1 -m-1 rounded-lg transition-colors cursor-pointer"
+                                className="text-[var(--muted)] hover:text-rose-500 p-1 -m-1 rounded-lg transition-colors cursor-pointer"
                               >
                                 <Trash2 size={15} />
                               </button>
@@ -493,7 +632,7 @@ export function NotificationPanel({
                         type="button"
                         onClick={() => void loadMore()}
                         disabled={loading}
-                        className="px-4 py-2 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50 cursor-pointer"
+                        className="px-4 py-2 text-xs font-bold text-[var(--primary)] hover:opacity-85 transition-opacity disabled:opacity-50 cursor-pointer"
                       >
                         {loading ? (
                           <span className="flex items-center gap-2">
@@ -505,6 +644,8 @@ export function NotificationPanel({
                       </button>
                     </div>
                   )}
+                </div>
+              )}
                 </div>
               )}
             </div>

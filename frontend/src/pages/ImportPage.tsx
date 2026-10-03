@@ -569,10 +569,33 @@ export function ImportPage() {
           category_id: r.categoryId ?? null,
         }));
 
-      await storeImportTransactions({
+      const result = await storeImportTransactions({
         import_batch_id: batchId,
         transactions: payloadTransactions,
       });
+
+      try {
+        const matchedAccount = accounts.find((a) => String(a.id) === String(accountId));
+        const historyEntry = {
+          id: batchId,
+          batch_id: result.import_batch_id || batchId,
+          when: new Date().toISOString(),
+          src: matchedAccount ? matchedAccount.name : "Statement",
+          file: file?.name || "statement.csv",
+          added: result.imported_count || importableCount,
+          skipped: result.skipped_count || 0,
+          flagged: 0,
+        };
+        const prevHistory = JSON.parse(localStorage.getItem("pasona.import_history") ?? "[]");
+        const nextHistory = [
+          historyEntry,
+          ...prevHistory.filter((h: { id?: string }) => h.id !== batchId),
+        ].slice(0, 20);
+        localStorage.setItem("pasona.import_history", JSON.stringify(nextHistory));
+      } catch {
+        // Safe localStorage write fallback
+      }
+
       popup.success(`Imported ${importableCount} transaction${importableCount === 1 ? "" : "s"}`);
       setStep("done");
     } catch (err) {
