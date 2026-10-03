@@ -31,7 +31,9 @@ import { DownloadPage } from "@/pages/DownloadPage";
 
 import { initCapacitor } from "@/lib/capacitor";
 import { SubtlePopups } from "@/components/finance/SubtlePopups";
-import { SyncIndicator } from "@/components/finance/SyncIndicator";
+import { NetworkStatusBar } from "@/components/finance/NetworkStatusBar";
+import { SessionExpiredModal } from "@/components/finance/SessionExpiredModal";
+import { NetworkSimulator } from "@/components/dev/NetworkSimulator";
 import { SplashScreen } from "@/components/finance/SplashScreen";
 import { NativeNotificationListener } from "@/components/finance/NativeNotificationListener";
 import { useTheme } from "@/hooks/use-theme";
@@ -67,11 +69,13 @@ export function App() {
         <PopupProvider>
           <UndoToastProvider>
             <SplashScreen duration={1500} />
-          <SubtlePopups />
-          <SyncIndicator />
-          <NativeNotificationListener />
-          <UnauthorizedHandler />
-          <Routes>
+            <SubtlePopups />
+            <NetworkStatusBar />
+            <SessionExpiredModal />
+            <NetworkSimulator />
+            <NativeNotificationListener />
+            <UnauthorizedHandler />
+            <Routes>
           {/* Public routes */}
           <Route path="/" element={<SplashPage />} />
           <Route path="/login" element={<Login />} />
