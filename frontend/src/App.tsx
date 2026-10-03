@@ -1,10 +1,10 @@
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useNavigate, Navigate } from "react-router";
-import { PopupProvider } from "@/components/ui/popup";
-import { UndoToastProvider } from "@/hooks/use-undo-toast";
+import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "@/lib/auth/guard";
 import { onUnauthorized } from "@/lib/api";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { getCachedUser } from "@/hooks/use-me";
 
 import { SplashPage } from "@/pages/SplashPage";
 import { Dashboard } from "@/pages/Dashboard";
@@ -33,7 +33,6 @@ import { initCapacitor } from "@/lib/capacitor";
 import { SubtlePopups } from "@/components/finance/SubtlePopups";
 import { NetworkStatusBar } from "@/components/finance/NetworkStatusBar";
 import { SessionExpiredModal } from "@/components/finance/SessionExpiredModal";
-import { NetworkSimulator } from "@/components/dev/NetworkSimulator";
 import { SplashScreen } from "@/components/finance/SplashScreen";
 import { NativeNotificationListener } from "@/components/finance/NativeNotificationListener";
 import { useTheme } from "@/hooks/use-theme";
@@ -42,7 +41,10 @@ function UnauthorizedHandler() {
   const navigate = useNavigate();
   useEffect(() => {
     onUnauthorized(() => {
-      void navigate("/login");
+      // Only redirect when there is no user session cached in memory
+      if (!getCachedUser()) {
+        void navigate("/login");
+      }
     });
     return () => onUnauthorized(null);
   }, [navigate]);
@@ -66,16 +68,14 @@ export function App() {
   return (
     <BrowserRouter>
       <ErrorBoundary>
-        <PopupProvider>
-          <UndoToastProvider>
-            <SplashScreen duration={1500} />
-            <SubtlePopups />
-            <NetworkStatusBar />
-            <SessionExpiredModal />
-            <NetworkSimulator />
-            <NativeNotificationListener />
-            <UnauthorizedHandler />
-            <Routes>
+        <SplashScreen duration={1500} />
+        <Toaster />
+        <SubtlePopups />
+        <NetworkStatusBar />
+        <SessionExpiredModal />
+        <NativeNotificationListener />
+        <UnauthorizedHandler />
+        <Routes>
           {/* Public routes */}
           <Route path="/" element={<SplashPage />} />
           <Route path="/login" element={<Login />} />
@@ -158,11 +158,9 @@ export function App() {
           {/* 404 fallback */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
-          </UndoToastProvider>
-      </PopupProvider>
-    </ErrorBoundary>
-  </BrowserRouter>
-);
+      </ErrorBoundary>
+    </BrowserRouter>
+  );
 }
 
 export default App;

@@ -11,7 +11,8 @@ import {
   User,
   Wallet,
 } from "lucide-react";
-import { usePopup } from "@/components/ui/popup";
+import { notify } from "@/hooks/use-toast";
+import { ConfirmDestructiveDialog } from "@/components/ui/confirm-destructive-dialog";
 import { AccountCardSkeleton, AccountsSkeleton } from "@/components/finance/Skeletons";
 import { AccountDialog } from "@/components/finance/AccountDialog";
 import { NotificationBell } from "@/components/finance/NotificationBell";
@@ -77,7 +78,7 @@ export function AccountsIndex() {
   const userQuery = useMe();
   const userCurrency = userQuery.data?.currency ?? DEFAULT_CURRENCY;
   const isOnline = useOnline();
-  const popup = usePopup();
+  const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
 
   useEffect(() => {
     document.title = "Accounts — Pasona";
@@ -148,27 +149,25 @@ export function AccountsIndex() {
     markCashAtHandSeeded();
   };
 
-  const handleDelete = async (id: number) => {
-    const accountToDelete = accounts.find((a) => a.id === id);
-    if (!accountToDelete) return;
-    if (
-      !confirm(
-        `Are you sure you want to delete "${accountToDelete.name}"? Transactions on this account will not be removed, but the account will no longer appear.`,
-      )
-    ) {
-      return;
-    }
+  const handleDelete = (id: number) => {
+    const target = accounts.find((a) => a.id === id);
+    if (target) setAccountToDelete(target);
+  };
 
+  const confirmDelete = async () => {
+    if (!accountToDelete) return;
     try {
-      await accountsApi.deleteAccount(id);
-      setAccounts((prev) => prev.filter((a) => a.id !== id));
-      popup.success("Account deleted");
+      await accountsApi.deleteAccount(accountToDelete.id);
+      setAccounts((prev) => prev.filter((a) => a.id !== accountToDelete.id));
+      notify.success("Account deleted");
     } catch (err) {
-      popup.error(
+      notify.error(
         err instanceof ApiError
           ? err.message
           : "Unable to delete the account. Please try again.",
       );
+    } finally {
+      setAccountToDelete(null);
     }
   };
 
@@ -374,6 +373,18 @@ export function AccountsIndex() {
         onOpenChange={setDialogOpen}
         account={editingAccount}
         onSaved={handleSaved}
+      />
+
+      <ConfirmDestructiveDialog
+        open={Boolean(accountToDelete)}
+        onOpenChange={(op) => {
+          if (!op) setAccountToDelete(null);
+        }}
+        title="Delete account?"
+        description={`Are you sure you want to delete "${accountToDelete?.name}"? Transactions on this account will not be removed, but the account will no longer appear.`}
+        confirmKeyword="DELETE"
+        confirmLabel="Delete Account"
+        onConfirm={confirmDelete}
       />
     </div>
   );

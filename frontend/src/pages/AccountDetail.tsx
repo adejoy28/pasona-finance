@@ -1,7 +1,8 @@
 import { Link, useNavigate, useParams } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { usePopup } from "@/components/ui/popup";
+import { notify } from "@/hooks/use-toast";
+import { ConfirmDestructiveDialog } from "@/components/ui/confirm-destructive-dialog";
 import {
   AlertTriangle,
   ArrowDownLeft,
@@ -24,7 +25,6 @@ import {
   X,
 } from "lucide-react";
 import { useLocalMeta } from "@/hooks/use-local-meta";
-import { useUndoToast } from "@/hooks/use-undo-toast";
 import { TransactionDialog } from "@/components/finance/TransactionDialog";
 import { AccountDialog } from "@/components/finance/AccountDialog";
 import { AccountCardSkeleton, TransactionsSkeleton } from "@/components/finance/Skeletons";
@@ -33,16 +33,6 @@ import { cn } from "@/lib/utils";
 import { DEFAULT_CURRENCY } from "@/lib/currencies";
 import { formatCurrency, type Account, type Transaction } from "@/lib/finance";
 import { usePrivacyMode } from "@/hooks/use-privacy-mode";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import {
   ApiError,
   accounts as accountsApi,
@@ -117,7 +107,6 @@ export function AccountDetail() {
   const { accountId: rawAccountId } = useParams();
   const accountId = Number(rawAccountId);
   const navigate = useNavigate();
-  const popup = usePopup();
   const { renderAmount } = usePrivacyMode();
 
   useEffect(() => {
@@ -191,7 +180,6 @@ export function AccountDetail() {
     "account_check",
     account?.id
   );
-  const { showUndo } = useUndoToast();
 
   const [isReconOpen, setIsReconOpen] = useState(false);
   const [reconInput, setReconInput] = useState("");
@@ -222,17 +210,19 @@ export function AccountDetail() {
       setCheckState({ iso: todayStr, diff: 0, ok: true });
       setIsReconOpen(false);
       void loadData();
-      showUndo("Adjustment recorded", async () => {
-        try {
-          await transactionsApi.deleteTransaction(created.id);
-          clearCheckState();
-          void loadData();
-        } catch (err) {
-          console.error("Failed to undo adjustment", err);
-        }
+      notify.success("Adjustment recorded", {
+        undo: async () => {
+          try {
+            await transactionsApi.deleteTransaction(created.id);
+            clearCheckState();
+            void loadData();
+          } catch (err) {
+            console.error("Failed to undo adjustment", err);
+          }
+        },
       });
     } catch (err) {
-      popup.error(err instanceof ApiError ? err.message : "Failed to record adjustment");
+      notify.error(err instanceof ApiError ? err.message : "Failed to record adjustment");
     }
   };
 
@@ -281,11 +271,11 @@ export function AccountDetail() {
     setIsDeleting(true);
     try {
       await transactionsApi.deleteTransaction(deletingTransaction.id);
-      popup.success("Transaction deleted");
+      notify.success("Transaction deleted");
       setDeletingTransaction(null);
       void loadData();
     } catch (err) {
-      popup.error(
+      notify.error(
         err instanceof ApiError
           ? err.message
           : "Unable to delete transaction. Please try again.",
@@ -303,7 +293,7 @@ export function AccountDetail() {
 
   const handleAccountSaved = (_updated: Account) => {
     setAccountDialogOpen(false);
-    popup.success("Account updated");
+    notify.success("Account updated");
     void loadData();
   };
 
@@ -312,10 +302,10 @@ export function AccountDetail() {
     setIsDeletingAccount(true);
     try {
       await accountsApi.deleteAccount(accountDto.id);
-      popup.success("Account deleted");
+      notify.success("Account deleted");
       void navigate("/accounts", { replace: true });
     } catch (err) {
-      popup.error(
+      notify.error(
         err instanceof ApiError
           ? err.message
           : "Unable to delete the account. Please try again.",
@@ -713,33 +703,16 @@ export function AccountDetail() {
         onSaved={loadData}
       />
 
-      <AlertDialog
+      <ConfirmDestructiveDialog
         open={Boolean(deletingTransaction)}
         onOpenChange={(op) => {
           if (!op) setDeletingTransaction(null);
         }}
-      >
-        <AlertDialogContent className="rounded-2xl max-w-sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-base font-black">Delete transaction?</AlertDialogTitle>
-            <AlertDialogDescription className="text-xs text-slate-500">
-              This action cannot be undone. This transaction will be permanently removed.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row gap-2 justify-end">
-            <AlertDialogCancel className="rounded-xl text-xs font-bold border-slate-200 mt-0">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              disabled={isDeleting}
-              className="rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white border-0"
-            >
-              {isDeleting ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Delete transaction?"
+        description="This action cannot be undone. This transaction will be permanently removed."
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+      />
 
       <AccountDialog
         open={accountDialogOpen}
@@ -748,34 +721,15 @@ export function AccountDetail() {
         onSaved={handleAccountSaved}
       />
 
-      <AlertDialog
+      <ConfirmDestructiveDialog
         open={deletingAccount}
         onOpenChange={setDeletingAccount}
-      >
-        <AlertDialogContent className="rounded-2xl max-w-sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-base font-black text-rose-600">
-              Delete account?
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs text-slate-500">
-              Transactions on this account will not be removed, but the account will no longer
-              appear.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row gap-2 justify-end">
-            <AlertDialogCancel className="rounded-xl text-xs font-bold border-slate-200 mt-0">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDeleteAccount}
-              disabled={isDeletingAccount}
-              className="rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white border-0"
-            >
-              {isDeletingAccount ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Delete account?"
+        description="Transactions on this account will not be removed, but the account will no longer appear."
+        confirmKeyword="DELETE"
+        confirmLabel="Delete Account"
+        onConfirm={confirmDeleteAccount}
+      />
 
       {/* Task 3.3: Reconciliation Modal */}
       <AnimatePresence>

@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
-import { usePopup } from "@/components/ui/popup";
+import { notify } from "@/hooks/use-toast";
 import {
   NOTIFICATION_ID_MORNING_FACT,
   NOTIFICATION_ID_MIDDAY_CAPABILITY,
@@ -19,7 +19,6 @@ import type { FinancialWisdomItem, AppCapabilityItem } from "@/lib/notifications
  * - Morning Wisdom: Presents the financial fact or quote reflection in the standard dismissible popup
  */
 export function NativeNotificationListener() {
-  const popup = usePopup();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -57,7 +56,7 @@ export function NativeNotificationListener() {
             if (notifId === NOTIFICATION_ID_EVENING_REMINDER || notifType === "reminder") {
               const route = (extra?.route as string | undefined) || "/transactions/add";
               void navigate(route);
-              popup.info("Daily Check-in ⏰", {
+              notify.info("Daily Check-in ⏰", {
                 description: "Ready to log today's expenses? Keeping your transactions updated protects your streak!",
                 duration: 6000,
               });
@@ -71,7 +70,7 @@ export function NativeNotificationListener() {
               if (route) {
                 void navigate(route);
               }
-              popup.info(notif.title || item?.title || "App Spotlight", {
+              notify.info(notif.title || item?.title || "App Spotlight", {
                 description:
                   notif.largeBody ||
                   notif.body ||
@@ -92,7 +91,7 @@ export function NativeNotificationListener() {
                 ? `${wisdomItem.content}\n\n💡 Reflection: ${wisdomItem.takeaway}`
                 : "Daily financial insight from Pasona.");
 
-            popup.fact(title, {
+            notify.fact(title, {
               description,
               duration: 15000,
             });
@@ -113,7 +112,7 @@ export function NativeNotificationListener() {
       isMounted = false;
       void cleanupPromise.then((cleanup) => cleanup?.());
     };
-  }, [popup, navigate]);
+  }, [navigate]);
 
   return null;
 }

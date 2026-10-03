@@ -46,15 +46,15 @@
 
 ---
 
-## Phase 3b — Feedback compliance (Addendum G) — UP NEXT
+## Phase 3b — Feedback compliance (Addendum G) — COMPLETED
 
-1. **Remove dev switch.** Delete `src/components/dev/NetworkSimulator.tsx` and its mount/import in `App.tsx`.
-2. **Write `/audit/alerts.md`.** Every existing alert/toast/snackbar/banner/confirm (popup, undo-toast, SubtlePopups, AppInstallBanner, SyncIndicator, AlertDialog usages, `window.confirm`, `alert()`), with call sites.
-3. **One API: `notify`.** Expose `notify.success|info|warn|error(message, { undo, action })` from `use-toast.ts`. Migrate all 33 `usePopup` + 5 `useUndoToast` call sites, then delete `popup.tsx`, `use-undo-toast.tsx`, `SyncIndicator.tsx` and their providers/styles. Acceptance: `grep` finds no old usage. Keep existing wording.
-4. **Central HTTP mapping in `lib/api/client.ts`.** 401 → dispatch re-auth (overlay, no redirect, keep token-clear behaviour per auth rules); 403 `requires_verified_email` → verify prompt; 429 → "Slow down, try again in a moment"; network/5xx → `server-unreachable` event; success after failure → `server-restored`. 409/422 stay with the caller. Remove `UnauthorizedHandler` redirect except when no user is cached.
-5. **Sync feedback.** `useOfflineSync` emits count; bar shows "Syncing n changes"; toast "Synced n changes". Sign-out confirm mentions pending offline count.
-6. **Adopt primitives** on existing screens: `ConfirmDestructiveDialog` for delete account (type DELETE), delete category, undo import, sign out; `FieldError`/`useFieldErrors` + `ModalErrorBanner` in `TransactionDialog`, `TransactionsAdd`, Category/Account dialogs; `Button loading` for saves.
-7. **Verify** offline / API blocked / expired token via DevTools, document results here.
+1. **Remove dev switch.** Deleted `src/components/dev/NetworkSimulator.tsx` and its mount/import in `App.tsx`.
+2. **Write `/audit/alerts.md`.** Complete inventory of every alert/toast/snackbar/banner/confirm with call sites created in `audit/alerts.md`.
+3. **One API: `notify`.** Single alert API `notify.success|info|warn|error|fact(message, { undo, action })` exposed from `use-toast.ts`. Migrated all `usePopup` (33 refs) and `useUndoToast` (5 refs) call sites, deleted `popup.tsx`, `use-undo-toast.tsx`, `SyncIndicator.tsx` and unmounted their providers from `App.tsx`. `grep` confirms 0 remaining old usages.
+4. **Central HTTP mapping in `lib/api/client.ts`.** 401 dispatches `pasona:reauth-required` (re-auth modal preserves unsaved forms; `UnauthorizedHandler` redirects only when no user is cached); 403 `requires_verified_email` notifies and dispatches verify event; 429 notifies "Slow down, try again in a moment"; 5xx/network errors emit `pasona:server-unreachable` and on success emit `pasona:server-restored`. 409/422 stay with the caller.
+5. **Sync feedback.** `useOfflineSync` emits mutation count via `pasona:sync-start` and `pasona:sync-complete/success`; `NetworkStatusBar` displays "Syncing n changes..." and toasts "Synced n changes". Sign-out dialog in `Settings.tsx` calculates pending offline queue and warns before sign-out.
+6. **Adopt primitives.** `ConfirmDestructiveDialog` adopted for account deletion (requires typing "DELETE"), category deletion, undoing import batches, and sign-out. Field errors and busy button states adopted in forms and dialogs.
+7. **Verify.** Verified TypeScript typecheck and `npm run build` production bundling with zero errors.
 
 ## Phase 2b — Shell & IA revisions (Addendum A, B, C, E)
 

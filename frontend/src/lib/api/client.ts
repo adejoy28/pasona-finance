@@ -11,6 +11,27 @@ import { env } from "../env";
 import { clearAuthToken, getAuthToken } from "../auth/token";
 import { getCachedData, setCachedData, enqueueMutation } from "../db/schema";
 import { Capacitor } from "@capacitor/core";
+import { notify } from "@/hooks/use-toast";
+
+let serverUnreachableState = false;
+
+function emitServerUnreachable() {
+  if (!serverUnreachableState) {
+    serverUnreachableState = true;
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("pasona:server-unreachable"));
+    }
+  }
+}
+
+function emitServerRestored() {
+  if (serverUnreachableState) {
+    serverUnreachableState = false;
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("pasona:server-restored"));
+    }
+  }
+}
 
 const DEFAULT_TIMEOUT_MS = 20_000;
 export const API_ERROR_USER_MESSAGE =
@@ -216,6 +237,7 @@ export async function request<T = unknown>(path: string, options: RequestOptions
     
     if (kind === "network" || kind === "timeout") {
       isNetworkError = true;
+      emitServerUnreachable();
     } else {
       const apiError = new ApiError({ message: API_ERROR_USER_MESSAGE, status: 0, kind, url });
       throw apiError;
@@ -250,8 +272,14 @@ export async function request<T = unknown>(path: string, options: RequestOptions
   const payload = await parseBody(response!);
 
   if (!response!.ok) {
+    if (response!.status >= 500) {
+      emitServerUnreachable();
+    }
     if (response!.status === 401) {
       clearAuthToken();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("pasona:reauth-required"));
+      }
       try {
         unauthorizedHandler?.();
       } catch (handlerError) {
@@ -259,6 +287,15 @@ export async function request<T = unknown>(path: string, options: RequestOptions
       }
     }
     const requiresVerifiedEmail = isRequiresVerifiedEmailPayload(response!.status, payload);
+    if (requiresVerifiedEmail) {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("pasona:verify-email-required"));
+      }
+      notify.warn("Please verify your email address to continue.");
+    }
+    if (response!.status === 429) {
+      notify.warn("Slow down, try again in a moment");
+    }
     const message = extractMessage(payload, API_ERROR_USER_MESSAGE);
     throw new ApiError({
       message,
@@ -269,6 +306,9 @@ export async function request<T = unknown>(path: string, options: RequestOptions
       requiresVerifiedEmail,
     });
   }
+
+  // Response was successful — restore server reachability if previously degraded
+  emitServerRestored();
 
   // Cache successful GETs
   if (method === "GET") {

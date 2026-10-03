@@ -28,18 +28,8 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/use-theme";
 import { NotificationBell } from "@/components/finance/NotificationBell";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
-import { usePopup } from "@/components/ui/popup";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { notify } from "@/hooks/use-toast";
+import { ConfirmDestructiveDialog } from "@/components/ui/confirm-destructive-dialog";
 import { FinanceNavbar } from "@/components/finance/Navbar";
 import { CURRENCIES, DEFAULT_CURRENCY } from "@/lib/currencies";
 import { ApiError, auth as authApi, undoImportBatch } from "@/lib/api";
@@ -53,6 +43,7 @@ import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { useMe, invalidateMe } from "@/hooks/use-me";
 import { useOnline } from "@/hooks/use-online";
 import { usePrivacyMode } from "@/hooks/use-privacy-mode";
+import { countQueuedTransactions } from "@/lib/offline/queue";
 import { fadeSlideDown } from "@/lib/animations";
 import {
   checkBiometricAvailability,
@@ -90,7 +81,6 @@ function readStoredCapabilityTime(): string {
 export function Settings() {
   const navigate = useNavigate();
   const location = useLocation();
-  const popup = usePopup();
   const { isInstallable, install } = usePwaInstall();
   const isOnline = useOnline();
   const [reminderTime, setReminderTime] = useState(readStoredTime);
@@ -98,6 +88,9 @@ export function Settings() {
   const [capabilityTime, setCapabilityTime] = useState(readStoredCapabilityTime);
   const [reminderEnabled, setReminderEnabled] = useState(readStoredEnabled);
   const [signingOut, setSigningOut] = useState(false);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
+  const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
+  const [importBatchToUndo, setImportBatchToUndo] = useState<ImportHistoryEntry | null>(null);
   const { isPrivacyModeEnabled, setPrivacyMode } = usePrivacyMode();
 
   const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -118,6 +111,30 @@ export function Settings() {
 
   const [importHistory, setImportHistory] = useState<ImportHistoryEntry[]>([]);
   const [undoingBatchId, setUndoingBatchId] = useState<string | null>(null);
+  const [pendingOfflineCount, setPendingOfflineCount] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    async function checkPending() {
+      let count = 0;
+      try {
+        count += await countQueuedTransactions();
+      } catch {
+        // ignore
+      }
+      try {
+        const q = JSON.parse(localStorage.getItem("pasona.mutation_queue") || "[]");
+        if (Array.isArray(q)) count += q.length;
+      } catch {
+        // ignore
+      }
+      if (active) setPendingOfflineCount(count);
+    }
+    void checkPending();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -130,21 +147,22 @@ export function Settings() {
     }
   }, []);
 
-  const handleUndoBatch = async (entry: ImportHistoryEntry) => {
-    if (!confirm(`Undo import of "${entry.file}" (${entry.added} transactions)?`)) return;
-    setUndoingBatchId(entry.id);
+  const confirmUndoBatch = async () => {
+    if (!importBatchToUndo) return;
+    setUndoingBatchId(importBatchToUndo.id);
     try {
-      if (entry.batch_id) {
-        await undoImportBatch(entry.batch_id).catch(() => {});
+      if (importBatchToUndo.batch_id) {
+        await undoImportBatch(importBatchToUndo.batch_id).catch(() => {});
       }
-      const updated = importHistory.filter((h) => h.id !== entry.id);
+      const updated = importHistory.filter((h) => h.id !== importBatchToUndo.id);
       setImportHistory(updated);
       localStorage.setItem("pasona.import_history", JSON.stringify(updated));
-      popup.success("Import batch undone");
+      notify.success("Import batch undone");
     } catch (err) {
-      popup.error(err instanceof ApiError ? err.message : "Unable to undo import batch");
+      notify.error(err instanceof ApiError ? err.message : "Unable to undo import batch");
     } finally {
       setUndoingBatchId(null);
+      setImportBatchToUndo(null);
     }
   };
 
@@ -240,15 +258,15 @@ export function Settings() {
     try {
       await authApi.updateProfile({ currency: newCurrency });
       invalidateMe();
-      popup.success("Currency updated");
+      notify.success("Currency updated");
     } catch {
-      popup.error("Failed to save currency preference");
+      notify.error("Failed to save currency preference");
     }
   };
 
   const handlePrivacyToggle = (next: boolean) => {
     setPrivacyMode(next);
-    popup.success(next ? "Privacy mode enabled (balances hidden)" : "Privacy mode disabled (balances visible)");
+    notify.success(next ? "Privacy mode enabled (balances hidden)" : "Privacy mode disabled (balances visible)");
   };
 
   const toggleReminder = async (next: boolean) => {
@@ -261,7 +279,7 @@ export function Settings() {
         }
         await authApi.updateProfile({ reminder_time: null, timezone: browserTz });
         invalidateMe();
-        popup.success("Daily notifications disabled");
+        notify.success("Daily notifications disabled");
         return;
       }
 
@@ -270,7 +288,7 @@ export function Settings() {
           const status = await requestPermission();
           if (status.display !== "granted") {
             setReminderEnabled(false);
-            popup.error("Notification permission denied. Enable it in system settings.");
+            notify.error("Notification permission denied. Enable it in system settings.");
             return;
           }
         }
@@ -283,10 +301,10 @@ export function Settings() {
       }
       await authApi.updateProfile({ reminder_time: reminderTime, timezone: browserTz });
       invalidateMe();
-      popup.success(isNative ? "3 daily app alerts active" : "Daily reminder enabled");
+      notify.success(isNative ? "3 daily app alerts active" : "Daily reminder enabled");
     } catch {
       setReminderEnabled(prev);
-      popup.error("Could not toggle reminder");
+      notify.error("Could not toggle reminder");
     }
   };
 
@@ -299,7 +317,7 @@ export function Settings() {
         invalidateMe();
       } catch {
         setReminderTime(prev);
-        popup.error("Could not save reminder time");
+        notify.error("Could not save reminder time");
         return;
       }
     }
@@ -311,7 +329,7 @@ export function Settings() {
         capabilityTime,
         userSeed: user?.id,
       });
-      popup.success(`Reminder rescheduled to ${next}`);
+      notify.success(`Reminder rescheduled to ${next}`);
     } catch {
       // Best-effort
     }
@@ -327,7 +345,7 @@ export function Settings() {
         capabilityTime,
         userSeed: user?.id,
       });
-      popup.success(`Morning wisdom rescheduled to ${next}`);
+      notify.success(`Morning wisdom rescheduled to ${next}`);
     } catch {
       // Best-effort
     }
@@ -343,7 +361,7 @@ export function Settings() {
         capabilityTime: next,
         userSeed: user?.id,
       });
-      popup.success(`Afternoon spotlight rescheduled to ${next}`);
+      notify.success(`Afternoon spotlight rescheduled to ${next}`);
     } catch {
       // Best-effort
     }
@@ -354,9 +372,9 @@ export function Settings() {
     try {
       await authApi.updateProfile({ reminder_frequency: next, timezone: browserTz });
       invalidateMe();
-      popup.success("Reminder schedule updated");
+      notify.success("Reminder schedule updated");
     } catch {
-      popup.error("Failed to update reminder frequency");
+      notify.error("Failed to update reminder frequency");
     }
   };
 
@@ -365,9 +383,9 @@ export function Settings() {
     try {
       await authApi.updateProfile({ marketing_opt_in: next });
       invalidateMe();
-      popup.success(next ? "Weekly insights & digests enabled" : "Marketing emails disabled");
+      notify.success(next ? "Weekly insights & digests enabled" : "Marketing emails disabled");
     } catch {
-      popup.error("Failed to update email preferences");
+      notify.error("Failed to update email preferences");
     }
   };
 
@@ -378,31 +396,31 @@ export function Settings() {
       if (biometricEnabled) {
         await deleteBiometricCredentials();
         setBiometricEnabled(false);
-        popup.success("Biometric sign-in disabled");
+        notify.success("Biometric sign-in disabled");
       } else {
         const verified = await verifyBiometricIdentity();
         if (verified) {
           const email = user?.email;
           if (!email) {
-            popup.error("No account on this device. Sign in again.");
+            notify.error("No account on this device. Sign in again.");
           } else {
             try {
               const biometricToken = await authApi.createBiometricToken();
               const saved = await saveBiometricCredentials(email, biometricToken);
               if (saved) {
                 setBiometricEnabled(true);
-                popup.success("Biometric sign-in enabled");
+                notify.success("Biometric sign-in enabled");
               } else {
-                popup.error("Could not save biometric credentials");
+                notify.error("Could not save biometric credentials");
               }
             } catch {
-              popup.error("Could not issue biometric credentials. Try again.");
+              notify.error("Could not issue biometric credentials. Try again.");
             }
           }
         }
       }
     } catch {
-      popup.error("Biometric operation failed");
+      notify.error("Biometric operation failed");
     } finally {
       setBiometricBusy(false);
     }
@@ -424,10 +442,10 @@ export function Settings() {
     try {
       await authApi.deleteAccount();
       invalidateMe();
-      popup.success("Your account has been deleted.");
+      notify.success("Your account has been deleted.");
       void navigate("/login");
     } catch (err) {
-      popup.error(
+      notify.error(
         err instanceof ApiError
           ? err.message
           : "Unable to delete your account. Please try again.",
@@ -957,7 +975,7 @@ export function Settings() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => void handleUndoBatch(entry)}
+                            onClick={() => setImportBatchToUndo(entry)}
                             disabled={isUndoing}
                             className="text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-rose-100 transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
                           >
@@ -1043,49 +1061,61 @@ export function Settings() {
             <section className="space-y-3">
               <button
                 type="button"
-                onClick={handleSignOut}
+                onClick={() => setShowSignOutConfirm(true)}
                 disabled={signingOut}
-                className="w-full p-4 rounded-2xl bg-white border border-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors card-shadow"
+                className="w-full p-4 rounded-2xl bg-white border border-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors card-shadow cursor-pointer"
               >
                 <LogOut size={16} />
                 {signingOut ? "Signing out…" : "Sign Out"}
               </button>
 
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <button
-                    type="button"
-                    className="w-full p-4 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 font-bold text-xs flex items-center justify-center gap-2 hover:bg-rose-100 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                    Delete Account
-                  </button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="rounded-2xl max-w-sm">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="text-base font-black text-rose-600">Delete account?</AlertDialogTitle>
-                    <AlertDialogDescription className="text-xs text-slate-500">
-                      This will permanently delete your account, all connected bank data, transactions, and categories. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter className="flex-row gap-2 justify-end">
-                    <AlertDialogCancel className="rounded-xl text-xs font-bold border-slate-200 mt-0">
-                      Cancel
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDeleteAccount}
-                      disabled={deletingAccount}
-                      className="rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white border-0"
-                    >
-                      {deletingAccount ? "Deleting…" : "Delete Account"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <button
+                type="button"
+                onClick={() => setShowDeleteAccountConfirm(true)}
+                className="w-full p-4 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 font-bold text-xs flex items-center justify-center gap-2 hover:bg-rose-100 transition-colors cursor-pointer"
+              >
+                <Trash2 size={16} />
+                Delete Account
+              </button>
             </section>
           </div>
         </div>
       </main>
+
+      <ConfirmDestructiveDialog
+        open={Boolean(importBatchToUndo)}
+        onOpenChange={(op) => {
+          if (!op) setImportBatchToUndo(null);
+        }}
+        title="Undo import batch?"
+        description={`Undo import of "${importBatchToUndo?.file}" (${importBatchToUndo?.added} transactions)? This will remove all transactions created in this batch.`}
+        confirmLabel="Undo Batch"
+        onConfirm={confirmUndoBatch}
+      />
+
+      <ConfirmDestructiveDialog
+        open={showSignOutConfirm}
+        onOpenChange={setShowSignOutConfirm}
+        title="Sign out?"
+        description="Are you sure you want to sign out of your account on this device?"
+        confirmLabel="Sign Out"
+        pendingWarning={
+          pendingOfflineCount > 0
+            ? `You have ${pendingOfflineCount} unsynced change${pendingOfflineCount === 1 ? "" : "s"}. Signing out will discard offline changes that have not yet reached the server.`
+            : undefined
+        }
+        onConfirm={handleSignOut}
+      />
+
+      <ConfirmDestructiveDialog
+        open={showDeleteAccountConfirm}
+        onOpenChange={setShowDeleteAccountConfirm}
+        title="Delete account?"
+        description="This will permanently delete your account, all connected bank data, transactions, and categories. This action cannot be undone."
+        confirmKeyword="DELETE"
+        confirmLabel="Delete Account"
+        onConfirm={handleDeleteAccount}
+      />
 
       <FinanceNavbar />
     </div>
