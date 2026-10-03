@@ -14,7 +14,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import { usePopup } from "@/components/ui/popup";
+import { notify } from "@/hooks/use-toast";
 import { FinanceNavbar } from "@/components/finance/Navbar";
 import { DashboardSkeleton } from "@/components/finance/Skeletons";
 import { AiChat } from "@/components/finance/AiChat";
@@ -60,7 +60,6 @@ export function Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const verifiedFlag = searchParams.get("verified") ?? undefined;
-  const popup = usePopup();
   const { isRevealed, toggleReveal, renderAmount } = usePrivacyMode();
 
   useEffect(() => {
@@ -70,15 +69,15 @@ export function Dashboard() {
   useEffect(() => {
     if (!verifiedFlag) return;
     if (verifiedFlag === "1") {
-      popup.success("Email confirmed");
+      notify.success("Email confirmed");
     } else if (verifiedFlag === "already") {
-      popup.info("Email was already verified");
+      notify.info("Email was already verified");
     } else if (verifiedFlag === "error") {
-      popup.error("That confirmation link is invalid or has expired.");
+      notify.error("That confirmation link is invalid or has expired.");
     }
     invalidateMe();
     setSearchParams({}, { replace: true });
-  }, [verifiedFlag, popup, setSearchParams]);
+  }, [verifiedFlag, setSearchParams]);
 
   const [monthOffset, setMonthOffset] = useState(0);
   const monthDate = new Date();

@@ -23,7 +23,8 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { usePopup } from "@/components/ui/popup";
+import { notify } from "@/hooks/use-toast";
+import { ConfirmDestructiveDialog } from "@/components/ui/confirm-destructive-dialog";
 import { getDailyMoneyFact } from "@/lib/facts";
 import type { NotificationDto } from "@/lib/api/notifications";
 import { accounts as accountsApi, transactions as transactionsApi } from "@/lib/api";
@@ -180,7 +181,7 @@ export function NotificationPanel({
   refresh,
 }: NotificationPanelProps) {
   const navigate = useNavigate();
-  const popup = usePopup();
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [selectedNotif, setSelectedNotif] = useState<NotificationDto | null>(null);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
 
@@ -288,10 +289,7 @@ export function NotificationPanel({
   };
 
   const handleClearAll = () => {
-    if (window.confirm("Remove all notifications?")) {
-      void clearAll();
-      setSelectedNotif(null);
-    }
+    setShowClearConfirm(true);
   };
 
   const handleGoToSettings = () => {
@@ -391,7 +389,7 @@ export function NotificationPanel({
                           ? selectedNotif.title
                           : `💡 ${dailyFact.title}`;
                         const desc = `${selectedNotif.body}\n\n💡 Takeaway: ${dailyFact.take}`;
-                        popup.fact(title, { description: desc, duration: 15000 });
+                        notify.fact(title, { description: desc, duration: 15000 });
                       }}
                       className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-amber-800 bg-amber-100/70 hover:bg-amber-100 rounded-xl transition-colors cursor-pointer"
                     >
@@ -652,6 +650,19 @@ export function NotificationPanel({
           </>
         )}
       </SheetContent>
+
+      <ConfirmDestructiveDialog
+        open={showClearConfirm}
+        onOpenChange={setShowClearConfirm}
+        title="Remove all notifications?"
+        description="Are you sure you want to remove all notifications? This action cannot be undone."
+        confirmLabel="Remove All"
+        onConfirm={async () => {
+          await clearAll();
+          setSelectedNotif(null);
+          notify.success("Notifications cleared");
+        }}
+      />
     </Sheet>
   );
 }

@@ -9,7 +9,8 @@ import {
   Trash2,
   User,
 } from "lucide-react";
-import { usePopup } from "@/components/ui/popup";
+import { notify } from "@/hooks/use-toast";
+import { ConfirmDestructiveDialog } from "@/components/ui/confirm-destructive-dialog";
 import { FinanceNavbar } from "@/components/finance/Navbar";
 import { CategoryDialog } from "@/components/finance/CategoryDialog";
 import { NotificationBell } from "@/components/finance/NotificationBell";
@@ -59,7 +60,7 @@ export function Categories() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const isOnline = useOnline();
-  const popup = usePopup();
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const { renderAmount } = usePrivacyMode();
   const meQuery = useMe();
   const currency = meQuery.data?.currency ?? DEFAULT_CURRENCY;
@@ -111,19 +112,23 @@ export function Categories() {
     });
   };
 
-  const handleDelete = async (id: number) => {
-    const categoryToDelete = categories.find((c) => c.id === id);
-    if (!categoryToDelete) return;
-    if (!confirm(`Are you sure you want to delete "${categoryToDelete.name}"?`)) return;
+  const handleDelete = (id: number) => {
+    const target = categories.find((c) => c.id === id);
+    if (target) setCategoryToDelete(target);
+  };
 
+  const confirmDelete = async () => {
+    if (!categoryToDelete) return;
     try {
-      await categoriesApi.deleteCategory(id);
-      setCategories((prev) => prev.filter((c) => c.id !== id));
-      popup.success("Category deleted");
+      await categoriesApi.deleteCategory(categoryToDelete.id);
+      setCategories((prev) => prev.filter((c) => c.id !== categoryToDelete.id));
+      notify.success("Category deleted");
     } catch (err) {
-      popup.error(
+      notify.error(
         err instanceof ApiError ? err.message : "Unable to delete category. Please try again.",
       );
+    } finally {
+      setCategoryToDelete(null);
     }
   };
 
@@ -391,6 +396,16 @@ export function Categories() {
         onOpenChange={setDialogOpen}
         category={editingCategory}
         onSaved={handleSaved}
+      />
+      <ConfirmDestructiveDialog
+        open={Boolean(categoryToDelete)}
+        onOpenChange={(op) => {
+          if (!op) setCategoryToDelete(null);
+        }}
+        title="Delete category?"
+        description={`Are you sure you want to delete "${categoryToDelete?.name}"?`}
+        confirmLabel="Delete Category"
+        onConfirm={confirmDelete}
       />
       <FinanceNavbar />
     </div>

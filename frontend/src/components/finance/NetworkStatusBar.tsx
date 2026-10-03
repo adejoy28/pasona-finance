@@ -2,13 +2,14 @@ import React, { useState, useEffect } from "react";
 import { CloudOff, RefreshCw, AlertCircle, LogIn, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOfflineSync } from "@/hooks/use-offline-sync";
-import { toast } from "@/hooks/use-toast";
+import { notify } from "@/hooks/use-toast";
 import { useNavigate } from "react-router";
 
 export function NetworkStatusBar() {
   const { isOnline, isSyncing, pendingCount, flushQueue } = useOfflineSync();
   const [serverUnreachable, setServerUnreachable] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [syncCount, setSyncCount] = useState(0);
   const navigate = useNavigate();
 
   // Listen to network status events dispatched by the API interceptor
@@ -17,25 +18,30 @@ export function NetworkStatusBar() {
     const handleServerUp = () => setServerUnreachable(false);
     const handleReauth = () => setSessionExpired(true);
     const handleAuthRestored = () => setSessionExpired(false);
+    const handleSyncStart = (e: any) => {
+      setSyncCount(e.detail?.count || pendingCount || 0);
+    };
 
     window.addEventListener("pasona:server-unreachable", handleServerDown);
     window.addEventListener("pasona:server-restored", handleServerUp);
     window.addEventListener("pasona:reauth-required", handleReauth);
     window.addEventListener("pasona:auth-restored", handleAuthRestored);
+    window.addEventListener("pasona:sync-start", handleSyncStart);
 
     return () => {
       window.removeEventListener("pasona:server-unreachable", handleServerDown);
       window.removeEventListener("pasona:server-restored", handleServerUp);
       window.removeEventListener("pasona:reauth-required", handleReauth);
       window.removeEventListener("pasona:auth-restored", handleAuthRestored);
+      window.removeEventListener("pasona:sync-start", handleSyncStart);
     };
-  }, []);
+  }, [pendingCount]);
 
   // When syncing completes, emit feedback
   useEffect(() => {
     const handleSyncComplete = (e: any) => {
       const count = e.detail?.count || 1;
-      toast.success(`Synced ${count} change${count === 1 ? "" : "s"}`);
+      notify.success(`Synced ${count} change${count === 1 ? "" : "s"}`);
     };
 
     window.addEventListener("pasona:sync-success", handleSyncComplete);
@@ -49,13 +55,13 @@ export function NetworkStatusBar() {
       const res = await fetch("/api/up", { method: "GET" }).catch(() => null);
       if (res && res.ok) {
         setServerUnreachable(false);
-        toast.success("Connected to server");
+        notify.success("Connected to server");
         void flushQueue();
       } else {
-        toast.error("Server is still unreachable");
+        notify.error("Server is still unreachable");
       }
     } catch {
-      toast.error("Server is still unreachable");
+      notify.error("Server is still unreachable");
     }
   };
 
@@ -94,7 +100,11 @@ export function NetworkStatusBar() {
             className="pointer-events-auto mt-2 px-3.5 py-1.5 rounded-full bg-[var(--surface)] text-[var(--ink)] text-xs font-bold border border-[var(--line)] shadow-lg flex items-center gap-2 select-none"
           >
             <RefreshCw size={13} className="animate-spin text-[var(--primary)] shrink-0" />
-            <span>Syncing changes...</span>
+            <span>
+              {syncCount > 0
+                ? `Syncing ${syncCount} change${syncCount === 1 ? "" : "s"}...`
+                : "Syncing changes..."}
+            </span>
           </motion.div>
         )}
 

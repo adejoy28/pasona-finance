@@ -7,19 +7,32 @@ export interface ToastUndoAction {
   onUndo: () => void | Promise<void>;
 }
 
+export interface ToastCustomAction {
+  label: string;
+  onClick: () => void | Promise<void>;
+}
+
+export type ToastUndoOption = (() => void | Promise<void>) | ToastUndoAction;
+
 export interface ToastOptions {
   id?: string;
   title?: string;
   description?: string;
   duration?: number;
-  undo?: ToastUndoAction;
+  undo?: ToastUndoOption;
+  action?: ToastCustomAction;
 }
 
-export interface ToastItem extends ToastOptions {
+export interface ToastItem {
   id: string;
   type: ToastType;
   message: string;
+  title?: string;
+  description?: string;
+  duration: number;
   createdAt: number;
+  undo?: ToastUndoAction;
+  action?: ToastCustomAction;
 }
 
 const TOAST_LIMIT = 3;
@@ -105,12 +118,19 @@ export function toast(type: ToastType, message: string, options?: ToastOptions):
       ? 0
       : DEFAULT_DISMISS_DELAY;
 
+  const undoAction: ToastUndoAction | undefined =
+    typeof options?.undo === "function"
+      ? { onUndo: options.undo, label: "Undo" }
+      : options?.undo;
+
   const item: ToastItem = {
     ...options,
     id,
     type,
     message,
     duration,
+    undo: undoAction,
+    action: options?.action,
     createdAt: Date.now(),
   };
 
@@ -132,6 +152,22 @@ toast.dismiss = (toastId?: string) => {
   dispatch({ type: "DISMISS_TOAST", toastId });
 };
 
+export interface NotifyOptions extends ToastOptions {}
+
+export const notify = {
+  success: (message: string, options?: NotifyOptions) => toast.success(message, options),
+  info: (message: string, options?: NotifyOptions) => toast.info(message, options),
+  warn: (message: string, options?: NotifyOptions) => toast.warn(message, options),
+  error: (message: string, options?: NotifyOptions) => toast.error(message, options),
+  fact: (message: string, options?: NotifyOptions) =>
+    toast.warn(message, { title: "Money Insight", ...options, duration: options?.duration ?? 7000 }),
+  dismiss: (toastId?: string) => toast.dismiss(toastId),
+};
+
+export function useNotify() {
+  return notify;
+}
+
 export function useToast() {
   const [state, setState] = useState<State>(memoryState);
 
@@ -148,6 +184,7 @@ export function useToast() {
   return {
     toasts: state.toasts,
     toast,
+    notify,
     dismiss: (toastId?: string) => toast.dismiss(toastId),
     success: (msg: string, opts?: ToastOptions) => toast.success(msg, opts),
     info: (msg: string, opts?: ToastOptions) => toast.info(msg, opts),

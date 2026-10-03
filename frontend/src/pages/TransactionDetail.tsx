@@ -20,8 +20,8 @@ import {
   Wallet,
 } from "lucide-react";
 import { useLocalMeta } from "@/hooks/use-local-meta";
-import { useUndoToast } from "@/hooks/use-undo-toast";
-import { usePopup } from "@/components/ui/popup";
+import { notify } from "@/hooks/use-toast";
+import { ConfirmDestructiveDialog } from "@/components/ui/confirm-destructive-dialog";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/finance";
 import { usePrivacyMode } from "@/hooks/use-privacy-mode";
@@ -35,16 +35,6 @@ import {
 import { DEFAULT_CURRENCY } from "@/lib/currencies";
 import { TransactionDialog } from "@/components/finance/TransactionDialog";
 import { useMe } from "@/hooks/use-me";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 function getHeroGradient(type: string) {
   if (type === "income") return "from-emerald-500 to-teal-600";
@@ -112,7 +102,6 @@ const item: Variants = {
 export function TransactionDetail() {
   const { transactionId } = useParams();
   const navigate = useNavigate();
-  const popup = usePopup();
 
   const [dto, setDto] = useState<TransactionDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -131,7 +120,6 @@ export function TransactionDetail() {
     note?: string;
   }
   const [txMeta] = useLocalMeta<TxMeta>("tx_meta", dto?.id);
-  const { showUndo } = useUndoToast();
 
   const [showSplit, setShowSplit] = useState(false);
   const [splitAmountInput, setSplitAmountInput] = useState("");
@@ -154,15 +142,15 @@ export function TransactionDetail() {
     const originalAmount = typeof dto.amount === "string" ? parseFloat(dto.amount) : dto.amount;
 
     if (Number.isNaN(splitAmount) || splitAmount <= 0) {
-      popup.error("Enter an amount greater than zero.");
+      notify.error("Enter an amount greater than zero.");
       return;
     }
     if (splitAmount >= originalAmount) {
-      popup.error(`Enter an amount smaller than ${formatCurrency(originalAmount, userCurrency)}.`);
+      notify.error(`Enter an amount smaller than ${formatCurrency(originalAmount, userCurrency)}.`);
       return;
     }
     if (!splitCategoryId) {
-      popup.error("Please choose a category to move to.");
+      notify.error("Please choose a category to move to.");
       return;
     }
 
@@ -191,18 +179,20 @@ export function TransactionDetail() {
       setSplitCategoryId("");
       void loadDetail();
 
-      showUndo("Split applied", async () => {
-        try {
-          if (createdId) {
-            await transactionsApi.deleteTransaction(createdId);
+      notify.success("Split applied", {
+        undo: async () => {
+          try {
+            if (createdId) {
+              await transactionsApi.deleteTransaction(createdId);
+            }
+            await transactionsApi.updateTransaction(dto.id, {
+              amount: originalAmount,
+            });
+            void loadDetail();
+          } catch (err) {
+            console.error("Failed to undo split", err);
           }
-          await transactionsApi.updateTransaction(dto.id, {
-            amount: originalAmount,
-          });
-          void loadDetail();
-        } catch (err) {
-          console.error("Failed to undo split", err);
-        }
+        },
       });
     } catch (err) {
       if (createdId) {
@@ -212,7 +202,7 @@ export function TransactionDetail() {
           // ignore
         }
       }
-      popup.error(err instanceof ApiError ? err.message : "Failed to apply split.");
+      notify.error(err instanceof ApiError ? err.message : "Failed to apply split.");
     } finally {
       setIsSplitting(false);
     }
@@ -246,10 +236,10 @@ export function TransactionDetail() {
     setIsDeleting(true);
     try {
       await transactionsApi.deleteTransaction(dto.id);
-      popup.success("Transaction deleted");
+      notify.success("Transaction deleted");
       void navigate("/transactions", { replace: true });
     } catch (err) {
-      popup.error(
+      notify.error(
         err instanceof ApiError ? err.message : "Unable to delete transaction. Please try again.",
       );
     } finally {
@@ -584,28 +574,14 @@ export function TransactionDetail() {
       )}
 
       {/* Delete Confirmation */}
-      <AlertDialog open={deleting} onOpenChange={setDeleting}>
-        <AlertDialogContent className="rounded-3xl max-w-sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-base font-black text-rose-600">Delete Record?</AlertDialogTitle>
-            <AlertDialogDescription className="text-xs text-slate-500">
-              Are you sure you want to delete this record? Your account balance will be updated immediately.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row gap-2 justify-end">
-            <AlertDialogCancel className="rounded-2xl text-xs font-bold border-slate-200 mt-0">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              disabled={isDeleting}
-              className="rounded-2xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white border-0"
-            >
-              {isDeleting ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDestructiveDialog
+        open={deleting}
+        onOpenChange={setDeleting}
+        title="Delete Record?"
+        description="Are you sure you want to delete this record? Your account balance will be updated immediately."
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

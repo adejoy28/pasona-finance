@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { CreditCard, Loader2, Smartphone, Wallet } from "lucide-react";
-import { usePopup } from "@/components/ui/popup";
+import { notify } from "@/hooks/use-toast";
+import { ModalErrorBanner } from "@/components/ui/modal-error-banner";
+import { FieldError } from "@/components/ui/field-error";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { ApiError, accounts as accountsApi, type AccountDto, type CreateAccountInput } from "@/lib/api";
@@ -42,7 +44,6 @@ export function AccountDialog({
   onSaved,
   defaultType = "bank",
 }: AccountDialogProps) {
-  const popup = usePopup();
   const userQuery = useMe();
   const userCurrency = userQuery.data?.currency ?? DEFAULT_CURRENCY;
   const isEditMode = Boolean(account);
@@ -102,7 +103,7 @@ export function AccountDialog({
       } else {
         saved = await accountsApi.createAccount({ name: trimmed, type, currency: userCurrency, starting_balance: numericBalance });
       }
-      popup.success(isEditMode ? "Account updated" : "Account created");
+      notify.success(isEditMode ? "Account updated" : "Account created");
       onSaved(normalizeAccount(saved));
       onOpenChange(false);
     } catch (err) {
@@ -145,12 +146,10 @@ export function AccountDialog({
           </div>
 
           {error && (
-            <p
-              role="alert"
-              className="text-xs font-semibold text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2"
-            >
-              {error}
-            </p>
+            <ModalErrorBanner
+              error={error}
+              onDismiss={() => setError(null)}
+            />
           )}
 
           <div className="space-y-1.5">

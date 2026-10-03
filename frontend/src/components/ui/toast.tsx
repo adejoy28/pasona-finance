@@ -74,6 +74,24 @@ export function ToastCard({ item, onDismiss }: ToastCardProps) {
       </div>
 
       <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+        {item.action && (
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await item.action?.onClick();
+              } catch (err) {
+                console.error("Toast action failed", err);
+              } finally {
+                onDismiss(item.id);
+              }
+            }}
+            className="px-2 py-1 rounded-lg text-[11px] font-black uppercase tracking-wider text-[var(--primary,#1F5BFF)] bg-[var(--chip)] hover:bg-[var(--line)] active:scale-95 transition-all cursor-pointer shrink-0"
+          >
+            {item.action.label}
+          </button>
+        )}
+
         {item.undo && (
           <button
             type="button"

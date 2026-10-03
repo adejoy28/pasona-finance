@@ -11,7 +11,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { usePopup } from "@/components/ui/popup";
+import { notify } from "@/hooks/use-toast";
 import { FinanceNavbar } from "@/components/finance/Navbar";
 import {
   ApiError,
@@ -63,7 +63,6 @@ function getRowKey(r: ImportPreviewRow): string {
 
 export function ImportPage() {
   const navigate = useNavigate();
-  const popup = usePopup();
 
   const [accounts, setAccounts] = useState<AccountDto[]>([]);
   const [categories, setCategories] = useState<CategoryDto[]>([]);
@@ -289,7 +288,7 @@ export function ImportPage() {
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         if (err.requiresVerifiedEmail) {
-          popup.error("Confirm your email to import transactions.", {
+          notify.error("Confirm your email to import transactions.", {
             description: "We sent you a link — open it, then come back here.",
           });
           void navigate("/dashboard");
@@ -316,19 +315,19 @@ export function ImportPage() {
     setRows((prev) =>
       prev.map((r) => (r.isOWealthSweep ? { ...r, excluded: exclude } : r)),
     );
-    popup.success(
+    notify.success(
       exclude ? "Excluded all OWealth sweeps" : "Included all OWealth sweeps",
     );
-  }, [popup]);
+  }, []);
 
   const handleToggleOWealthInterest = useCallback((exclude: boolean) => {
     setRows((prev) =>
       prev.map((r) => (r.isOWealthInterest ? { ...r, excluded: exclude } : r)),
     );
-    popup.success(
+    notify.success(
       exclude ? "Excluded OWealth interest payments" : "Included OWealth interest payments",
     );
-  }, [popup]);
+  }, []);
 
   const handleRowCategoryChange = useCallback((key: string, categoryId?: number) => {
     setRows((prev) =>
@@ -455,11 +454,11 @@ export function ImportPage() {
           };
         }),
       );
-      popup.success(
+      notify.success(
         `Set type to ${nextType} for ${count} selected transaction${count === 1 ? "" : "s"}`,
       );
     },
-    [categories, popup, toAccountId],
+    [categories, toAccountId],
   );
 
   const handleApplyBulkCategory = useCallback(() => {
@@ -480,16 +479,16 @@ export function ImportPage() {
     );
 
     if (appliedCount > 0) {
-      popup.success(
+      notify.success(
         `Assigned "${targetCat.name}" to ${appliedCount} ${targetCat.type} transaction${appliedCount === 1 ? "" : "s"}`,
       );
     } else {
-      popup.warning(
+      notify.warn(
         `No selected ${targetCat.type} transactions found for "${targetCat.name}". Change transaction type to ${targetCat.type} to assign this category.`,
       );
     }
     setBulkCategory("");
-  }, [bulkCategory, categories, popup]);
+  }, [bulkCategory, categories]);
 
   const handleSelectAll = useCallback(() => {
     setRows((prev) => prev.map((r) => ({ ...r, excluded: false })));
@@ -596,7 +595,7 @@ export function ImportPage() {
         // Safe localStorage write fallback
       }
 
-      popup.success(`Imported ${importableCount} transaction${importableCount === 1 ? "" : "s"}`);
+      notify.success(`Imported ${importableCount} transaction${importableCount === 1 ? "" : "s"}`);
       setStep("done");
     } catch (err) {
       if (err instanceof ApiError) {

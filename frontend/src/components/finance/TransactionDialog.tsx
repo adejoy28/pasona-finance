@@ -11,7 +11,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, Loader2 } from "lucide-react";
-import { usePopup } from "@/components/ui/popup";
+import { notify } from "@/hooks/use-toast";
+import { ModalErrorBanner } from "@/components/ui/modal-error-banner";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
@@ -59,7 +60,6 @@ export function TransactionDialog({
   transaction,
   onSaved,
 }: TransactionDialogProps) {
-  const popup = usePopup();
   const isEditMode = Boolean(transaction);
 
   const [amount, setAmount] = useState("");
@@ -184,7 +184,7 @@ export function TransactionDialog({
       } catch {
         // ignore
       }
-      popup.success("Transaction updated");
+      notify.success("Transaction updated");
       onSaved();
       onOpenChange(false);
     } catch (err) {
@@ -220,12 +220,10 @@ export function TransactionDialog({
           </div>
 
           {error && (
-            <p
-              role="alert"
-              className="text-xs font-semibold text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2"
-            >
-              {error}
-            </p>
+            <ModalErrorBanner
+              error={error}
+              onDismiss={() => setError(null)}
+            />
           )}
 
           <div className="space-y-1.5">
