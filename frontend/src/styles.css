@@ -475,33 +475,53 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
-@media (min-width: 768px) {
+/* Responsive shell helpers:
+   - < 720px: single column with bottom tab bar, padding-bottom 5rem for bottom nav
+   - ≥ 720px: left sidebar (200px width), body offset 200px
+   - ≥ 960px: 2-column layout (.two-col-grid)
+*/
+.app-shell {
+  padding-bottom: 5rem;
+}
+
+@media (min-width: 720px) {
   .app-shell {
     padding-bottom: 2rem;
-    padding-left: 17rem; /* 16rem sidebar + 1rem breathing */
+  }
+  body.has-app-nav {
+    padding-left: 200px !important;
+  }
+  .pf-bottom-nav {
+    display: none !important;
+  }
+  .pf-side-nav {
+    display: flex !important;
   }
 }
 
-/* Auto-offset every page that mounts the FinanceNavbar so the desktop
-   sidebar doesn't overlap content. Auth / 404 pages don't mount the
-   navbar, so they stay full-width. */
-@media (min-width: 768px) {
-  body.has-app-nav { padding-left: 16rem !important; }
+@media (max-width: 719px) {
+  .pf-side-nav {
+    display: none !important;
+  }
+  .pf-bottom-nav {
+    display: block !important;
+  }
 }
 
-
-/* Subtle interactive surface — used for nav items, list rows. */
-.surface-hover {
-  transition: background-color 180ms ease, color 180ms ease, transform 180ms ease;
-}
-.surface-hover:hover { background-color: oklch(0.18 0.04 258 / 4%); }
-
-/* Bottom-nav slot — invisible on desktop. */
-@media (min-width: 768px) {
-  .pf-bottom-nav { display: none !important; }
-}
-@media (max-width: 767px) {
-  .pf-side-nav { display: none !important; }
+/* 2-column layout for dashboard and list screens at 960px+ */
+@media (min-width: 960px) {
+  .two-col-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) !important;
+    gap: 1.25rem !important;
+    align-items: start !important;
+  }
+  .two-col-equal {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 1.25rem !important;
+    align-items: start !important;
+  }
 }
 
 /* Tight numeric tabular figures for currency. */

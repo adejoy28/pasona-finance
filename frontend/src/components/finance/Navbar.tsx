@@ -1,17 +1,14 @@
 import { Link, useLocation, useNavigate } from "react-router";
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect } from "react";
 import {
   LayoutDashboard,
   Plus,
   ReceiptText,
   CreditCard,
-  Tag,
-  User,
-  LogOut,
+  Target,
   Settings as SettingsIcon,
   ChevronsUpDown,
-  MoreHorizontal,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -25,10 +22,11 @@ import { useMe, invalidateMe } from "@/hooks/use-me";
 import { auth as authApi } from "@/lib/api";
 
 const navItems = [
-  { label: "Overview", short: "Home", href: "/dashboard", icon: LayoutDashboard, tour: undefined },
+  { label: "Home", short: "Home", href: "/dashboard", icon: LayoutDashboard, tour: undefined },
   { label: "History", short: "History", href: "/transactions", icon: ReceiptText, tour: "history-nav" },
+  { label: "Budgets", short: "Budgets", href: "/categories", icon: Target, tour: "categories-nav" },
   { label: "Accounts", short: "Accounts", href: "/accounts", icon: CreditCard, tour: "accounts-nav" },
-  { label: "Categories", short: "Categories", href: "/categories", icon: Tag, tour: "categories-nav" },
+  { label: "Settings", short: "Settings", href: "/settings", icon: SettingsIcon, tour: "settings-nav" },
 ] as const;
 
 export function FinanceNavbar() {
@@ -37,12 +35,12 @@ export function FinanceNavbar() {
   const { data: user } = useMe();
 
   const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(href + "/");
+    pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
 
   const handleSignOut = async () => {
     try {
       await authApi.logout();
-    } catch (e) {
+    } catch {
       // ignore
     } finally {
       invalidateMe();
@@ -50,33 +48,35 @@ export function FinanceNavbar() {
     }
   };
 
-  // Tag the body while the app nav is mounted so global CSS can offset
-  // page content for the desktop sidebar (auth/404 pages stay full-width).
+  // Tag body while app nav is mounted so desktop layout offsets for the sidebar
   useEffect(() => {
     if (typeof document === "undefined") return;
     document.body.classList.add("has-app-nav");
     return () => document.body.classList.remove("has-app-nav");
   }, []);
 
+  const initial = user?.name ? user.name.trim().charAt(0).toUpperCase() : "U";
 
   return (
     <>
-      {/* ===== Desktop sidebar (md+) ===== */}
+      {/* ===== Desktop sidebar (≥ 720px) ===== */}
       <aside
         aria-label="Primary"
-        className="pf-side-nav hidden md:flex md:fixed md:inset-y-0 md:left-0 md:w-64 md:flex-col md:border-r md:border-border/60 md:bg-card/70 md:backdrop-blur-xl md:px-5 md:py-7 z-40"
+        className="pf-side-nav hidden fixed inset-y-0 left-0 w-[200px] flex-col z-40 bg-[var(--nav-bg,#0B1434)] text-white p-4"
       >
-        <Link to="/dashboard" className="flex items-center gap-3 px-2 mb-10 group">
-          <img src="/img/brand-logo.png" alt="Pasona" className="h-9 w-9 rounded-xl shadow-sm" />
-          <span className="font-display text-lg font-semibold tracking-tight text-foreground">
-            Pasona
+        {/* Brand logo */}
+        <Link
+          to="/dashboard"
+          className="flex items-center gap-2.5 px-2 py-1 mb-5 group outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded-lg"
+        >
+          <img src="/img/brand-logo.png" alt="Pasona" className="h-7 w-7 rounded-lg shadow-sm" />
+          <span className="font-display text-xl font-bold tracking-tight text-white">
+            pasona
           </span>
         </Link>
 
-        <p className="px-3 text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground/70 mb-3">
-          Workspace
-        </p>
-        <nav className="flex flex-col gap-1">
+        {/* 5 Main navigation items */}
+        <nav className="flex flex-col gap-1" aria-label="Main navigation">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
@@ -85,17 +85,18 @@ export function FinanceNavbar() {
                 key={item.href}
                 to={item.href}
                 data-tour-target={item.tour}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                  "group flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-semibold transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-white/40",
                   active
-                    ? "bg-[var(--navy-900)] text-white shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-[oklch(0.18_0.04_258_/_4%)]",
+                    ? "bg-[var(--nav-active,rgba(255,255,255,0.12))] text-white"
+                    : "text-white/70 hover:text-white hover:bg-white/[0.07]"
                 )}
               >
                 <Icon
-                  size={18}
-                  strokeWidth={active ? 2.2 : 1.8}
-                  className={active ? "text-white" : "text-muted-foreground group-hover:text-foreground"}
+                  size={17}
+                  strokeWidth={active ? 2.3 : 1.9}
+                  className={active ? "text-white" : "text-white/70 group-hover:text-white"}
                 />
                 <span className="tracking-tight">{item.label}</span>
               </Link>
@@ -103,175 +104,102 @@ export function FinanceNavbar() {
           })}
         </nav>
 
+        {/* Add transaction button */}
         <Link
           to="/transactions/add"
           data-tour-target="add-transaction"
-          className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-foreground py-3 text-sm font-semibold text-background tracking-tight transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
+          className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-[var(--add,#E8A317)] text-[var(--add-ink,#2B1D00)] py-2.5 px-3 text-xs font-extrabold tracking-tight transition-all duration-150 hover:brightness-105 active:scale-[0.98] shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-white/60"
         >
-          <Plus size={16} strokeWidth={2.5} />
-          New transaction
+          <Plus size={15} strokeWidth={2.8} />
+          <span>Add transaction</span>
         </Link>
 
-        <div className="mt-auto flex flex-col gap-2 pt-6 pb-2">
+        {/* Sidebar user block: name on 1 line, email on 1 line with ellipsis and tooltip */}
+        <div className="mt-auto pt-4 border-t border-white/10">
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-100/50 transition-colors text-left outline-none border border-transparent hover:border-border/50">
-                <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
-                  <User size={18} className="text-slate-600" />
+              <button
+                type="button"
+                className="w-full flex items-center gap-2.5 p-1.5 rounded-xl text-left transition-colors hover:bg-white/[0.08] outline-none focus-visible:ring-2 focus-visible:ring-white/40 cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-full bg-white/15 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                  {initial}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-slate-800 truncate">{user?.name || "User"}</p>
-                  <p className="text-xs text-slate-500 truncate">{user?.email || ""}</p>
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <b className="block text-xs font-bold text-white truncate whitespace-nowrap leading-tight">
+                    {user?.name || "User"}
+                  </b>
+                  <span
+                    className="block text-[10.5px] text-white/65 truncate whitespace-nowrap leading-tight mt-0.5"
+                    title={user?.email || ""}
+                  >
+                    {user?.email || ""}
+                  </span>
                 </div>
-                <ChevronsUpDown size={16} className="text-slate-400 shrink-0" />
+                <ChevronsUpDown size={14} className="text-white/40 shrink-0" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-56 rounded-xl border-border/60 shadow-lg">
-              <DropdownMenuItem onClick={() => navigate("/settings")} className="rounded-lg cursor-pointer py-2 text-sm font-medium">
-                <SettingsIcon size={16} className="mr-2 text-slate-500" />
+            <DropdownMenuContent
+              side="top"
+              align="start"
+              sideOffset={8}
+              className="w-48 rounded-xl border border-white/10 bg-[var(--surface)] text-[var(--ink)] shadow-xl p-1 z-50"
+            >
+              <DropdownMenuItem
+                onClick={() => navigate("/settings")}
+                className="rounded-lg cursor-pointer py-2 text-xs font-semibold"
+              >
+                <SettingsIcon size={14} className="mr-2 text-[var(--muted)]" />
                 Settings
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => void handleSignOut()} className="rounded-lg cursor-pointer py-2 text-sm font-medium text-rose-600 focus:text-rose-600 focus:bg-rose-50">
-                <LogOut size={16} className="mr-2" />
+              <DropdownMenuSeparator className="bg-[var(--line)]" />
+              <DropdownMenuItem
+                onClick={() => void handleSignOut()}
+                className="rounded-lg cursor-pointer py-2 text-xs font-semibold text-rose-500 focus:text-rose-500 focus:bg-rose-50/10"
+              >
+                <LogOut size={14} className="mr-2" />
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
-          <div className="px-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground/60 text-center">
-            v1.0 • Pasona Finance
-          </div>
         </div>
       </aside>
 
-      {/* ===== Mobile bottom nav (< md) ===== */}
+      {/* ===== Mobile bottom tab bar (< 720px) ===== */}
       <nav
         aria-label="Primary"
-        className="pf-bottom-nav fixed bottom-0 left-0 right-0 z-50 md:hidden"
+        className="pf-bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-[var(--surface)] border-t border-[var(--line)] pb-[max(0.25rem,env(safe-area-inset-bottom))]"
       >
-        <div className="mx-auto max-w-md px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
-          <div className="relative flex items-center justify-between gap-0.5 rounded-2xl border border-border/60 bg-card/85 px-2 py-1.5 backdrop-blur-xl card-shadow">
-            {/* 1. Home & 2. History */}
-            {navItems.slice(0, 2).map((item) => (
-              <NavPill key={item.href} item={item} active={isActive(item.href)} />
-            ))}
+        <div className="max-w-md mx-auto px-1.5 py-1 grid grid-cols-6 items-center">
+          {/* 1. Home */}
+          <NavPill item={navItems[0]} active={isActive(navItems[0].href)} />
 
+          {/* 2. History */}
+          <NavPill item={navItems[1]} active={isActive(navItems[1].href)} />
+
+          {/* Centered Add Button */}
+          <div className="flex justify-center py-0.5">
             <Link
               to="/transactions/add"
               data-tour-target="add-transaction"
-              className="relative -top-5 flex h-13 w-13 shrink-0 items-center justify-center rounded-full bg-[var(--navy-900)] text-white shadow-lg shadow-[oklch(0.17_0.06_262_/_30%)] transition-all active:scale-95 mx-1"
               aria-label="Add transaction"
+              className="w-10 h-10 rounded-xl bg-[var(--add,#E8A317)] text-[var(--add-ink,#2B1D00)] flex items-center justify-center shadow-md active:scale-95 transition-transform outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
             >
-              <Plus size={24} strokeWidth={2.4} />
+              <Plus size={22} strokeWidth={2.6} />
             </Link>
-
-            {/* 3. Accounts */}
-            <NavPill item={navItems[2]} active={isActive(navItems[2].href)} />
-
-            {/* 4. More (Pops up Settings & Categories) */}
-            <MoreNavPill navigate={navigate} />
           </div>
+
+          {/* 3. Budgets */}
+          <NavPill item={navItems[2]} active={isActive(navItems[2].href)} />
+
+          {/* 4. Accounts */}
+          <NavPill item={navItems[3]} active={isActive(navItems[3].href)} />
+
+          {/* 5. Settings */}
+          <NavPill item={navItems[4]} active={isActive(navItems[4].href)} />
         </div>
       </nav>
     </>
-  );
-}
-
-function MoreNavPill({ navigate }: { navigate: (path: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const pathname = useLocation().pathname;
-
-  const isCategories = pathname === "/categories" || pathname.startsWith("/categories/");
-  const isSettings = pathname === "/settings" || pathname.startsWith("/settings/");
-  const isMoreActive = isCategories || isSettings;
-
-  return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label="More options"
-          className={cn(
-            "relative flex flex-1 min-w-0 h-12 flex-col items-center justify-center rounded-xl transition-colors duration-200 px-1 cursor-pointer outline-none",
-            isMoreActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          <MoreHorizontal size={19} strokeWidth={isMoreActive ? 2.3 : 1.8} className="shrink-0" />
-          <span
-            className={cn(
-              "mt-0.5 text-[9px] font-medium uppercase tracking-normal truncate max-w-full text-center leading-none",
-              isMoreActive ? "text-foreground" : "text-muted-foreground/70",
-            )}
-          >
-            More
-          </span>
-          {isMoreActive && (
-            <motion.div
-              layoutId="active-nav-pill"
-              className="absolute -bottom-0.5 left-1/2 h-1 w-1 rounded-full bg-foreground"
-              style={{ x: "-50%" }}
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            />
-          )}
-        </button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent
-        side="top"
-        align="end"
-        sideOffset={14}
-        className="w-56 p-2 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-2xl space-y-1 z-50 animate-in fade-in-0 zoom-in-95"
-      >
-        <DropdownMenuItem
-          onClick={() => {
-            setOpen(false);
-            navigate("/categories");
-          }}
-          className={cn(
-            "flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-colors outline-none",
-            isCategories ? "bg-blue-50 text-blue-900 font-semibold" : "hover:bg-slate-100/80 text-slate-800",
-          )}
-        >
-          <div
-            className={cn(
-              "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-xs",
-              isCategories ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600",
-            )}
-          >
-            <Tag size={16} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold leading-none">Categories</p>
-            <p className="text-[10px] text-slate-400 mt-1">Tags & classification</p>
-          </div>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem
-          onClick={() => {
-            setOpen(false);
-            navigate("/settings");
-          }}
-          className={cn(
-            "flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-colors outline-none",
-            isSettings ? "bg-blue-50 text-blue-900 font-semibold" : "hover:bg-slate-100/80 text-slate-800",
-          )}
-        >
-          <div
-            className={cn(
-              "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-xs",
-              isSettings ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600",
-            )}
-          >
-            <SettingsIcon size={16} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold leading-none">Settings</p>
-            <p className="text-[10px] text-slate-400 mt-1">Preferences & account</p>
-          </div>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }
 
@@ -287,28 +215,18 @@ function NavPill({
     <Link
       to={item.href}
       data-tour-target={item.tour}
+      aria-current={active ? "page" : undefined}
       className={cn(
-        "relative flex flex-1 min-w-0 h-12 flex-col items-center justify-center rounded-xl transition-colors duration-200 px-1",
-        active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+        "flex flex-col items-center justify-center py-1.5 px-0.5 rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] min-h-[44px]",
+        active
+          ? "text-[var(--accent,#1B2D6B)] font-bold"
+          : "text-[var(--muted)] hover:text-[var(--ink)]"
       )}
     >
-      <Icon size={19} strokeWidth={active ? 2.3 : 1.8} className="shrink-0" />
-      <span
-        className={cn(
-          "mt-0.5 text-[9px] font-medium uppercase tracking-normal truncate max-w-full text-center leading-none",
-          active ? "text-foreground" : "text-muted-foreground/70",
-        )}
-      >
+      <Icon size={19} strokeWidth={active ? 2.4 : 1.8} className="shrink-0" />
+      <span className="text-[9.5px] tracking-tight mt-0.5 text-center leading-none">
         {item.short}
       </span>
-      {active && (
-        <motion.div
-          layoutId="active-nav-pill"
-          className="absolute -bottom-0.5 left-1/2 h-1 w-1 rounded-full bg-foreground"
-          style={{ x: "-50%" }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-        />
-      )}
     </Link>
   );
 }
