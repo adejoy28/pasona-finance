@@ -12,16 +12,26 @@ import {
   Clock,
   FileText,
   Hash,
+  Info,
   Pencil,
+  Scissors,
   Tag,
   Trash2,
   Wallet,
 } from "lucide-react";
+import { useLocalMeta } from "@/hooks/use-local-meta";
+import { useUndoToast } from "@/hooks/use-undo-toast";
 import { usePopup } from "@/components/ui/popup";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/finance";
 import { usePrivacyMode } from "@/hooks/use-privacy-mode";
-import { ApiError, transactions as transactionsApi, type TransactionDto } from "@/lib/api";
+import {
+  ApiError,
+  categories as categoriesApi,
+  transactions as transactionsApi,
+  type CategoryDto,
+  type TransactionDto,
+} from "@/lib/api";
 import { DEFAULT_CURRENCY } from "@/lib/currencies";
 import { TransactionDialog } from "@/components/finance/TransactionDialog";
 import { useMe } from "@/hooks/use-me";
@@ -115,6 +125,98 @@ export function TransactionDetail() {
   const userQuery = useMe();
   const { renderAmount } = usePrivacyMode();
   const userCurrency = userQuery.data?.currency ?? DEFAULT_CURRENCY;
+
+  interface TxMeta {
+    tags?: string;
+    note?: string;
+  }
+  const [txMeta] = useLocalMeta<TxMeta>("tx_meta", dto?.id);
+  const { showUndo } = useUndoToast();
+
+  const [showSplit, setShowSplit] = useState(false);
+  const [splitAmountInput, setSplitAmountInput] = useState("");
+  const [splitCategoryId, setSplitCategoryId] = useState<number | "">("");
+  const [isSplitting, setIsSplitting] = useState(false);
+  const [categories, setCategories] = useState<CategoryDto[]>([]);
+
+  useEffect(() => {
+    if (showSplit && categories.length === 0) {
+      categoriesApi
+        .listCategories()
+        .then((cats) => setCategories(cats))
+        .catch(() => {});
+    }
+  }, [showSplit, categories.length]);
+
+  const handleApplySplit = async () => {
+    if (!dto) return;
+    const splitAmount = parseFloat(splitAmountInput.replace(/,/g, ""));
+    const originalAmount = typeof dto.amount === "string" ? parseFloat(dto.amount) : dto.amount;
+
+    if (Number.isNaN(splitAmount) || splitAmount <= 0) {
+      popup.error("Enter an amount greater than zero.");
+      return;
+    }
+    if (splitAmount >= originalAmount) {
+      popup.error(`Enter an amount smaller than ${formatCurrency(originalAmount, userCurrency)}.`);
+      return;
+    }
+    if (!splitCategoryId) {
+      popup.error("Please choose a category to move to.");
+      return;
+    }
+
+    setIsSplitting(true);
+    let createdId: number | null = null;
+    try {
+      // 1. Create partial transaction
+      const newTx = await transactionsApi.createTransaction({
+        account_id: dto.account_id,
+        type: dto.type,
+        amount: splitAmount,
+        category_id: Number(splitCategoryId),
+        transaction_date: dto.transaction_date.slice(0, 10),
+        description: dto.description ? `${dto.description} (split)` : "Split entry",
+      });
+      createdId = newTx.id;
+
+      // 2. Update original transaction
+      const remainingAmount = Math.round((originalAmount - splitAmount) * 100) / 100;
+      await transactionsApi.updateTransaction(dto.id, {
+        amount: remainingAmount,
+      });
+
+      setShowSplit(false);
+      setSplitAmountInput("");
+      setSplitCategoryId("");
+      void loadDetail();
+
+      showUndo("Split applied", async () => {
+        try {
+          if (createdId) {
+            await transactionsApi.deleteTransaction(createdId);
+          }
+          await transactionsApi.updateTransaction(dto.id, {
+            amount: originalAmount,
+          });
+          void loadDetail();
+        } catch (err) {
+          console.error("Failed to undo split", err);
+        }
+      });
+    } catch (err) {
+      if (createdId) {
+        try {
+          await transactionsApi.deleteTransaction(createdId);
+        } catch {
+          // ignore
+        }
+      }
+      popup.error(err instanceof ApiError ? err.message : "Failed to apply split.");
+    } finally {
+      setIsSplitting(false);
+    }
+  };
 
   const loadDetail = async () => {
     if (!transactionId) return;
@@ -247,6 +349,23 @@ export function TransactionDetail() {
                   <Tag size={12} /> {dto.category?.name || "Uncategorized"}
                 </span>
               )}
+
+              {/* Tags Chips */}
+              {txMeta?.tags && (
+                <div className="flex flex-wrap gap-1.5 mt-2.5">
+                  {txMeta.tags
+                    .split(/[\s,]+/)
+                    .filter(Boolean)
+                    .map((tag, i) => (
+                      <span
+                        key={i}
+                        className="px-2.5 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-bold backdrop-blur-xs"
+                      >
+                        #{tag.replace(/^#/, "")}
+                      </span>
+                    ))}
+                </div>
+              )}
             </div>
           </motion.div>
 
@@ -306,26 +425,145 @@ export function TransactionDetail() {
                 label="Reference"
                 value={dto.reference || "—"}
               />
+              <DetailCell
+                icon={<Info size={18} />}
+                tile="bg-slate-100 text-slate-600"
+                label="Source"
+                value={
+                  dto.reference?.toLowerCase().includes("csv") || dto.reference?.toLowerCase().includes("import")
+                    ? "Imported from CSV"
+                    : dto.reference?.toLowerCase().includes("alert")
+                    ? "Added from bank alert"
+                    : "Typed in manually"
+                }
+              />
             </div>
           </motion.div>
 
+          {/* Note Card */}
+          {txMeta?.note && (
+            <motion.div
+              variants={item}
+              className="rounded-3xl bg-white border border-slate-200/70 ring-1 ring-black/5 shadow-sm p-5 space-y-1.5"
+            >
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Note</p>
+              <p className="text-xs font-medium text-slate-700 whitespace-pre-wrap leading-relaxed">
+                {txMeta.note}
+              </p>
+            </motion.div>
+          )}
+
+          {/* Split Panel (Task 4.2) */}
+          <AnimatePresence>
+            {showSplit && !isTransfer && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="rounded-3xl bg-slate-50 border border-slate-200/80 p-5 space-y-3.5 shadow-xs">
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-900">
+                      Split this {dto.type}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Move part of it to another category. The total stays the same.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Amount to move
+                      </label>
+                      <div className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 rounded-xl">
+                        <span className="text-xs font-bold text-slate-400">{userCurrency}</span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={splitAmountInput}
+                          onChange={(e) => setSplitAmountInput(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full bg-transparent text-xs font-bold text-slate-900 outline-none tabular-nums"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        To category
+                      </label>
+                      <select
+                        value={splitCategoryId}
+                        onChange={(e) => setSplitCategoryId(e.target.value ? Number(e.target.value) : "")}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none"
+                      >
+                        <option value="">Select category</option>
+                        {categories
+                          .filter((c) => c.type === dto.type)
+                          .map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowSplit(false)}
+                      className="px-3 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-200/60 transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleApplySplit}
+                      disabled={isSplitting || !splitAmountInput.trim() || !splitCategoryId}
+                      className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                      {isSplitting ? "Splitting..." : "Apply split"}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Action Buttons */}
-          <motion.div variants={item} className="grid grid-cols-2 gap-3 pt-1">
+          <motion.div
+            variants={item}
+            className={cn("grid gap-2.5 pt-1", !isTransfer ? "grid-cols-3" : "grid-cols-2")}
+          >
+            {!isTransfer && (
+              <button
+                type="button"
+                onClick={() => setShowSplit((prev) => !prev)}
+                className="py-3.5 px-3 rounded-2xl bg-white border border-slate-200 text-slate-700 font-black text-xs shadow-sm ring-1 ring-black/5 hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Scissors size={14} />
+                Split
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="py-3.5 px-4 rounded-2xl bg-[var(--navy-900)] text-white font-black text-xs shadow-lg shadow-[oklch(0.17_0.06_262_/_30%)] ring-1 ring-black/5 hover:bg-[var(--navy-800)] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              className="py-3.5 px-3 rounded-2xl bg-[var(--navy-900)] text-white font-black text-xs shadow-lg shadow-[oklch(0.17_0.06_262_/_30%)] ring-1 ring-black/5 hover:bg-[var(--navy-800)] active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <Pencil size={15} />
-              Edit Record
+              <Pencil size={14} />
+              Edit
             </button>
 
             <button
               type="button"
               onClick={() => setDeleting(true)}
-              className="py-3.5 px-4 rounded-2xl bg-white border border-rose-200 text-rose-600 font-black text-xs shadow-sm ring-1 ring-black/5 hover:bg-rose-50/70 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              className="py-3.5 px-3 rounded-2xl bg-white border border-rose-200 text-rose-600 font-black text-xs shadow-sm ring-1 ring-black/5 hover:bg-rose-50/70 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <Trash2 size={15} />
+              <Trash2 size={14} />
               Delete
             </button>
           </motion.div>
