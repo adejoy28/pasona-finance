@@ -1,85 +1,94 @@
 # Pasona Finance Redesign — Central Implementation Tracker
 
-> **Source of Truth:** [`frontend/pasona-gemini-brief.md`](file:///c:/Users/johna/Projects/pasona-finance/frontend/pasona-gemini-brief.md)  
-> **Visual Reference:** [Pasona Redesign Prototype v7](file:///c:/Users/johna/Projects/pasona-finance/Pasona%20Redesign.html)  
-> **Git Strategy:** Branch per phase, atomic commits, zero breaking changes to money logic or API contracts.
+> **Source of truth:** [`frontend/pasona-gemini-brief.md`](file:///c:/Users/johna/Projects/pasona-finance/frontend/pasona-gemini-brief.md) — now includes **Addendum A–F (mock up v8)** and **Addendum G (mock up v9)**, which override earlier phases where they conflict.
+> **Visual reference:** [`frontend/pasona-redesign.html`](file:///c:/Users/johna/Projects/pasona-finance/frontend/pasona-redesign.html) (v9, bundled single-line file — open in a browser; text is not greppable).
+> **Open questions:** [`audit/questions.md`](file:///c:/Users/johna/Projects/pasona-finance/audit/questions.md)
+> **Git strategy:** branch per phase, atomic commits, zero changes to money logic, auth logic or existing API contracts.
 
 ---
 
-## Phase Status Summary
+## Phase status
 
-| Phase | Title | Branch | Status | Commit / Notes |
+| Phase | Title | Branch | Status | Notes |
 |---|---|---|---|---|
-| **Phase 0** | Discovery & Gap Analysis | `main` | ✅ **Completed** | Commit `2cd4448` (`/audit/map.md`, `/audit/tokens.md`, `/audit/gaps.md`) |
-| **Phase 1** | Design Tokens & Theme Switching | `phase-1-tokens` | ✅ **Completed** | Commit `35aff71`, `62b56b2` (`/audit/contrast.md`, anti-flash, 4-theme engine) |
-| **Phase 2** | App Shell & Responsiveness | `phase-2-shell` | ✅ **Completed** | Commit `5d0790c`, `f5b8e7e`, `19dd440` (ScreenHeader, 200px nav, 5-tab bar, contrast overhaul) |
-| **Phase 3** | Feedback & Error System | `phase-3-feedback` | ✅ **Completed** | Toast queue with Undo, destructive dialogs, field errors, network bar, offline queue |
-| **Phase 4** | Dashboard (Review Fixes) | `phase-4-dashboard` | 🟡 **Up Next** | Cashflow-only hero, separate monthly budget, spending stack bar |
-| **Phase 5** | Transactions | `phase-5-transactions` | ⚪ Queued | Day-group net totals, search/filters, duplicate review, paste alert |
-| **Phase 6** | Categories & Savings Fix | `phase-6-categories` | ⚪ Queued | `kind` (spending/saving), exclude savings from spent, category modal |
-| **Phase 7** | Budgets, Goals, Bills | `phase-7-budgets` | ⚪ Queued | Monthly category budgets, goal rings, recurring bills |
-| **Phase 8** | Accounts, Balance Check, Bulk Import | `phase-8-accounts` | ⚪ Queued | Account detail KPIs, balance check & reconcile, CSV/PDF import fixes |
-| **Phase 9** | Settings, Notifications, Onboarding | `phase-9-settings` | ⚪ Queued | Preferences, reminder schedule, welcome tour, empty states |
-| **Phase 10** | QA, Accessibility & Handoff | `phase-10-qa` | ⚪ Queued | Responsive audits (390/768/1280), keyboard traps, contrast sign-off |
+| 0 | Discovery & gap analysis | `main` | ⚠️ Reopened (small) | Commit `2cd4448`. **G2.1 adds `/audit/alerts.md`** (inventory of every alert/toast/confirm + call sites) — not yet written. |
+| 1 | Design tokens & theme switching | `phase-1-tokens` | ✅ Done, 1 follow-up | `35aff71`, `62b56b2`. Addendum B renames attributes/labels → moved to 2b. |
+| 2 | App shell & responsiveness | `phase-2-shell` | ✅ Done | `5d0790c`, `f5b8e7e`, `19dd440`. Superseded in parts by Addendum A/C/E → **Phase 2b**. |
+| 3 | Feedback & error system | `phase-3-feedback` | ⚠️ **Reopened → 3b** | `5248a4b`. Primitives exist but violate G1/G2 and are not wired/adopted. |
+| **3b** | **Feedback compliance (Addendum G)** | `phase-3-feedback` | 🟡 **Up next** | Remove dev switch, one alert system, wire HTTP mapping, adopt components. |
+| **2b** | **Shell & IA revisions (Addendum A/B/C/E)** | `phase-2b-shell-ia` | ⚪ Queued | Tabs, gear/avatar, month dropdown, fluid sizing, theme attrs. |
+| 6 | Categories & savings fix (backend first) | `phase-6-categories` | ⚪ Queued — **recommend before 4** | Phase 4 cannot show Spent/Saved correctly without `kind` + `saved`/`spent`. |
+| 4 | Home (capture-first) | `phase-4-dashboard` | ⚪ Queued | Expanded by G4 + Addendum D. |
+| 5 | Transactions | `phase-5-transactions` | ⚪ Queued | + Save-and-add-another, source badges incl. `mary`. |
+| 7 | Budgets, goals, recurring bills | `phase-7-budgets` | ⚪ Queued | Budgets becomes a real tab (currently points to `/categories`). |
+| 8 | Accounts, balance check, bulk import | `phase-8-accounts` | ⚪ Queued | Balance check UI partly exists (localStorage); adjustment must use Undo toast. |
+| 9 | Profile, Settings, Help & legal, auth restyle, onboarding | `phase-9-settings` | ⚪ Queued | Expanded by Addendum A + G3 + G4.5/6. |
+| **9b** | **Mary (AI assistant)** | `phase-9b-mary` | ⚪ Queued (new) | Addendum F. Backend endpoint + drawer UI. |
+| 10 | QA & handoff | `phase-10-qa` | ⚪ Queued | Widths now 768–2560; tap-count measurement (G4). |
 
 ---
 
-## Detailed Plan: Phase 3 — Feedback and Error System
-> **Goal:** Build reusable feedback primitives once, ensuring consistent, accessible behavior and zero silent failures across the entire application.
+## Compliance audit of work already shipped
 
-### Task 3.1 — Toast Notification Engine (`useToast` + Undo Action)
-- **Files to create/modify:** `frontend/src/hooks/use-toast.ts`, `frontend/src/components/ui/toast.tsx`, `frontend/src/components/ui/toaster.tsx`
-- **Specification:**
-  - Types: `success`, `info`, `warn`, `error`.
-  - Max visible toasts stacked: 3.
-  - Auto-dismiss: 5 seconds for `success`, `info`, and `warn`. `error` toasts persist until manually dismissed by user.
-  - Optional `undo`: Callback function that reverses local state and triggers corresponding API mutation (e.g., delete created row, restore deleted row).
-  - ARIA: Announced politely via `aria-live="polite"` (`aria-live="assertive"` for errors).
+| Item | Brief now says | Current state | Action |
+|---|---|---|---|
+| Dev `NetworkSimulator` | **G1: no switch, not even dev-only** | Built and mounted in `App.tsx` | ❌ Delete (3b.1) |
+| Alert systems | **G2: one provider, migrate all, delete old** | `usePopup` (33 refs) and `useUndoToast` (5 refs) are thin bridges to `toast`; old files still exist; `SyncIndicator` file unused but present; 1 `window.confirm`, 1 `alert(` | ❌ Migrate + delete (3b.2–3b.3) |
+| HTTP status mapping (Phase 3.8) | 401 → overlay, 429 → message, 5xx → banner | `client.ts` still clears token and `UnauthorizedHandler` redirects to `/login` (loses open forms). No event dispatch for 5xx/network. | ❌ Wire (3b.4) |
+| Sync toast | "Syncing n" → "Synced n changes" | `NetworkStatusBar` listens for `pasona:sync-success`, but `useOfflineSync` emits `pasona:sync-complete` with no count | ❌ Fix (3b.5) |
+| Field errors / modal banner / destructive dialog / busy button | Used everywhere | Built, **not adopted on any screen** | ⏳ Adopt (3b.6) |
+| Theme attributes | **B: `data-skin` on app root, `data-theme` on `<html>`, Auto removes it** | `data-skin` + `data-mode` on `<html>`; labels Original/Fresh, Light/Dark/System | ⏳ Rename (2b.6) |
+| Bottom tabs | **A: Home, History, [Add], Budgets, Accounts** | 6 slots incl. Settings | ⏳ 2b.1 |
+| Month switcher | **C: dropdown button, top right** | Prev/next arrows in `ScreenHeader` | ⏳ 2b.3 |
+| Sidebar width | **E: `clamp(188px, 17cqw, 252px)`, container queries** | Fixed 200px, media queries | ⏳ 2b.5 |
+| Avatar | **A: opens Profile** | Links to `/settings` | ⏳ 2b.2 + 9.1 |
+| Contrast overhaul (`19dd440`) | Phase 1.4 | Done, still valid | ✅ Keep |
 
-### Task 3.2 — Field-Level Validation & Error Highlighting
-- **Files to create/modify:** `frontend/src/components/ui/field-error.tsx`, `frontend/src/lib/api.ts` (error mapper)
-- **Specification:**
-  - Automatically parse Laravel 422 `errors: { [field]: string[] }` responses.
-  - Apply red border, `aria-invalid="true"`, and accessible error message beneath the input label.
-  - Automatically move keyboard focus to the first invalid field upon form submission failure.
-  - Clear field error as soon as user types or edits that input.
+---
 
-### Task 3.3 — Destructive Action Confirmation Dialog
-- **Files to create/modify:** `frontend/src/components/ui/confirm-destructive-dialog.tsx`
-- **Specification:**
-  - Used for irreversible actions: deleting an account, deleting a category, undoing an import batch, or signing out with pending offline changes.
-  - For high-consequence deletion (e.g., Delete Account): require explicitly typing `"DELETE"` into an input to enable the confirm button.
-  - Visuals: Red destructive CTA, clear warning text of what will be lost, Cancel button with automatic focus on mount.
+## Phase 3b — Feedback compliance (Addendum G) — UP NEXT
 
-### Task 3.4 — Busy Buttons & Form Modal Error Banners
-- **Files to create/modify:** `frontend/src/components/ui/button.tsx`, `frontend/src/components/ui/modal-error-banner.tsx`
-- **Specification:**
-  - Busy state: Show inline spinner, disable pointer events, lock fixed width/height so button does not jump or shift layout while saving.
-  - Modal error banner: When a modal save fails, display a dismissible banner inside the modal: *"We could not save this. Nothing was lost."* with a `"Try again"` button. Form input state is preserved intact.
+1. **Remove dev switch.** Delete `src/components/dev/NetworkSimulator.tsx` and its mount/import in `App.tsx`.
+2. **Write `/audit/alerts.md`.** Every existing alert/toast/snackbar/banner/confirm (popup, undo-toast, SubtlePopups, AppInstallBanner, SyncIndicator, AlertDialog usages, `window.confirm`, `alert()`), with call sites.
+3. **One API: `notify`.** Expose `notify.success|info|warn|error(message, { undo, action })` from `use-toast.ts`. Migrate all 33 `usePopup` + 5 `useUndoToast` call sites, then delete `popup.tsx`, `use-undo-toast.tsx`, `SyncIndicator.tsx` and their providers/styles. Acceptance: `grep` finds no old usage. Keep existing wording.
+4. **Central HTTP mapping in `lib/api/client.ts`.** 401 → dispatch re-auth (overlay, no redirect, keep token-clear behaviour per auth rules); 403 `requires_verified_email` → verify prompt; 429 → "Slow down, try again in a moment"; network/5xx → `server-unreachable` event; success after failure → `server-restored`. 409/422 stay with the caller. Remove `UnauthorizedHandler` redirect except when no user is cached.
+5. **Sync feedback.** `useOfflineSync` emits count; bar shows "Syncing n changes"; toast "Synced n changes". Sign-out confirm mentions pending offline count.
+6. **Adopt primitives** on existing screens: `ConfirmDestructiveDialog` for delete account (type DELETE), delete category, undo import, sign out; `FieldError`/`useFieldErrors` + `ModalErrorBanner` in `TransactionDialog`, `TransactionsAdd`, Category/Account dialogs; `Button loading` for saves.
+7. **Verify** offline / API blocked / expired token via DevTools, document results here.
 
-### Task 3.5 — Network Bar & Offline Sync Queue
-- **Files to create/modify:** `frontend/src/components/finance/NetworkStatusBar.tsx`, `frontend/src/lib/offline-sync.ts`
-- **Specification:**
-  - Mounted at top of application shell:
-    - **Offline:** Amber/slate pill: *"Offline — changes saved on this device"* with badge showing pending transaction count.
-    - **Server Unreachable:** Warning pill with *"Server unreachable"* and `"Try again"` action.
-    - **Session Expired:** Pill prompting *"Session expired — Sign in to sync"*.
-  - Offline transactions stored in IndexedDB queue (`pasona-offline-ops`).
-  - When connection is restored: flushes automatically through existing `POST /api/transactions/sync`. Displays *"Syncing n changes"* banner, followed by a *"Synced n changes"* toast.
+## Phase 2b — Shell & IA revisions (Addendum A, B, C, E)
 
-### Task 3.6 — Unified HTTP Status Handling & Session Re-Auth Overlay
-- **Files to create/modify:** `frontend/src/lib/api-client.ts`, `frontend/src/components/finance/SessionExpiredModal.tsx`
-- **Specification:**
-  - Intercept HTTP errors centrally:
-    - `401 Unauthorized` $\rightarrow$ Open non-destructive session re-auth modal without unmounting current page or clearing dirty form inputs.
-    - `403 requires_verified_email` $\rightarrow$ Show verification alert banner.
-    - `409 Conflict` $\rightarrow$ Trigger duplicate transaction review prompt.
-    - `422 Unprocessable` $\rightarrow$ Map directly to field errors.
-    - `429 Too Many Requests` $\rightarrow$ Toast: *"Slow down, please try again in a moment."*
-    - `5xx / Network Error` $\rightarrow$ Persistent error toast or modal banner with `"Try again"`.
+1. Bottom tabs: Home, History, [Add], Budgets, Accounts (5-col grid). Sidebar: Home, History, Budgets, Accounts, Settings, Add transaction, **Ask Mary** (placeholder until 9b), user block.
+2. Header: avatar (initials) top-right on every main screen → `/profile`; gear icon → `/settings` on phones.
+3. Month dropdown (calendar icon, "August 2026", chevron) listing available months; own row on phones. Home subtitle "Your overview for {Month YYYY}".
+4. Categories leave primary nav (reachable from Settings > Data, Budgets footer, Profile).
+5. Fluid sizing via container queries: sidebar `clamp(188px,17cqw,252px)`, padding `clamp(18px,3cqw,44px)`, heading `clamp(24px,2.4cqw,34px)`, max width 1560px; Home right column auto-fit ≥340px from 1360px.
+6. Appearance: Colours (Original, New), Mode (Auto, Light, Dark); `data-skin` on app root, `data-theme` on `<html>` (Auto removes it). Migrate the anti-flash script and stored `pasona.theme` value without losing the user's choice.
 
-### Task 3.7 — Dev-Only Network State Switcher
-- **Files to create/modify:** `frontend/src/components/dev/NetworkSimulator.tsx`
-- **Specification:**
-  - Float pill in development mode allowing instant simulation of: `Online`, `Offline`, `Server 500`, `Session Expired (401)`.
-  - Verifies all Phase 3 acceptance criteria directly without needing manual DevTools throttling.
+## Phase 4 — Home, capture-first (Addendum D + G4)
+
+Order: **Quick log card first**, then balance, budget, coming up, accounts, where it went, trend, goals.
+1. Quick log card: "Nothing logged today" (highlighted) / "n logged today, you spent X"; streak chip; one sentence field → parse → open **prefilled** Add form (never save from text; empty amount if unreadable; never guess account).
+2. Log-again chips (3 most recent distinct expenses): one tap logs for today + Undo; if same amount+account already today → open prefilled form.
+3. Streak from real transactions in the user's time zone (no stored counter).
+4. Cash-flow hero (Spent excludes savings, "x% of income spent" / "NGN y moved to savings").
+5. Separate "Monthly budget" card (ok/near/over colours) — real data after Phase 7.
+6. "Where it went" donut, spent total in centre, savings excluded, `--c1..--c5`.
+7. Savings rate card; Insights card ("What needs your attention", ≤4 rows, tinted icon only).
+8. Overdue bill badge style; privacy mode masks every value incl. chart labels.
+9. Test: income − spent − saved = Δ total balance (no transfers).
+
+## Phase 5 additions
+- **Save and add another** (clears amount + description, refocus amount, toast "Added. Log the next one." + Undo; Save first/full width on phones).
+- Source badge supports `typed`, `alert`, `import`, `mary`.
+
+## Phase 9 additions
+- Profile screen (name, nickname, email read-only, time zone, delete account, Go to list, Sign out, Back).
+- Settings groups: App (Notifications, Appearance, Preferences) · Data (Import statements, Import history, Categories) · Help (Help and legal); user row → Profile; Preferences = Display + Budget only.
+- Help and legal pane with reading dialogs (policy text pending — see questions).
+- Auth screens restyled (G3) with field-level 422, generic 401 copy, 429 copy, network banner; logic untouched.
+- Reminders ON by default for new users; push permission asked after first logged transaction; after onboarding land on Add form; tour replayable from Help and legal.
+
+## Phase 9b — Mary (Addendum F)
+- Backend: `POST /api/assistant/message` (Groq, read tools + `propose_transaction` draft only), rate limit 20/min/user, minimal logging.
+- Frontend: sidebar button + floating button, right drawer (400px) / phone sheet, confirm card (account never defaulted), saves via existing `POST /api/transactions` (409 → "Add anyway" with `force`), Undo toast, masked amounts in privacy mode, offline/5xx/401 bubbles. Reuse `use-ai-chat.ts` where possible.
