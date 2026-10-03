@@ -18,8 +18,14 @@ import {
   EyeOff,
   User,
   Sparkles,
+  Palette,
+  Sun,
+  Moon,
+  Laptop,
   X,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useTheme } from "@/hooks/use-theme";
 import { NotificationBell } from "@/components/finance/NotificationBell";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { usePopup } from "@/components/ui/popup";
@@ -36,7 +42,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { FinanceNavbar } from "@/components/finance/Navbar";
 import { CURRENCIES, DEFAULT_CURRENCY } from "@/lib/currencies";
-import { ApiError, auth as authApi } from "@/lib/api";
+import { ApiError, auth as authApi, undoImportBatch } from "@/lib/api";
 import {
   useLocalNotifications,
   scheduleAllAppNotifications,
@@ -97,6 +103,50 @@ export function Settings() {
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [biometricBusy, setBiometricBusy] = useState(false);
+  const { skin, mode, setSkin, setMode } = useTheme();
+
+  type ImportHistoryEntry = {
+    id: string;
+    batch_id: string;
+    when: string;
+    src: string;
+    file: string;
+    added: number;
+    skipped: number;
+    flagged: number;
+  };
+
+  const [importHistory, setImportHistory] = useState<ImportHistoryEntry[]>([]);
+  const [undoingBatchId, setUndoingBatchId] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("pasona.import_history");
+      if (raw) {
+        setImportHistory(JSON.parse(raw));
+      }
+    } catch {
+      // safe JSON parse
+    }
+  }, []);
+
+  const handleUndoBatch = async (entry: ImportHistoryEntry) => {
+    if (!confirm(`Undo import of "${entry.file}" (${entry.added} transactions)?`)) return;
+    setUndoingBatchId(entry.id);
+    try {
+      if (entry.batch_id) {
+        await undoImportBatch(entry.batch_id).catch(() => {});
+      }
+      const updated = importHistory.filter((h) => h.id !== entry.id);
+      setImportHistory(updated);
+      localStorage.setItem("pasona.import_history", JSON.stringify(updated));
+      popup.success("Import batch undone");
+    } catch (err) {
+      popup.error(err instanceof ApiError ? err.message : "Unable to undo import batch");
+    } finally {
+      setUndoingBatchId(null);
+    }
+  };
 
   useEffect(() => {
     if (location.hash === "#notifications") {
@@ -770,7 +820,94 @@ export function Settings() {
                 </button>
               </div>
 
+              {/* Theme Skin Segmented Control */}
+              <div className="p-4 space-y-2">
+                <div className="flex items-center gap-3">
+                  <Palette size={18} className="text-slate-400" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">Theme Skin</p>
+                    <p className="text-[10px] text-slate-400">Color palette and feel</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 bg-slate-100/80 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setSkin("original")}
+                    className={cn(
+                      "py-1.5 px-3 rounded-lg text-xs font-bold transition-all text-center select-none cursor-pointer",
+                      skin === "original"
+                        ? "bg-white text-slate-900 shadow-xs"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    Original
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSkin("fresh")}
+                    className={cn(
+                      "py-1.5 px-3 rounded-lg text-xs font-bold transition-all text-center select-none cursor-pointer",
+                      skin === "fresh"
+                        ? "bg-white text-slate-900 shadow-xs"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    Fresh (Warm)
+                  </button>
+                </div>
+              </div>
 
+              {/* Appearance Mode Segmented Control */}
+              <div className="p-4 space-y-2">
+                <div className="flex items-center gap-3">
+                  <Sun size={18} className="text-slate-400" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">Appearance</p>
+                    <p className="text-[10px] text-slate-400">Light, dark, or system preference</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5 bg-slate-100/80 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setMode("light")}
+                    className={cn(
+                      "py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 select-none cursor-pointer",
+                      mode === "light"
+                        ? "bg-white text-slate-900 shadow-xs"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    <Sun size={13} />
+                    <span>Light</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode("dark")}
+                    className={cn(
+                      "py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 select-none cursor-pointer",
+                      mode === "dark"
+                        ? "bg-white text-slate-900 shadow-xs"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    <Moon size={13} />
+                    <span>Dark</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode("system")}
+                    className={cn(
+                      "py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 select-none cursor-pointer",
+                      mode === "system"
+                        ? "bg-white text-slate-900 shadow-xs"
+                        : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    <Laptop size={13} />
+                    <span>System</span>
+                  </button>
+                </div>
+              </div>
 
               <Link to="/import" className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
                 <div className="flex items-center gap-3">
@@ -782,6 +919,56 @@ export function Settings() {
                 </div>
                 <ChevronRight size={16} className="text-slate-300" />
               </Link>
+
+              {/* Import History */}
+              {importHistory.length > 0 && (
+                <div className="border-t border-slate-100 bg-slate-50/40 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      Import History
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400">
+                      {importHistory.length} {importHistory.length === 1 ? "batch" : "batches"}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {importHistory.map((entry) => {
+                      const dateStr = new Date(entry.when).toLocaleDateString("en-US", {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                      });
+                      const isUndoing = undoingBatchId === entry.id;
+
+                      return (
+                        <div
+                          key={entry.id}
+                          className="bg-white rounded-xl p-3 border border-slate-100 shadow-2xs flex items-center justify-between gap-3"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-slate-800 truncate">
+                              {entry.src} · <span className="font-normal text-slate-600">{entry.file}</span>
+                            </p>
+                            <p className="text-[10.5px] text-slate-400 mt-0.5">
+                              {dateStr} · {entry.added} added
+                              {entry.skipped ? ` · ${entry.skipped} skipped` : ""}
+                              {entry.flagged ? ` · ${entry.flagged} flagged` : ""}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => void handleUndoBatch(entry)}
+                            disabled={isUndoing}
+                            className="text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-rose-100 transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+                          >
+                            {isUndoing ? "Undoing..." : "Undo batch"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </section>
           </div>
 

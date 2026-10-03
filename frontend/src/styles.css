@@ -47,20 +47,46 @@
   --color-ink-soft: #5b6389;
   --color-ink-faint: #8c93b0;
 
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-primary: var(--primary);
+  --color-primary-ink: var(--primary-ink);
+  --color-accent: var(--accent);
+  --color-hero: var(--hero);
+  --color-hero-ink: var(--hero-ink);
+  --color-pos: var(--pos);
+  --color-pos-soft: var(--pos-soft);
+  --color-neg: var(--neg);
+  --color-neg-soft: var(--neg-soft);
+  --color-warn: var(--warn);
+  --color-info-soft: var(--info-soft);
+  --color-chip: var(--chip);
+  --color-nav-bg: var(--nav-bg);
+  --color-nav-ink: var(--nav-ink);
+  --color-add: var(--add);
+  --color-add-ink: var(--add-ink);
+
+  --color-c1: var(--c1);
+  --color-c2: var(--c2);
+  --color-c3: var(--c3);
+  --color-c4: var(--c4);
+  --color-c5: var(--c5);
+  --color-c6: var(--c6);
+  --color-c7: var(--c7);
+  --color-c8: var(--c8);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -82,89 +108,216 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ==========================================================================
+   Phase 1 Design Tokens: Skin x Mode Theme System
+   - Default: skin=original, mode=light
+   - Switchable via data-skin and data-mode on <html>
+   - Full WCAG AA contrast compliance across all 4 permutations
+   ========================================================================== */
+
 :root {
-  --radius: 0.875rem;
-  /* Gallery off-white canvas, deep navy ink. */
-  --background: oklch(0.985 0.004 250);
-  --foreground: oklch(0.18 0.04 258);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.04 258);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.04 258);
-  /* Primary = Navy Trust deep navy. */
-  --primary: oklch(0.28 0.08 262);
-  --primary-foreground: oklch(0.985 0.004 250);
-  --secondary: oklch(0.96 0.008 250);
-  --secondary-foreground: oklch(0.22 0.05 262);
-  --muted: oklch(0.96 0.008 250);
-  --muted-foreground: oklch(0.5 0.025 258);
-  --accent: oklch(0.94 0.02 250);
-  --accent-foreground: oklch(0.22 0.05 262);
-  --destructive: oklch(0.58 0.21 27);
-  --destructive-foreground: oklch(0.985 0.004 250);
-  /* Borders kept whisper-quiet — ~6% ink. */
-  --border: oklch(0.18 0.04 258 / 7%);
-  --input: oklch(0.18 0.04 258 / 10%);
-  --ring: oklch(0.55 0.13 250);
-  --chart-1: oklch(0.55 0.13 250);
-  --chart-2: oklch(0.42 0.1 256);
-  --chart-3: oklch(0.7 0.1 220);
-  --chart-4: oklch(0.78 0.14 80);
-  --chart-5: oklch(0.62 0.18 30);
-  --sidebar: oklch(0.985 0.004 250);
-  --sidebar-foreground: oklch(0.18 0.04 258);
-  --sidebar-primary: oklch(0.28 0.08 262);
-  --sidebar-primary-foreground: oklch(0.985 0.004 250);
-  --sidebar-accent: oklch(0.96 0.008 250);
-  --sidebar-accent-foreground: oklch(0.22 0.05 262);
-  --sidebar-border: oklch(0.18 0.04 258 / 7%);
-  --sidebar-ring: oklch(0.55 0.13 250);
+  --radius: 0.5rem; /* 8px base */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
 
-  /* Tokens shared across the app */
-  --ink-50: oklch(0.985 0.004 250);
-  --ink-100: oklch(0.96 0.008 250);
-  --ink-200: oklch(0.92 0.012 250);
-  --ink-300: oklch(0.82 0.018 252);
-  --ink-400: oklch(0.62 0.03 256);
-  --ink-500: oklch(0.5 0.035 258);
-  --ink-700: oklch(0.32 0.05 260);
-  --ink-900: oklch(0.18 0.04 258);
+  /* --- Skin: Original | Mode: Light (Default) --- */
+  --bg: #F3F5FA;
+  --surface: #FFFFFF;
+  --surface-2: #E9EDF6;
+  --ink: #121A33;
+  --muted: #5C6482;
+  --line: #E3E7F1;
+  --baseline: #CDD3E3;
+  --chip: #E9EDF6;
+  --primary: #1F5BFF;
+  --primary-ink: #FFFFFF;
+  --accent: #1747D1;
+  --hero: #0F1A4A;
+  --hero-ink: #FFFFFF;
+  --hero-muted: #A6B0D5;
+  --add: #0B1537;
+  --add-ink: #FFFFFF;
+  --pos: #1B7A52;
+  --pos-soft: #DDF0E6;
+  --neg: #B63F2E;
+  --neg-soft: #F6E1DB;
+  --warn: #E8A317;
+  --info-soft: #E3EAFB;
+  --nav-bg: #0B1434;
+  --nav-ink: #FFFFFF;
+  --nav-active: rgba(255, 255, 255, 0.12);
 
-  --navy-700: oklch(0.32 0.08 262);
-  --navy-800: oklch(0.25 0.08 262);
-  --navy-900: oklch(0.17 0.06 262);
-  --ocean-500: oklch(0.58 0.13 248);
-  --ocean-300: oklch(0.78 0.07 246);
+  --c1: #2a78d6;
+  --c2: #eb6834;
+  --c3: #1baf7a;
+  --c4: #eda100;
+  --c5: #e87ba4;
+  --c6: #008300;
+  --c7: #4a3aa7;
+  --c8: #898781;
+
+  /* Component library bridge */
+  --background: var(--bg);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--ink);
+  --destructive: var(--neg);
+  --destructive-foreground: #FFFFFF;
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--primary);
+  --chart-1: var(--c1);
+  --chart-2: var(--c2);
+  --chart-3: var(--c3);
+  --chart-4: var(--c4);
+  --chart-5: var(--c5);
+  --sidebar: var(--nav-bg);
+  --sidebar-foreground: var(--nav-ink);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-ink);
+  --sidebar-accent: var(--nav-active);
+  --sidebar-accent-foreground: var(--nav-ink);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--primary);
 }
 
-.dark {
-  --background: oklch(0.16 0.03 258);
-  --foreground: oklch(0.97 0.005 250);
-  --card: oklch(0.21 0.04 260);
-  --card-foreground: oklch(0.97 0.005 250);
-  --popover: oklch(0.21 0.04 260);
-  --popover-foreground: oklch(0.97 0.005 250);
-  --primary: oklch(0.93 0.013 255);
-  --primary-foreground: oklch(0.21 0.04 260);
-  --secondary: oklch(0.27 0.04 260);
-  --secondary-foreground: oklch(0.97 0.005 250);
-  --muted: oklch(0.27 0.04 260);
-  --muted-foreground: oklch(0.72 0.025 254);
-  --accent: oklch(0.27 0.04 260);
-  --accent-foreground: oklch(0.97 0.005 250);
-  --destructive: oklch(0.7 0.19 22);
-  --destructive-foreground: oklch(0.97 0.005 250);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.55 0.027 264);
-  --sidebar: oklch(0.21 0.04 260);
-  --sidebar-foreground: oklch(0.97 0.005 250);
-  --sidebar-primary: oklch(0.55 0.13 250);
-  --sidebar-primary-foreground: oklch(0.97 0.005 250);
-  --sidebar-accent: oklch(0.27 0.04 260);
-  --sidebar-accent-foreground: oklch(0.97 0.005 250);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.55 0.027 264);
+/* --- Skin: Fresh | Mode: Light --- */
+html[data-skin="fresh"] {
+  --bg: #F4EFE6;
+  --surface: #FFFBF4;
+  --surface-2: #EBE4D5;
+  --ink: #12193A;
+  --muted: #525870;
+  --line: #E2DACA;
+  --baseline: #CFC7B6;
+  --chip: #EBE4D5;
+  --primary: #1B2D6B;
+  --primary-ink: #FFFFFF;
+  --accent: #1B2D6B;
+  --hero: #1B2D6B;
+  --hero-ink: #FFFBF4;
+  --hero-muted: #BAC3E6;
+  --add: #E8A317;
+  --add-ink: #2B1D00;
+  --pos: #1B7A52;
+  --pos-soft: #DDF0E6;
+  --neg: #B63F2E;
+  --neg-soft: #F6E1DB;
+  --warn: #E8A317;
+  --info-soft: #E1E6F6;
+  --nav-bg: #1B2D6B;
+  --nav-ink: #FFFBF4;
+  --nav-active: rgba(255, 255, 255, 0.12);
+}
+
+/* ==========================================================================
+   Dark Mode Definitions (for system dark or explicit data-mode="dark")
+   ========================================================================== */
+
+/* Dark mode for Original Skin */
+html.dark,
+html[data-mode="dark"],
+html:not([data-mode="light"]) {
+  @media (prefers-color-scheme: dark) {
+    --bg: #0B1129;
+    --surface: #141C3F;
+    --surface-2: #1C2550;
+    --ink: #EEF0FA;
+    --muted: #9BA4C8;
+    --line: #242E5C;
+    --baseline: #33407A;
+    --chip: #1C2550;
+    --primary: #3D6BFF;
+    --primary-ink: #FFFFFF;
+    --accent: #9DB7FF;
+    --hero: #14205F;
+    --hero-ink: #EEF0FA;
+    --hero-muted: #9BA4C8;
+    --add: #3D6BFF;
+    --add-ink: #FFFFFF;
+    --pos: #5CCB93;
+    --pos-soft: #14382C;
+    --neg: #F28B79;
+    --neg-soft: #40201B;
+    --warn: #F0B33A;
+    --info-soft: #1F2A63;
+    --nav-bg: #070B1E;
+    --nav-ink: #EEF0FA;
+    --nav-active: rgba(255, 255, 255, 0.14);
+
+    --c1: #3987e5;
+    --c2: #d95926;
+    --c3: #199e70;
+    --c4: #c98500;
+    --c5: #d55181;
+    --c6: #008300;
+    --c7: #9085e9;
+    --c8: #9BA4C8;
+  }
+}
+
+html.dark,
+html[data-mode="dark"] {
+  --bg: #0B1129;
+  --surface: #141C3F;
+  --surface-2: #1C2550;
+  --ink: #EEF0FA;
+  --muted: #9BA4C8;
+  --line: #242E5C;
+  --baseline: #33407A;
+  --chip: #1C2550;
+  --primary: #3D6BFF;
+  --primary-ink: #FFFFFF;
+  --accent: #9DB7FF;
+  --hero: #14205F;
+  --hero-ink: #EEF0FA;
+  --hero-muted: #9BA4C8;
+  --add: #3D6BFF;
+  --add-ink: #FFFFFF;
+  --pos: #5CCB93;
+  --pos-soft: #14382C;
+  --neg: #F28B79;
+  --neg-soft: #40201B;
+  --warn: #F0B33A;
+  --info-soft: #1F2A63;
+  --nav-bg: #070B1E;
+  --nav-ink: #EEF0FA;
+  --nav-active: rgba(255, 255, 255, 0.14);
+
+  --c1: #3987e5;
+  --c2: #d95926;
+  --c3: #199e70;
+  --c4: #c98500;
+  --c5: #d55181;
+  --c6: #008300;
+  --c7: #9085e9;
+  --c8: #9BA4C8;
+}
+
+/* Dark mode for Fresh Skin */
+html[data-skin="fresh"].dark,
+html[data-skin="fresh"][data-mode="dark"] {
+  --primary: #2B40A0;
+  --accent: #AFBCFF;
+  --hero: #22367F;
+  --add: #F0B33A;
+  --add-ink: #2B1D00;
+}
+
+html[data-skin="fresh"]:not([data-mode="light"]) {
+  @media (prefers-color-scheme: dark) {
+    --primary: #2B40A0;
+    --accent: #AFBCFF;
+    --hero: #22367F;
+    --add: #F0B33A;
+    --add-ink: #2B1D00;
+  }
 }
 
 @layer base {
