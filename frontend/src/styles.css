@@ -192,11 +192,19 @@
   --sidebar-accent: var(--nav-active);
   --sidebar-accent-foreground: var(--nav-ink);
   --sidebar-border: var(--line);
-  --sidebar-ring: var(--primary);
+  --sidebar-w: clamp(188px, 17cqw, 252px);
+  --page-pad: clamp(18px, 3cqw, 44px);
+  --heading-size: clamp(24px, 2.4cqw, 34px);
+  --page-max-w: 1560px;
+  --history-panel-w: clamp(280px, 25cqw, 380px);
+  --settings-list-w: clamp(240px, 24cqw, 320px);
 }
 
-/* --- Skin: Fresh | Mode: Light --- */
-html[data-skin="fresh"] {
+/* --- Skin: New / Fresh | Mode: Light --- */
+html[data-skin="new"],
+html[data-skin="fresh"],
+[data-skin="new"],
+[data-skin="fresh"] {
   --bg: #F4EFE6;
   --surface: #FFFBF4;
   --surface-2: #EBE4D5;
@@ -225,13 +233,14 @@ html[data-skin="fresh"] {
 }
 
 /* ==========================================================================
-   Dark Mode Definitions (for system dark or explicit data-mode="dark")
+   Dark Mode Definitions (for system dark or explicit data-theme="dark")
    ========================================================================== */
 
 /* Dark mode for Original Skin */
 html.dark,
+html[data-theme="dark"],
 html[data-mode="dark"],
-html:not([data-mode="light"]) {
+html:not([data-theme="light"]):not([data-mode="light"]) {
   @media (prefers-color-scheme: dark) {
     --bg: #0B1129;
     --surface: #141C3F;
@@ -271,6 +280,7 @@ html:not([data-mode="light"]) {
 }
 
 html.dark,
+html[data-theme="dark"],
 html[data-mode="dark"] {
   --bg: #0B1129;
   --surface: #141C3F;
@@ -308,9 +318,15 @@ html[data-mode="dark"] {
   --c8: #9BA4C8;
 }
 
-/* Dark mode for Fresh Skin */
+/* Dark mode for New / Fresh Skin */
+html[data-skin="new"].dark,
+html[data-skin="new"][data-theme="dark"],
+html[data-skin="new"][data-mode="dark"],
 html[data-skin="fresh"].dark,
-html[data-skin="fresh"][data-mode="dark"] {
+html[data-skin="fresh"][data-theme="dark"],
+html[data-skin="fresh"][data-mode="dark"],
+[data-skin="new"].dark,
+[data-skin="fresh"].dark {
   --primary: #8FA2FF;
   --accent: #AFBCFF;
   --hero: #1E2B68;
@@ -318,7 +334,10 @@ html[data-skin="fresh"][data-mode="dark"] {
   --add-ink: #2B1D00;
 }
 
-html[data-skin="fresh"]:not([data-mode="light"]) {
+html[data-skin="new"]:not([data-theme="light"]):not([data-mode="light"]),
+html[data-skin="fresh"]:not([data-theme="light"]):not([data-mode="light"]),
+[data-skin="new"]:not([data-theme="light"]):not([data-mode="light"]),
+[data-skin="fresh"]:not([data-theme="light"]):not([data-mode="light"]) {
   @media (prefers-color-scheme: dark) {
     --primary: #8FA2FF;
     --accent: #AFBCFF;
@@ -616,8 +635,22 @@ body {
    - ≥ 720px: left sidebar (200px width), body offset 200px
    - ≥ 960px: 2-column layout (.two-col-grid)
 */
+#root {
+  container-type: inline-size;
+  min-height: 100vh;
+}
+
+/* Responsive shell helpers with fluid desktop sizing (Addendum E) */
 .app-shell {
   padding-bottom: 5rem;
+  max-width: var(--page-max-w);
+  margin-inline: auto;
+}
+
+.page-fluid {
+  max-width: var(--page-max-w);
+  margin-inline: auto;
+  padding-inline: var(--page-pad);
 }
 
 @media (min-width: 720px) {
@@ -625,13 +658,14 @@ body {
     padding-bottom: 2rem;
   }
   body.has-app-nav {
-    padding-left: 200px !important;
+    padding-left: var(--sidebar-w) !important;
   }
   .pf-bottom-nav {
     display: none !important;
   }
   .pf-side-nav {
     display: flex !important;
+    width: var(--sidebar-w) !important;
   }
 }
 
@@ -641,6 +675,15 @@ body {
   }
   .pf-bottom-nav {
     display: block !important;
+  }
+}
+
+/* Fluid right column auto-fit grid on Home from 1360px (Addendum E) */
+@media (min-width: 1360px) {
+  .home-right-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)) !important;
+    gap: 1.25rem !important;
   }
 }
 

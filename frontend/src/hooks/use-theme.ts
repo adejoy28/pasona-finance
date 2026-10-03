@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 
-export type Skin = "original" | "fresh";
-export type Mode = "light" | "dark" | "system";
+export type Skin = "original" | "new";
+export type Mode = "auto" | "light" | "dark";
 
 export interface ThemeConfig {
   skin: Skin;
@@ -11,7 +11,7 @@ export interface ThemeConfig {
 const STORAGE_KEY = "pasona.theme";
 const DEFAULT_THEME: ThemeConfig = {
   skin: "original",
-  mode: "system",
+  mode: "auto",
 };
 
 export function readStoredTheme(): ThemeConfig {
@@ -20,11 +20,12 @@ export function readStoredTheme(): ThemeConfig {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_THEME;
     const parsed = JSON.parse(raw);
-    const skin: Skin = parsed.skin === "fresh" ? "fresh" : "original";
-    const mode: Mode =
-      parsed.mode === "light" || parsed.mode === "dark" || parsed.mode === "system"
-        ? parsed.mode
-        : "system";
+    const skin: Skin =
+      parsed.skin === "new" || parsed.skin === "fresh" ? "new" : "original";
+    let mode: Mode = "auto";
+    if (parsed.mode === "light" || parsed.theme === "light") mode = "light";
+    else if (parsed.mode === "dark" || parsed.theme === "dark") mode = "dark";
+    else mode = "auto";
     return { skin, mode };
   } catch {
     return DEFAULT_THEME;
@@ -35,8 +36,23 @@ export function applyThemeToDom(theme: ThemeConfig): "light" | "dark" {
   if (typeof document === "undefined") return "light";
 
   const root = document.documentElement;
+  const appRoot = document.getElementById("root");
+
+  // Addendum B: data-skin on app root and on <html> for full-page coverage
+  if (appRoot) {
+    appRoot.setAttribute("data-skin", theme.skin);
+  }
   root.setAttribute("data-skin", theme.skin);
-  root.setAttribute("data-mode", theme.mode);
+
+  // Addendum B: data-theme on <html> (auto removes it)
+  if (theme.mode === "auto") {
+    root.removeAttribute("data-theme");
+  } else {
+    root.setAttribute("data-theme", theme.mode);
+  }
+
+  // Backward compatibility alias for any lingering data-mode selectors
+  root.setAttribute("data-mode", theme.mode === "auto" ? "system" : theme.mode);
 
   const isSystemDark =
     typeof window !== "undefined" &&
@@ -44,7 +60,7 @@ export function applyThemeToDom(theme: ThemeConfig): "light" | "dark" {
     window.matchMedia("(prefers-color-scheme: dark)").matches;
 
   const isDark =
-    theme.mode === "dark" || (theme.mode === "system" && isSystemDark);
+    theme.mode === "dark" || (theme.mode === "auto" && isSystemDark);
 
   if (isDark) {
     root.classList.add("dark");

@@ -6,6 +6,7 @@ import {
   ArrowDownCircle,
   Pencil,
   Plus,
+  Settings as SettingsIcon,
   Trash2,
   User,
 } from "lucide-react";
@@ -14,6 +15,7 @@ import { ConfirmDestructiveDialog } from "@/components/ui/confirm-destructive-di
 import { FinanceNavbar } from "@/components/finance/Navbar";
 import { CategoryDialog } from "@/components/finance/CategoryDialog";
 import { NotificationBell } from "@/components/finance/NotificationBell";
+import { getUserInitials } from "@/components/finance/ScreenHeader";
 import { CategoriesSkeleton } from "@/components/finance/Skeletons";
 import {
   ApiError,
@@ -194,20 +196,28 @@ export function Categories() {
       <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-6 shadow-sm border-b border-white/5 transition-all">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2.5">
-            <Link
-              to="/settings"
-              className={`w-9 h-9 rounded-full flex items-center justify-center text-white transition-all shadow-sm relative overflow-hidden ring-2 ring-offset-2 ring-offset-[#0b1434] ${
-                isOnline ? "ring-emerald-400 bg-white/10" : "ring-amber-400 bg-white/10"
-              }`}
-              aria-label="Profile settings"
-              title={isOnline ? "Online" : "Offline"}
-            >
-              <User size={18} />
-            </Link>
             <h1 className="text-base font-bold tracking-tight text-white">Categories</h1>
           </div>
 
-          <NotificationBell />
+          <div className="flex items-center gap-1.5">
+            <NotificationBell />
+            <Link
+              to="/settings"
+              className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all md:hidden"
+              aria-label="Settings"
+              title="Settings"
+            >
+              <SettingsIcon size={16} />
+            </Link>
+            <Link
+              to="/profile"
+              className="w-9 h-9 rounded-full bg-[var(--primary)] text-white font-bold text-xs flex items-center justify-center transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] shadow-sm"
+              aria-label="User Profile"
+              title={`Profile: ${meQuery.data?.name || "User"}`}
+            >
+              {getUserInitials(meQuery.data?.name)}
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -218,7 +228,7 @@ export function Categories() {
         animate="visible"
         className="px-6 pt-2 pb-6 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
       >
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl mx-auto space-y-3">
           {/* Page Hero Card: Category Stats + Add Button on same row */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -255,6 +265,16 @@ export function Categories() {
               Bar length is relative to your highest spending category this month.
             </p>
           </motion.div>
+
+          {/* Budgets notice per Addendum A / IA design */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/15 flex items-center justify-between text-xs text-white/90">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--primary)] text-white uppercase tracking-wider">
+                Budgets
+              </span>
+              <span className="text-white/80">Monthly budget limits coming soon — organize your spending categories below.</span>
+            </div>
+          </div>
         </div>
       </motion.section>
 
