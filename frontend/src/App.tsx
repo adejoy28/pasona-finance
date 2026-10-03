@@ -33,7 +33,7 @@ import { initCapacitor } from "@/lib/capacitor";
 import { SubtlePopups } from "@/components/finance/SubtlePopups";
 import { SyncIndicator } from "@/components/finance/SyncIndicator";
 import { SplashScreen } from "@/components/finance/SplashScreen";
-import { useMe } from "@/hooks/use-me";
+import { NativeNotificationListener } from "@/components/finance/NativeNotificationListener";
 import { useTheme } from "@/hooks/use-theme";
 
 function UnauthorizedHandler() {
