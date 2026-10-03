@@ -45,6 +45,25 @@ export class ApiError extends Error {
   getDebugUrl(): string {
     return this.#url;
   }
+
+  getValidationErrors(): Record<string, string[]> {
+    if (this.status === 422 && this.payload && typeof this.payload === "object") {
+      const p = this.payload as Record<string, unknown>;
+      if (p.errors && typeof p.errors === "object") {
+        return p.errors as Record<string, string[]>;
+      }
+    }
+    return {};
+  }
+
+  getFirstError(field?: string): string | null {
+    const errs = this.getValidationErrors();
+    if (field) {
+      return errs[field]?.[0] || null;
+    }
+    const firstList = Object.values(errs)[0];
+    return firstList?.[0] || this.message || null;
+  }
 }
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";

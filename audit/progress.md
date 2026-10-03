@@ -13,8 +13,8 @@
 | **Phase 0** | Discovery & Gap Analysis | `main` | ✅ **Completed** | Commit `2cd4448` (`/audit/map.md`, `/audit/tokens.md`, `/audit/gaps.md`) |
 | **Phase 1** | Design Tokens & Theme Switching | `phase-1-tokens` | ✅ **Completed** | Commit `35aff71`, `62b56b2` (`/audit/contrast.md`, anti-flash, 4-theme engine) |
 | **Phase 2** | App Shell & Responsiveness | `phase-2-shell` | ✅ **Completed** | Commit `5d0790c`, `f5b8e7e`, `19dd440` (ScreenHeader, 200px nav, 5-tab bar, contrast overhaul) |
-| **Phase 3** | Feedback & Error System | `phase-3-feedback` | 🟡 **Up Next** | Toast queue with Undo, destructive dialogs, field errors, network bar, offline queue |
-| **Phase 4** | Dashboard (Review Fixes) | `phase-4-dashboard` | ⚪ Queued | Cashflow-only hero, separate monthly budget, spending stack bar |
+| **Phase 3** | Feedback & Error System | `phase-3-feedback` | ✅ **Completed** | Toast queue with Undo, destructive dialogs, field errors, network bar, offline queue |
+| **Phase 4** | Dashboard (Review Fixes) | `phase-4-dashboard` | 🟡 **Up Next** | Cashflow-only hero, separate monthly budget, spending stack bar |
 | **Phase 5** | Transactions | `phase-5-transactions` | ⚪ Queued | Day-group net totals, search/filters, duplicate review, paste alert |
 | **Phase 6** | Categories & Savings Fix | `phase-6-categories` | ⚪ Queued | `kind` (spending/saving), exclude savings from spent, category modal |
 | **Phase 7** | Budgets, Goals, Bills | `phase-7-budgets` | ⚪ Queued | Monthly category budgets, goal rings, recurring bills |
