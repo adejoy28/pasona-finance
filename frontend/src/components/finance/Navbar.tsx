@@ -9,7 +9,6 @@ import {
   Settings as SettingsIcon,
   ChevronsUpDown,
   LogOut,
-  Sparkles,
   User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,7 +21,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useMe, invalidateMe } from "@/hooks/use-me";
 import { auth as authApi } from "@/lib/api";
-import { notify } from "@/hooks/use-toast";
 
 import { getUserInitials } from "@/components/finance/ScreenHeader";
 
@@ -118,18 +116,6 @@ export function FinanceNavbar() {
           <Plus size={15} strokeWidth={2.8} />
           <span>Add transaction</span>
         </Link>
-
-        {/* Ask Mary button (Addendum A & F) */}
-        <button
-          type="button"
-          onClick={() => {
-            window.dispatchEvent(new CustomEvent("pasona:open-mary"));
-          }}
-          className="mt-2 flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 hover:bg-white/15 text-white py-2 px-3 text-xs font-bold tracking-tight transition-all duration-150 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-white/60 cursor-pointer"
-        >
-          <Sparkles size={14} className="text-amber-400" />
-          <span>Ask Mary</span>
-        </button>
 
         {/* Sidebar user block: name on 1 line, email on 1 line with ellipsis and tooltip */}
         <div className="mt-auto pt-4 border-t border-white/10">
