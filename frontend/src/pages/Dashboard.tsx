@@ -5,6 +5,7 @@ import {
   CreditCard,
   Plus,
   Shield,
+  ShieldAlert,
   Wallet,
   Settings as SettingsIcon,
   ChevronRight,
@@ -19,6 +20,7 @@ import { VerifyEmailBanner } from "@/components/finance/VerifyEmailBanner";
 import { MonthDropdown, getUserInitials } from "@/components/finance/ScreenHeader";
 import { QuickLogCard } from "@/components/finance/QuickLogCard";
 import { CashFlowHeroCard } from "@/components/finance/CashFlowHeroCard";
+import { RecentTransactionsCard } from "@/components/finance/RecentTransactionsCard";
 import { MonthlyBudgetSnap } from "@/components/finance/MonthlyBudgetSnap";
 import { WhereItWentDonut, type CategorySpendItem } from "@/components/finance/WhereItWentDonut";
 import { InsightsCard, type InsightItem } from "@/components/finance/InsightsCard";
@@ -98,6 +100,7 @@ export function Dashboard() {
   const [monthTx, setMonthTx] = useState<TransactionDto[]>([]);
   const [recentTx, setRecentTx] = useState<TransactionDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showQuickLog, setShowQuickLog] = useState(true);
 
   const loadData = async () => {
     try {
@@ -249,6 +252,48 @@ export function Dashboard() {
     return list;
   }, [monthlyIncome, monthlySpent, monthlySavings, monthLabel, userCurrency, renderAmount]);
 
+  // Detect potential duplicate transactions (same amount, same account or same description within 48h)
+  const duplicateTransactions = useMemo(() => {
+    const list = recentTx.length ? recentTx : monthTx;
+    if (!list.length) return [];
+
+    const duplicates: { first: TransactionDto; second: TransactionDto }[] = [];
+    const matchedIds = new Set<number>();
+
+    for (let i = 0; i < list.length; i++) {
+      const a = list[i];
+      if (matchedIds.has(a.id)) continue;
+
+      for (let j = i + 1; j < list.length; j++) {
+        const b = list[j];
+        if (matchedIds.has(b.id)) continue;
+
+        const amountA = Math.abs(toNumber(a.amount));
+        const amountB = Math.abs(toNumber(b.amount));
+        const sameAmount = Math.abs(amountA - amountB) < 0.01;
+        const sameType = a.type === b.type;
+        const sameAccount = a.account_id && b.account_id && a.account_id === b.account_id;
+
+        // Check date difference <= 48 hours
+        const dateA = a.transaction_date ? new Date(a.transaction_date).getTime() : 0;
+        const dateB = b.transaction_date ? new Date(b.transaction_date).getTime() : 0;
+        const within48h = Math.abs(dateA - dateB) <= 48 * 60 * 60 * 1000;
+
+        const descA = (a.description || "").trim().toLowerCase();
+        const descB = (b.description || "").trim().toLowerCase();
+        const sameDesc = descA.length > 0 && descA === descB;
+
+        if (sameAmount && sameType && within48h && (sameAccount || sameDesc)) {
+          duplicates.push({ first: a, second: b });
+          matchedIds.add(a.id);
+          matchedIds.add(b.id);
+          break;
+        }
+      }
+    }
+    return duplicates;
+  }, [recentTx, monthTx]);
+
   // 6-month Trend Data points (Phase 4.6)
   const trendData: MonthlySpendPoint[] = useMemo(() => {
     const pts: MonthlySpendPoint[] = [];
@@ -342,20 +387,11 @@ export function Dashboard() {
       >
         <VerifyEmailBanner />
 
-        {/* 2-Column Responsive Layout (Phase 4.6, Addendum E & mockup lines 1464-1489) */}
+        {/* 2-Column Responsive Layout: Activity & Analysis (Left) vs Budgeting & Structure (Right) */}
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-5 items-start">
-          {/* Column A (Left): Quick Log + Cash Flow + Budget + Savings Rate + Coming Up + Accounts + Duplicate Guard */}
+          {/* Column A (Left): Cash Flow Hero (Top Balance) + Duplicate Guard Alert (Conditional) + Quick Log + Donut + Line Trend + Recent Activity */}
           <div className="flex flex-col gap-4 min-w-0">
-            {/* Quick Log Card (G4.1 & mockup line 1464: Prompt to log is the first thing on Home above hero) */}
-            <QuickLogCard
-              transactions={recentTx.length ? recentTx : monthTx}
-              accounts={accountList}
-              categories={categories}
-              currency={userCurrency}
-              onRefresh={loadData}
-            />
-
-            {/* Cash Flow Hero Card (Phase 4.1: Top card = cash flow only, spent excludes savings) */}
+            {/* Cash Flow Hero Card (Total balance & Net cash flow - Always at top) */}
             <CashFlowHeroCard
               totalBalance={totalBalance}
               monthlyIncome={monthlyIncome}
@@ -365,7 +401,84 @@ export function Dashboard() {
               currency={userCurrency}
             />
 
-            {/* Monthly Budget Snap (Phase 4.2: Separate card labelled 'Monthly budget') */}
+            {/* Duplicate Guard Alert (High-priority notice ONLY if duplicate transactions exist) */}
+            {duplicateTransactions.length > 0 && (
+              <div
+                role="alert"
+                className="bg-amber-500/10 border border-amber-500/30 rounded-[6px] p-3.5 shadow-[var(--lift)] flex items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-[4px] bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <ShieldAlert size={17} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-[var(--ink)] leading-snug">
+                      {duplicateTransactions.length} potential duplicate {duplicateTransactions.length === 1 ? "transaction" : "transactions"} detected
+                    </p>
+                    <p className="text-[11px] text-[var(--muted)] truncate">
+                      Review to avoid double-counting expenses or transfers
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  to="/transactions"
+                  className="px-2.5 py-1 text-xs font-bold rounded-[4px] bg-amber-600 hover:bg-amber-700 text-white shrink-0 transition-colors"
+                >
+                  Review
+                </Link>
+              </div>
+            )}
+
+            {/* Quick Log Card (Dismissible so Top Balance stays cleanly anchored at the top) */}
+            {showQuickLog ? (
+              <QuickLogCard
+                transactions={recentTx.length ? recentTx : monthTx}
+                accounts={accountList}
+                categories={categories}
+                currency={userCurrency}
+                onRefresh={loadData}
+                onDismiss={() => setShowQuickLog(false)}
+              />
+            ) : (
+              <div className="flex justify-end -mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowQuickLog(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary)] hover:text-[var(--primary)]/80 bg-[var(--surface)] hover:bg-[var(--chip)] border border-[var(--line)] px-2.5 py-1 rounded-[4px] shadow-sm transition-all cursor-pointer"
+                >
+                  <Plus size={13} />
+                  <span>Quick log</span>
+                </button>
+              </div>
+            )}
+
+            {/* Where It Went Donut Chart (Breakdown of past spending) */}
+            <WhereItWentDonut
+              monthLabel={monthLabel}
+              categories={categoryBreakdown}
+              spentTotal={monthlySpent}
+              currency={userCurrency}
+            />
+
+            {/* 6-Month Spending Trend Chart (Line Chart Flow) */}
+            <SpendingTrendCard
+              trendData={trendData}
+              currency={userCurrency}
+            />
+
+            {/* Recent Activity / Last 5 Transactions Card (Moved down per user feedback) */}
+            <RecentTransactionsCard
+              transactions={recentTx.length ? recentTx : monthTx}
+              currency={userCurrency}
+            />
+          </div>
+
+          {/* Column B (Right): Insights (Promoted to top) + Monthly Budget + Savings Rate + Accounts + Coming Up + Goals + This week + Paste Alert */}
+          <div className="flex flex-col gap-4 min-w-0">
+            {/* Insights Card (Moved up per user guidance) */}
+            <InsightsCard insights={insights} />
+
+            {/* Monthly Budget Snap */}
             <MonthlyBudgetSnap
               monthLabel={monthLabel}
               spent={monthlySpent}
@@ -373,15 +486,18 @@ export function Dashboard() {
               currency={userCurrency}
             />
 
-            {/* Savings Rate Card (mockup line 1473: Companion snap card in Column A) */}
+            {/* Savings Rate Card */}
             <SavingsRateSnap
               savingsAmount={monthlySavings}
               monthlyIncome={monthlyIncome}
               currency={userCurrency}
             />
 
-            {/* Coming Up Section (Phase 4.5 & Phase 4.6) */}
+            {/* Coming Up / Recurring Subscriptions Section */}
             <ComingUpCard currency={userCurrency} />
+
+            {/* Goals Preview Card */}
+            <GoalsPreviewCard currency={userCurrency} />
 
             {/* Accounts Preview Section */}
             <section aria-label="Accounts" className="space-y-2">
@@ -451,59 +567,14 @@ export function Dashboard() {
               </div>
             </section>
 
-            {/* Duplicate Guard Strip (Stripe-style 6px radius) */}
-            <Link
-              to="/transactions"
-              className="w-full bg-[var(--surface)] border border-[var(--line)] rounded-[6px] p-3.5 shadow-[var(--lift)] hover:border-[var(--line)]/80 transition-all flex items-center gap-3 group"
-            >
-              <div className="w-8 h-8 rounded-[4px] bg-[var(--info-soft)] text-[var(--accent-text)] flex items-center justify-center shrink-0">
-                <Shield size={16} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-[var(--ink)] group-hover:text-[var(--primary)] transition-colors">
-                  Duplicate guard
-                </p>
-                <p className="text-[11px] text-[var(--muted)] font-medium truncate">
-                  {monthTx.length} transactions checked, transfers counted once
-                </p>
-              </div>
-              <ChevronRight
-                size={14}
-                className="text-[var(--muted)] group-hover:translate-x-0.5 transition-transform shrink-0"
-              />
-            </Link>
-          </div>
-
-          {/* Column B (Right): Where it went + Insights + Spending Trend + Goals + This week + Paste Alert */}
-          <div className="flex flex-col gap-4 min-w-0">
-            {/* Where It Went Donut Chart (Addendum D: savings excluded, --c1..--c5 colors) */}
-            <WhereItWentDonut
-              monthLabel={monthLabel}
-              categories={categoryBreakdown}
-              spentTotal={monthlySpent}
-              currency={userCurrency}
-            />
-
-            {/* Insights Card (Addendum D: ≤4 rows, small tinted icons) */}
-            <InsightsCard insights={insights} />
-
-            {/* 6-Month Spending Trend Chart (Phase 4.6) */}
-            <SpendingTrendCard
-              trendData={trendData}
-              currency={userCurrency}
-            />
-
-            {/* Goals Preview Card (Phase 4.6) */}
-            <GoalsPreviewCard currency={userCurrency} />
-
-            {/* This Week Recap Card (Addendum D / mock up lines 1484-1487) */}
+            {/* This Week Recap Card */}
             <ThisWeekCard
               transactions={recentTx.length ? recentTx : monthTx}
               currency={userCurrency}
               streak={streak}
             />
 
-            {/* Paste Bank Alert Prompt Banner (mock up line 1488) */}
+            {/* Paste Bank Alert Prompt Banner */}
             <Link
               to="/transactions/add"
               className="w-full bg-[var(--surface)] border border-dashed border-[var(--line)] rounded-[6px] p-3.5 text-[var(--muted)] hover:text-[var(--ink)] hover:border-[var(--primary)] transition-all flex items-center gap-2.5 text-xs font-semibold group cursor-pointer shadow-[var(--lift)]"
