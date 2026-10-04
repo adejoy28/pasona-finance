@@ -342,10 +342,19 @@ export function Dashboard() {
       >
         <VerifyEmailBanner />
 
-        {/* 2-Column Responsive Layout (Phase 4.6 & Addendum E) */}
+        {/* 2-Column Responsive Layout (Phase 4.6, Addendum E & mockup lines 1464-1489) */}
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-5 items-start">
-          {/* Column A (Left): Cash Flow + Budget + Accounts + Duplicate Guard */}
+          {/* Column A (Left): Quick Log + Cash Flow + Budget + Savings Rate + Coming Up + Accounts + Duplicate Guard */}
           <div className="flex flex-col gap-4 min-w-0">
+            {/* Quick Log Card (G4.1 & mockup line 1464: Prompt to log is the first thing on Home above hero) */}
+            <QuickLogCard
+              transactions={recentTx.length ? recentTx : monthTx}
+              accounts={accountList}
+              categories={categories}
+              currency={userCurrency}
+              onRefresh={loadData}
+            />
+
             {/* Cash Flow Hero Card (Phase 4.1: Top card = cash flow only, spent excludes savings) */}
             <CashFlowHeroCard
               totalBalance={totalBalance}
@@ -361,6 +370,13 @@ export function Dashboard() {
               monthLabel={monthLabel}
               spent={monthlySpent}
               budgetLimit={monthlyIncome > 0 ? monthlyIncome : 0}
+              currency={userCurrency}
+            />
+
+            {/* Savings Rate Card (mockup line 1473: Companion snap card in Column A) */}
+            <SavingsRateSnap
+              savingsAmount={monthlySavings}
+              monthlyIncome={monthlyIncome}
               currency={userCurrency}
             />
 
@@ -383,7 +399,7 @@ export function Dashboard() {
 
               <div className="flex overflow-x-auto gap-2.5 pb-2 -mx-2 px-2 scrollbar-hide">
                 {accountList.length === 0 && !loading && (
-                  <div className="flex-1 text-center py-6 text-xs font-bold text-[var(--muted)] uppercase tracking-widest bg-[var(--surface)] border border-[var(--line)] rounded-2xl">
+                  <div className="flex-1 text-center py-6 text-xs font-bold text-[var(--muted)] uppercase tracking-widest bg-[var(--surface)] border border-[var(--line)] rounded-[6px] shadow-[var(--lift)]">
                     No accounts yet
                   </div>
                 )}
@@ -397,11 +413,11 @@ export function Dashboard() {
                     <Link
                       key={account.id}
                       to={`/accounts/${account.id}`}
-                      className="flex-shrink-0 w-32 bg-[var(--surface)] p-2.5 rounded-xl border border-[var(--line)] space-y-1.5 block hover:border-[var(--primary)]/60 transition-colors shadow-2xs"
+                      className="flex-shrink-0 w-32 bg-[var(--surface)] p-2.5 rounded-[6px] border border-[var(--line)] space-y-1.5 block hover:border-[var(--primary)]/60 transition-colors shadow-[var(--lift)]"
                     >
                       <div className="flex items-center justify-between">
                         <div
-                          className={`p-1.5 inline-flex rounded-lg ${
+                          className={`p-1.5 inline-flex rounded-[4px] ${
                             account.type === "bank"
                               ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
                               : account.type === "mobile"
@@ -411,7 +427,7 @@ export function Dashboard() {
                         >
                           {account.type === "bank" ? <CreditCard size={13} /> : <Wallet size={13} />}
                         </div>
-                        <span className="text-[8.5px] font-bold uppercase tracking-wider text-[var(--muted)] bg-[var(--chip)] px-1 py-0.5 rounded">
+                        <span className="text-[8.5px] font-bold uppercase tracking-wider text-[var(--muted)] bg-[var(--chip)] px-1 py-0.5 rounded-[4px]">
                           {account.type}
                         </span>
                       </div>
@@ -435,12 +451,12 @@ export function Dashboard() {
               </div>
             </section>
 
-            {/* Duplicate Guard Strip */}
+            {/* Duplicate Guard Strip (Stripe-style 6px radius) */}
             <Link
               to="/transactions"
-              className="w-full bg-[var(--surface)] border border-[var(--line)] rounded-2xl p-3.5 shadow-xs hover:border-[var(--line)]/80 transition-all flex items-center gap-3 group"
+              className="w-full bg-[var(--surface)] border border-[var(--line)] rounded-[6px] p-3.5 shadow-[var(--lift)] hover:border-[var(--line)]/80 transition-all flex items-center gap-3 group"
             >
-              <div className="w-8 h-8 rounded-xl bg-[var(--info-soft)] text-[var(--accent-text)] flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-[4px] bg-[var(--info-soft)] text-[var(--accent-text)] flex items-center justify-center shrink-0">
                 <Shield size={16} />
               </div>
               <div className="flex-1 min-w-0">
@@ -458,17 +474,8 @@ export function Dashboard() {
             </Link>
           </div>
 
-          {/* Column B (Right): Quick Log + Where it went + Insights + Trend + Goals + This week */}
+          {/* Column B (Right): Where it went + Insights + Spending Trend + Goals + This week + Paste Alert */}
           <div className="flex flex-col gap-4 min-w-0">
-            {/* Quick Log Card (G4.1: Prompt to log is positioned above Where it went) */}
-            <QuickLogCard
-              transactions={recentTx.length ? recentTx : monthTx}
-              accounts={accountList}
-              categories={categories}
-              currency={userCurrency}
-              onRefresh={loadData}
-            />
-
             {/* Where It Went Donut Chart (Addendum D: savings excluded, --c1..--c5 colors) */}
             <WhereItWentDonut
               monthLabel={monthLabel}
@@ -486,13 +493,6 @@ export function Dashboard() {
               currency={userCurrency}
             />
 
-            {/* Savings Rate Card (Addendum D) */}
-            <SavingsRateSnap
-              savingsAmount={monthlySavings}
-              monthlyIncome={monthlyIncome}
-              currency={userCurrency}
-            />
-
             {/* Goals Preview Card (Phase 4.6) */}
             <GoalsPreviewCard currency={userCurrency} />
 
@@ -506,7 +506,7 @@ export function Dashboard() {
             {/* Paste Bank Alert Prompt Banner (mock up line 1488) */}
             <Link
               to="/transactions/add"
-              className="w-full bg-[var(--surface)] border border-dashed border-[var(--line)] rounded-2xl p-3.5 text-[var(--muted)] hover:text-[var(--ink)] hover:border-[var(--primary)] transition-all flex items-center gap-2.5 text-xs font-semibold group cursor-pointer shadow-2xs"
+              className="w-full bg-[var(--surface)] border border-dashed border-[var(--line)] rounded-[6px] p-3.5 text-[var(--muted)] hover:text-[var(--ink)] hover:border-[var(--primary)] transition-all flex items-center gap-2.5 text-xs font-semibold group cursor-pointer shadow-[var(--lift)]"
             >
               <ClipboardList size={16} className="text-[var(--primary)] shrink-0" />
               <span>Paste a bank alert to add it in one step</span>

@@ -31,7 +31,7 @@ export function SpendingTrendCard({
     <section
       aria-label="Spending trend"
       className={cn(
-        "rounded-2xl p-4 sm:p-5 shadow-xs transition-all",
+        "rounded-[6px] p-4 sm:p-5 shadow-[var(--lift)] transition-all",
         "bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)]",
         className
       )}

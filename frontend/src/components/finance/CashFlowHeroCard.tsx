@@ -38,7 +38,7 @@ export function CashFlowHeroCard({
     <section
       aria-label="Total balance"
       className={cn(
-        "rounded-2xl p-4 sm:p-5 text-white transition-all shadow-lg",
+        "rounded-[6px] p-4 sm:p-5 text-white transition-all shadow-[var(--lift)]",
         "bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] border border-white/15",
         className
       )}

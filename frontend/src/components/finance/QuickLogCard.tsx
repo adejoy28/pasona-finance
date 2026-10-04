@@ -77,37 +77,79 @@ export function QuickLogCard({
     return rec;
   }, [transactions]);
 
-  const handleFreeTextSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleFreeTextSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const text = inputVal.trim();
-    if (!text) return;
+    if (!text) {
+      navigate("/transactions/add");
+      return;
+    }
 
     const parsed = parseQuickLogSentence(text, accounts, categories);
 
-    // Build URL search params for /transactions/add prefill
+    // If an amount is detected and an account is available, directly log it!
+    const targetAccountId = parsed.accountName
+      ? accounts.find((a) => a.name.toLowerCase() === parsed.accountName?.toLowerCase())?.id
+      : (accounts.length === 1 ? accounts[0].id : accounts[0]?.id);
+
+    const targetCategoryId = parsed.categoryName
+      ? categories.find((c) => c.name.toLowerCase() === parsed.categoryName?.toLowerCase())?.id
+      : undefined;
+
+    if (parsed.amount && parsed.amount > 0 && targetAccountId) {
+      setIsSubmitting(true);
+      try {
+        const desc = parsed.description || (parsed.type === "income" ? "Income" : "Expense");
+        const created = await transactionsApi.createTransaction({
+          amount: parsed.amount,
+          type: parsed.type,
+          description: desc,
+          account_id: targetAccountId,
+          category_id: targetCategoryId,
+          transaction_date: todayStr,
+        });
+
+        setInputVal("");
+        onRefresh?.();
+
+        notify.success(`Logged ${desc} (${renderAmount(parsed.amount, currency)})`, {
+          undo: async () => {
+            try {
+              await transactionsApi.deleteTransaction(created.id);
+              notify.info("Log undone");
+              onRefresh?.();
+            } catch {
+              notify.error("Failed to undo transaction");
+            }
+          },
+        });
+      } catch {
+        // Fallback to prefilled /transactions/add if direct log encounters validation error
+        const params = new URLSearchParams();
+        params.set("amount", String(parsed.amount));
+        if (parsed.description) params.set("description", parsed.description);
+        params.set("type", parsed.type);
+        if (targetAccountId) params.set("account_id", String(targetAccountId));
+        if (targetCategoryId) params.set("category_id", String(targetCategoryId));
+        navigate(`/transactions/add?${params.toString()}`);
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    // Otherwise, open /transactions/add with prefilled parameters
     const params = new URLSearchParams();
-    if (parsed.amount) {
-      params.set("amount", String(parsed.amount));
-    }
-    if (parsed.description) {
-      params.set("description", parsed.description);
-    }
-    if (parsed.type) {
-      params.set("type", parsed.type);
-    }
-
-    if (parsed.accountName) {
-      const match = accounts.find((a) => a.name.toLowerCase() === parsed.accountName?.toLowerCase());
-      if (match) params.set("account_id", String(match.id));
-    }
-
-    if (parsed.categoryName) {
-      const match = categories.find((c) => c.name.toLowerCase() === parsed.categoryName?.toLowerCase());
-      if (match) params.set("category_id", String(match.id));
-    }
+    if (parsed.amount) params.set("amount", String(parsed.amount));
+    if (parsed.description) params.set("description", parsed.description);
+    if (parsed.type) params.set("type", parsed.type);
+    if (targetAccountId) params.set("account_id", String(targetAccountId));
+    if (targetCategoryId) params.set("category_id", String(targetCategoryId));
 
     if (!parsed.amount) {
-      notify.info("Please enter the amount on the form.");
+      notify.info("Enter the amount on the form.");
     }
 
     navigate(`/transactions/add?${params.toString()}`);
@@ -183,8 +225,8 @@ export function QuickLogCard({
     <section
       aria-label="Quick log"
       className={cn(
-        "rounded-2xl p-4 transition-all duration-300",
-        "bg-[var(--surface)] border text-[var(--ink)] shadow-xs",
+        "rounded-[6px] p-3.5 transition-all duration-300",
+        "bg-[var(--surface)] border text-[var(--ink)] shadow-[var(--lift)]",
         isHighlighted
           ? "border-[var(--primary)] ring-2 ring-[var(--primary)]/15"
           : "border-[var(--line)]",
@@ -194,7 +236,7 @@ export function QuickLogCard({
       {/* Header: Status and Streak Chip */}
       <div className="flex justify-between items-start gap-2.5 mb-2.5">
         <div className="min-w-0">
-          <h2 className="font-display font-semibold text-sm sm:text-base text-[var(--ink)] leading-snug">
+          <h2 className="font-semibold text-sm text-[var(--ink)] leading-snug">
             {todayTx.length > 0
               ? `${todayTx.length} ${todayTx.length === 1 ? "transaction" : "transactions"} logged today`
               : "Nothing logged today"}
@@ -206,10 +248,10 @@ export function QuickLogCard({
           </p>
         </div>
 
-        {/* Streak badge */}
+        {/* Streak badge (.streak and .streak.on with 4px radius) */}
         <span
           className={cn(
-            "inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-1 rounded-xl shrink-0 transition-colors",
+            "inline-flex items-center gap-1 text-[11px] font-extrabold px-2 py-0.5 rounded-[4px] shrink-0 transition-colors whitespace-nowrap",
             loggedToday
               ? "bg-[var(--pos-soft)] text-[var(--pos)]"
               : "bg-[var(--chip)] text-[var(--muted)]"
@@ -237,21 +279,27 @@ export function QuickLogCard({
           placeholder="Spent 2,500 on lunch from OPay"
           autoComplete="off"
           aria-label="Quick log a transaction"
-          className="flex-1 min-w-0 bg-[var(--bg)] border border-[var(--line)] rounded-xl px-3 py-2 text-xs sm:text-sm font-medium text-[var(--ink)] placeholder:text-[var(--muted)] outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
+          className="flex-1 min-w-0 bg-[var(--bg)] border border-[var(--line)] rounded-[4px] px-3 py-2 text-xs sm:text-sm font-medium text-[var(--ink)] placeholder:text-[var(--muted)] outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all"
         />
         <button
           type="submit"
-          disabled={!inputVal.trim()}
-          className="px-4 py-2 bg-[var(--primary)] text-white text-xs sm:text-sm font-bold rounded-xl transition-all hover:opacity-95 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 flex items-center gap-1 shadow-2xs"
+          disabled={isSubmitting}
+          className="px-4 py-2 bg-[var(--primary)] text-white text-xs sm:text-sm font-bold rounded-[4px] transition-all hover:brightness-105 active:scale-95 disabled:opacity-50 shrink-0 flex items-center gap-1 shadow-xs cursor-pointer"
         >
-          <span>Log</span>
-          <ArrowRight size={13} className="hidden sm:inline" />
+          {isSubmitting ? (
+            <Loader2 size={13} className="animate-spin" />
+          ) : (
+            <>
+              <span>Log</span>
+              <ArrowRight size={13} className="hidden sm:inline" />
+            </>
+          )}
         </button>
       </form>
 
-      {/* Log again chips (Addendum G4.2) */}
+      {/* Log again chips (.caprep with 4px radius) */}
       {recentDistinctExpenses.length > 0 && (
-        <div className="flex items-center gap-1.5 flex-wrap mt-3 pt-2.5 border-t border-[var(--line)]/60">
+        <div className="flex items-center gap-1.5 flex-wrap mt-2.5 pt-2 border-t border-[var(--line)]/60">
           <span className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--muted)] mr-1 shrink-0">
             Log again
           </span>
@@ -264,7 +312,7 @@ export function QuickLogCard({
                 type="button"
                 disabled={Boolean(loggingId)}
                 onClick={() => handleLogAgain(t)}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--chip)] text-[var(--ink)] hover:bg-[var(--line)] transition-all cursor-pointer disabled:opacity-50 active:scale-95 shadow-2xs"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-xs font-semibold bg-[var(--chip)] text-[var(--ink)] hover:bg-[var(--line)] transition-all cursor-pointer disabled:opacity-50 active:scale-95"
               >
                 {isItemLogging && <Loader2 size={11} className="animate-spin text-[var(--primary)]" />}
                 <span className="truncate max-w-[120px]">{t.description || "Expense"}</span>

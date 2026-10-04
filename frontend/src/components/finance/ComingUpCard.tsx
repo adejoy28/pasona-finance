@@ -44,7 +44,7 @@ export function ComingUpCard({ bills = [], currency, className = "" }: ComingUpC
         </Link>
       </div>
 
-      <div className="bg-[var(--surface)] border border-[var(--line)] rounded-2xl p-4 shadow-xs">
+      <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[6px] p-3.5 sm:p-4 shadow-[var(--lift)]">
         {bills.length === 0 ? (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
             <span className="text-[var(--muted)] font-medium text-center sm:text-left">
@@ -52,7 +52,7 @@ export function ComingUpCard({ bills = [], currency, className = "" }: ComingUpC
             </span>
             <Link
               to="/settings"
-              className="px-3 py-1.5 rounded-xl border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--chip)] font-bold shrink-0 transition-colors"
+              className="px-3 py-1.5 rounded-[4px] border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--chip)] font-bold shrink-0 transition-colors"
             >
               Add recurring
             </Link>
