@@ -174,11 +174,14 @@ export function Dashboard() {
 
             <div className="order-1 lg:order-2 flex flex-col min-w-0">
               <QuickLogCard
-                transactions={data.recent}
+                todayCount={data.today.count}
+                todaySpent={data.today.spent}
+                loggedToday={data.today.loggedToday}
+                streakDays={data.streakDays}
+                recentTransactions={data.recent}
                 accounts={accountList}
                 categories={data.categories}
                 currency={userCurrency}
-                streak={data.streakDays}
                 onRefresh={data.refresh}
                 className="h-full"
               />
@@ -217,7 +220,7 @@ export function Dashboard() {
               />
 
               <FinishSettingUpCard
-                items={data.setupTodos}
+                todos={data.setupTodos}
               />
             </div>
           </div>

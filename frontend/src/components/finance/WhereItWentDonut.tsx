@@ -28,7 +28,7 @@ const DONUT_COLORS = [
 
 export function WhereItWentDonut({
   monthLabel,
-  categories,
+  categories = [],
   spentTotal,
   currency,
   className = "",
