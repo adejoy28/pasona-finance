@@ -148,126 +148,104 @@ export function Dashboard() {
         </div>
       </header>
 
-      {/* Main Content Area: Expanded container with reduced padding per user feedback */}
+      {/* Main Content Area: 2-column layout on desktop, single-column responsive on mobile */}
       <motion.main
         variants={fadeSlideUp}
         initial="hidden"
         animate="visible"
-        className="w-full px-3 sm:px-5 lg:px-6 pt-3 sm:pt-4 space-y-4 sm:space-y-5"
+        className="w-full px-3 sm:px-5 lg:px-6 pt-3 sm:pt-4 pb-32"
       >
-        {/* Row 1: Balance (Col 1) | Quick Log (Col 2). Mobile: Quick Log first. Equal height on desktop. */}
-        <section aria-label="Overview & Quick Log">
-          <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-4 sm:gap-5 lg:items-stretch">
-            <div className="order-2 lg:order-1 flex flex-col min-w-0">
-              <CashFlowHeroCard
-                totalBalance={data.balanceTotal}
-                monthlyIncome={data.income}
-                monthlySpent={data.spent}
-                monthlySavings={data.saved}
-                accountsCount={data.accountCount}
-                spentChangeVsLastMonth={data.spentChangeVsLastMonth}
-                lastMonthName={data.lastMonthName}
-                currency={userCurrency}
-                className="h-full"
-              />
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-4 sm:gap-5 items-start">
+          {/* Column A (Left): Balance, Tasks, Duplicates/Needs Attention, Donut, Line Chart, Recent Activity */}
+          <div className="flex flex-col gap-4 min-w-0 order-2 lg:order-1">
+            {/* 1. Cash Flow Balance Hero */}
+            <CashFlowHeroCard
+              totalBalance={data.balanceTotal}
+              monthlyIncome={data.income}
+              monthlySpent={data.spent}
+              monthlySavings={data.saved}
+              accountsCount={data.accountCount}
+              spentChangeVsLastMonth={data.spentChangeVsLastMonth}
+              lastMonthName={data.lastMonthName}
+              currency={userCurrency}
+            />
 
-            <div className="order-1 lg:order-2 flex flex-col min-w-0">
-              <QuickLogCard
-                todayCount={data.today.count}
-                todaySpent={data.today.spent}
-                loggedToday={data.today.loggedToday}
-                streakDays={data.streakDays}
-                recentTransactions={data.recent}
-                accounts={accountList}
-                categories={data.categories}
-                currency={userCurrency}
-                onRefresh={data.refresh}
-                className="h-full"
-              />
-            </div>
+            {/* 2. Tasks to be done */}
+            <FinishSettingUpCard
+              todos={data.setupTodos}
+            />
+
+            {/* 3. Duplicates & Needs Attention: Compact, bright, kept to the left under tasks */}
+            {data.attention.length > 0 && (
+              <NeedsAttentionCard items={data.attention} />
+            )}
+
+            {/* 4. Where did it go? Donut (Above recent stats) */}
+            <WhereItWentDonut
+              monthLabel={monthLabel}
+              categories={data.categoryBreakdown}
+              spentTotal={data.spent}
+              currency={userCurrency}
+            />
+
+            {/* 5. Spending Trend Line Chart (Above recent stats) */}
+            <SpendingTrendCard
+              trendData={data.trend6}
+              currency={userCurrency}
+            />
+
+            {/* 6. Recent Activity / Stats (Below Donut and Line Chart) */}
+            <RecentTransactionsCard
+              transactions={data.recent}
+              currency={userCurrency}
+            />
           </div>
-        </section>
 
-        {/* Row 2: Needs attention (conditional, spans full width) */}
-        {data.attention.length > 0 && (
-          <section aria-label="Needs attention">
-            <NeedsAttentionCard items={data.attention} />
-          </section>
-        )}
+          {/* Column B (Right): Quick Log, Budget, Coming Up, Goals, Accounts */}
+          <div className="flex flex-col gap-4 min-w-0 order-1 lg:order-2">
+            {/* Quick Log Card (Pinned to top on mobile for instant logging) */}
+            <QuickLogCard
+              todayCount={data.today.count}
+              todaySpent={data.today.spent}
+              loggedToday={data.today.loggedToday}
+              streakDays={data.streakDays}
+              recentTransactions={data.recent}
+              accounts={accountList}
+              categories={data.categories}
+              currency={userCurrency}
+              onRefresh={data.refresh}
+            />
 
-        {/* Row 3: Recent activity (Col 1) | Budget, Coming up, Finish setting up (Col 2 stacked) */}
-        <section aria-label="Activity & Budgeting">
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-4 sm:gap-5 items-start">
-            <div className="min-w-0">
-              <RecentTransactionsCard
-                transactions={data.recent}
-                currency={userCurrency}
-              />
-            </div>
+            {/* Monthly Budget Snap */}
+            <MonthlyBudgetSnap
+              monthLabel={monthNameOnly}
+              spent={data.spent}
+              budgetLimit={data.budget?.planned ?? 0}
+              currency={userCurrency}
+            />
 
-            <div className="flex flex-col gap-4 min-w-0">
-              <MonthlyBudgetSnap
-                monthLabel={monthNameOnly}
-                spent={data.spent}
-                budgetLimit={data.budget?.planned ?? 0}
-                currency={userCurrency}
-              />
+            {/* Coming Up (Recurring bills) */}
+            <ComingUpCard
+              bills={data.bills}
+              currency={userCurrency}
+            />
 
-              <ComingUpCard
-                bills={data.bills}
-                currency={userCurrency}
-              />
+            {/* Goals Preview */}
+            <GoalsPreviewCard
+              goals={data.goals}
+              currency={userCurrency}
+              savingsRate={data.income > 0 ? (data.saved / data.income) * 100 : 0}
+              income={data.income}
+            />
 
-              <FinishSettingUpCard
-                todos={data.setupTodos}
-              />
-            </div>
+            {/* Accounts */}
+            <AccountsCard
+              accounts={accountList}
+              totalBalance={data.balanceTotal}
+              currency={userCurrency}
+            />
           </div>
-        </section>
-
-        {/* Row 4: Where it went (Col 1) | Spending trend (Col 2) */}
-        <section aria-label="Spending Analysis">
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-4 sm:gap-5 items-start">
-            <div className="min-w-0">
-              <WhereItWentDonut
-                monthLabel={monthLabel}
-                categories={data.categoryBreakdown}
-                spentTotal={data.spent}
-                currency={userCurrency}
-              />
-            </div>
-
-            <div className="min-w-0">
-              <SpendingTrendCard
-                trendData={data.trend6}
-                currency={userCurrency}
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* Row 5: Goals (Col 1) | Accounts (Col 2) */}
-        <section aria-label="Goals & Accounts">
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-4 sm:gap-5 items-start">
-            <div className="min-w-0">
-              <GoalsPreviewCard
-                goals={data.goals}
-                currency={userCurrency}
-                savingsRate={data.income > 0 ? (data.saved / data.income) * 100 : 0}
-                income={data.income}
-              />
-            </div>
-
-            <div className="min-w-0">
-              <AccountsCard
-                accounts={accountList}
-                totalBalance={data.balanceTotal}
-                currency={userCurrency}
-              />
-            </div>
-          </div>
-        </section>
+        </div>
       </motion.main>
 
       <FinanceNavbar />
