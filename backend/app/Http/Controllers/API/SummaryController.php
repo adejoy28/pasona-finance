@@ -39,8 +39,13 @@ class SummaryController extends Controller
         $user = $request->user();
         $from = $request->input('from');
         $to = $request->input('to');
+        $month = $request->input('month');
 
-        if ($from && $to) {
+        if ($month && preg_match('/^\d{4}-\d{2}$/', $month)) {
+            $startOfMonth = Carbon::parse($month . '-01')->startOfMonth();
+            $endOfMonth = Carbon::parse($month . '-01')->endOfMonth();
+            $monthKey = $month;
+        } elseif ($from && $to) {
             $startOfMonth = Carbon::parse($from)->startOfDay();
             $endOfMonth = Carbon::parse($to)->endOfDay();
             $monthKey = Carbon::parse($from)->format('Y-m');
@@ -52,9 +57,9 @@ class SummaryController extends Controller
 
         $key = "user:{$user->id}:summary:{$monthKey}";
 
-        // Cache the entire summary payload. On cache miss, runs 4 queries:
+        // Cache the entire summary payload. On cache miss, runs queries:
         // accounts list, balances batch, monthly income sum, monthly expense sum,
-        // plus the category breakdown. On hit, returns instantly.
+        // category breakdown, plus spent/saved segmentation. On hit, returns instantly.
         $payload = Cache::remember($key, now()->addSeconds(60), function () use ($user, $startOfMonth, $endOfMonth) {
             // 1. Account Balances — single batched query instead of N+1.
             $accounts = $user->accounts;
@@ -73,6 +78,21 @@ class SummaryController extends Controller
 
             $monthlyExpense = $user->transactions()
                 ->where('type', 'expense')
+                ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
+                ->sum('amount');
+
+            // 2b. Additive Spent vs Saved Segmentation (Savings category expenses are saved, others are spent)
+            $savingsCategoryIds = $user->categories()->where('name', 'Savings')->pluck('id')->all();
+
+            $monthlySaved = (float) $user->transactions()
+                ->where('type', 'expense')
+                ->whereIn('category_id', $savingsCategoryIds)
+                ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
+                ->sum('amount');
+
+            $monthlySpent = (float) $user->transactions()
+                ->where('type', 'expense')
+                ->whereNotIn('category_id', $savingsCategoryIds)
                 ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
                 ->sum('amount');
 
@@ -112,6 +132,8 @@ class SummaryController extends Controller
                 'monthly_summary' => [
                     'income' => $monthlyIncome,
                     'expense' => $monthlyExpense,
+                    'spent' => $monthlySpent,
+                    'saved' => $monthlySaved,
                     'net' => $monthlyIncome - $monthlyExpense,
                 ],
                 'category_breakdown' => $categoryBreakdown,
