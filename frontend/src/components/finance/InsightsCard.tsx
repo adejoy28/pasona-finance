@@ -46,7 +46,7 @@ export function InsightsCard({ insights, className = "" }: InsightsCardProps) {
     <section
       aria-label="Insights"
       className={cn(
-        "rounded-2xl p-4 sm:p-5 shadow-xs transition-all",
+        "rounded-[6px] p-4 sm:p-5 shadow-[var(--lift)] transition-all",
         "bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)]",
         className
       )}
@@ -68,7 +68,7 @@ export function InsightsCard({ insights, className = "" }: InsightsCardProps) {
             className="py-2.5 flex items-center gap-3 group hover:opacity-85 transition-opacity"
           >
             {/* Small Tinted Icon Container (per Addendum D: tone shown only by a small tinted icon, never filled rows) */}
-            <div className="w-7 h-7 rounded-lg bg-[var(--chip)] flex items-center justify-center shrink-0">
+            <div className="w-7 h-7 rounded-[4px] bg-[var(--chip)] flex items-center justify-center shrink-0">
               {getIcon(item.type, item.tone)}
             </div>
 

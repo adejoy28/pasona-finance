@@ -41,13 +41,13 @@ export function GoalsPreviewCard({
       </div>
 
       {goals.length === 0 ? (
-        <div className="bg-[var(--surface)] border border-[var(--line)] rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[6px] p-3.5 sm:p-4 shadow-[var(--lift)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
           <span className="text-[var(--muted)] font-medium text-center sm:text-left">
             Set savings targets for rent, emergencies or gifts.
           </span>
           <Link
             to="/categories"
-            className="px-3 py-1.5 rounded-xl border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--chip)] font-bold shrink-0 transition-colors"
+            className="px-3 py-1.5 rounded-[4px] border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--chip)] font-bold shrink-0 transition-colors"
           >
             Create goal
           </Link>
@@ -59,7 +59,7 @@ export function GoalsPreviewCard({
             return (
               <div
                 key={g.id}
-                className="bg-[var(--surface)] border border-[var(--line)] rounded-2xl p-3.5 shadow-xs space-y-2"
+                className="bg-[var(--surface)] border border-[var(--line)] rounded-[6px] p-3.5 shadow-[var(--lift)] space-y-2"
               >
                 <div className="flex justify-between items-baseline gap-2">
                   <span className="text-xs font-bold text-[var(--ink)] truncate">

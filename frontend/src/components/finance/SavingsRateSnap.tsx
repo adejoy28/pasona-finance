@@ -25,7 +25,7 @@ export function SavingsRateSnap({
     <Link
       to="/categories"
       className={cn(
-        "rounded-2xl p-4 transition-all duration-200 block shadow-xs group",
+        "rounded-[6px] p-3.5 sm:p-4 transition-all duration-200 block shadow-[var(--lift)] group",
         "bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)] hover:border-[var(--line)]/80",
         className
       )}

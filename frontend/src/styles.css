@@ -124,11 +124,16 @@
    ========================================================================== */
 
 :root {
-  --radius: 0.5rem; /* 8px base */
+  --radius: 6px; /* Stripe-style 6px base cards */
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
   --radius-xl: 12px;
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+  --r-xl: 12px;
+  --lift: 0 14px 28px -20px rgba(18, 25, 58, 0.35);
 
   /* --- Skin: Original | Mode: Light (Default) --- */
   --bg: #F3F5FA;

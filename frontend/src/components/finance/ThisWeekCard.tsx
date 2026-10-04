@@ -62,7 +62,7 @@ export function ThisWeekCard({
     <section
       aria-label="This week"
       className={cn(
-        "rounded-2xl p-4 sm:p-5 shadow-xs transition-all",
+        "rounded-[6px] p-4 sm:p-5 shadow-[var(--lift)] transition-all",
         "bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)]",
         className
       )}
@@ -79,7 +79,7 @@ export function ThisWeekCard({
       <div className="divide-y divide-[var(--line)]/60 text-xs">
         {/* Fact 1: Total spent */}
         <div className="py-2.5 flex items-center gap-3">
-          <div className="w-7 h-7 rounded-lg bg-[var(--chip)] flex items-center justify-center shrink-0 text-rose-500">
+          <div className="w-7 h-7 rounded-[4px] bg-[var(--chip)] flex items-center justify-center shrink-0 text-rose-500">
             <ArrowUpRight size={15} />
           </div>
           <div className="flex-1 min-w-0">
@@ -95,7 +95,7 @@ export function ThisWeekCard({
         {/* Fact 2: Top category */}
         {weekData.topCategoryAmt > 0 && (
           <div className="py-2.5 flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-[var(--chip)] flex items-center justify-center shrink-0 text-[var(--primary)]">
+            <div className="w-7 h-7 rounded-[4px] bg-[var(--chip)] flex items-center justify-center shrink-0 text-[var(--primary)]">
               <Tag size={15} />
             </div>
             <div className="flex-1 min-w-0 text-[var(--ink)]">
@@ -107,7 +107,7 @@ export function ThisWeekCard({
 
         {/* Fact 3: Streak */}
         <div className="py-2.5 flex items-center gap-3">
-          <div className="w-7 h-7 rounded-lg bg-[var(--chip)] flex items-center justify-center shrink-0 text-amber-500">
+          <div className="w-7 h-7 rounded-[4px] bg-[var(--chip)] flex items-center justify-center shrink-0 text-amber-500">
             <Flame size={15} className="fill-amber-500" />
           </div>
           <div className="flex-1 min-w-0 text-[var(--ink)]">
