@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, ArrowLeft, Check, ChevronDown, CloudOff, Plus, Wallet } from "lucide-react";
 import { notify } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -40,18 +40,28 @@ function toCategory(dto: CategoryDto): Category {
 
 export function TransactionsAdd() {
   const navigate = useNavigate();
-  const [amount, setAmount] = useState("");
-  const [type, setType] = useState<"income" | "expense" | "transfer">("expense");
-  const [accountId, setAccountId] = useState("");
+  const [searchParams] = useSearchParams();
+  const initialAmount = searchParams.get("amount") || "";
+  const initialDesc = searchParams.get("description") || "";
+  const initialType = searchParams.get("type");
+  const initialAcc = searchParams.get("account_id") || "";
+  const initialCat = searchParams.get("category_id") || "";
+
+  const [amount, setAmount] = useState(initialAmount);
+  const [type, setType] = useState<"income" | "expense" | "transfer">(
+    initialType === "income" ? "income" : initialType === "transfer" ? "transfer" : "expense"
+  );
+  const [accountId, setAccountId] = useState(initialAcc);
   const [toAccountId, setToAccountId] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [description, setDescription] = useState("");
+  const [categoryId, setCategoryId] = useState(initialCat);
+  const [description, setDescription] = useState(initialDesc);
   const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState(false);
+  const amountInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     document.title = "Add Transaction — Pasona";
@@ -115,7 +125,7 @@ export function TransactionsAdd() {
     setCategoryId(String(newCategory.id));
   };
 
-  const submitTransaction = async (force: boolean = false) => {
+  const submitTransaction = async (force: boolean = false, addAnother: boolean = false) => {
     if (submitting) return;
 
     if (!accountId) {
@@ -154,19 +164,47 @@ export function TransactionsAdd() {
     }
 
     try {
+      let created: TransactionDto | undefined;
       if (isOnline) {
-        await transactionsApi.createTransaction(payload);
+        created = await transactionsApi.createTransaction(payload);
         void loadFormData();
-        notify.success("Transaction saved", { duration: 2000 });
       } else {
         await enqueue(payload);
-        notify.success("Saved offline. We'll sync it when you're back online.", { duration: 2000 });
       }
-      // Retain selected options (type, accountId, toAccountId, categoryId, date)
-      // and reset transaction-specific input fields for fast consecutive recording
+
       setAmount("");
       setDescription("");
       setDuplicateWarning(false);
+
+      if (addAnother) {
+        amountInputRef.current?.focus();
+        notify.success("Added. Log the next one.", {
+          duration: 3000,
+          undo: isOnline && created ? async () => {
+            try {
+              await transactionsApi.deleteTransaction(created!.id);
+              notify.info("Transaction undone");
+              void loadFormData();
+            } catch {
+              notify.error("Failed to undo transaction");
+            }
+          } : undefined
+        });
+      } else {
+        notify.success(isOnline ? "Transaction saved" : "Saved offline. We'll sync it when you're back online.", {
+          duration: 2000,
+          undo: isOnline && created ? async () => {
+            try {
+              await transactionsApi.deleteTransaction(created!.id);
+              notify.info("Transaction undone");
+              void loadFormData();
+            } catch {
+              notify.error("Failed to undo transaction");
+            }
+          } : undefined
+        });
+        navigate(-1);
+      }
     } catch (err) {
       if (isOnline && err instanceof ApiError && err.status === 409 && !force) {
         setDuplicateWarning(true);
@@ -304,6 +342,7 @@ export function TransactionsAdd() {
             </label>
             <div className="relative inline-block w-full">
               <input
+                ref={amountInputRef}
                 type="text"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -442,14 +481,27 @@ export function TransactionsAdd() {
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={submitting || loading}
-            className="w-full py-4 rounded-2xl bg-blue-600 text-white font-black text-sm tracking-wide shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            <Check size={20} strokeWidth={2.5} />
-            {submitting ? "Saving Transaction…" : "Save Transaction"}
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <button
+              id="a-save"
+              type="submit"
+              disabled={submitting || loading}
+              className="w-full sm:flex-1 py-3.5 rounded-2xl bg-[var(--primary)] text-white font-bold text-sm tracking-wide shadow-md hover:opacity-95 active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer order-1 sm:order-1"
+            >
+              <Check size={18} strokeWidth={2.5} />
+              {submitting ? "Saving Transaction…" : "Save Transaction"}
+            </button>
+
+            <button
+              type="button"
+              disabled={submitting || loading}
+              onClick={() => void submitTransaction(false, true)}
+              className="w-full sm:flex-1 py-3.5 rounded-2xl border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] font-bold text-sm hover:bg-[var(--chip)] active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer order-2 sm:order-2"
+            >
+              <Plus size={16} strokeWidth={2.5} />
+              <span>Save & Add Another</span>
+            </button>
+          </div>
         </form>
       </main>
 
