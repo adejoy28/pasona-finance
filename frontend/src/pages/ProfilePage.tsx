@@ -137,7 +137,7 @@ export function ProfilePage() {
     }
   };
 
-  const initials = getUserInitials(user?.name);
+  const initials = getUserInitials(user?.name, user?.email);
 
   return (
     <div className="min-h-screen bg-[var(--bg)] pb-32 text-[var(--ink)]">
