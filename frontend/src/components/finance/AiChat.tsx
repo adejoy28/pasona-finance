@@ -37,59 +37,75 @@ export function AiChat() {
   const [open, setOpen] = useState(false);
   const isOnline = useOnline();
 
-  const [summaryData, setSummaryData] = useState<SummaryDto | null>(null);
+  // Listen for pasona:open-mary dispatched from sidebar or other buttons
   useEffect(() => {
-    summaryApi.getSummary().then(setSummaryData).catch(() => {});
+    const handleOpen = () => setOpen(true);
+    window.addEventListener("pasona:open-mary", handleOpen);
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => {
+      window.removeEventListener("pasona:open-mary", handleOpen);
+      window.removeEventListener("keydown", handleKey);
+    };
   }, []);
-
-  const accountCount = summaryData?.accounts.length ?? 0;
-  if (accountCount === 0) return null;
 
   return (
     <>
-      {/* FAB */}
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="fixed bottom-24 right-5 z-50 h-14 w-14 rounded-full bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95 flex items-center justify-center"
-        aria-label="Open AI Chat"
-      >
-        <MessageSquare size={22} />
-      </button>
+      {/* Mary Floating Action Button (Addendum F & mock up line 619/822) */}
+      {!open && (
+        <button
+          type="button"
+          id="maryfab"
+          onClick={() => setOpen(true)}
+          className="fixed right-4 sm:right-6 bottom-[74px] sm:bottom-6 z-40 inline-flex items-center gap-2 bg-[#0b1434] text-white border border-white/20 rounded-full py-2.5 px-4 font-extrabold text-xs sm:text-sm shadow-xl hover:bg-[#101b45] active:scale-95 transition-all cursor-pointer group"
+          aria-label="Ask Mary"
+        >
+          <Sparkles size={16} className="text-amber-400 fill-amber-400 group-hover:rotate-12 transition-transform" />
+          <span>Mary</span>
+        </button>
+      )}
 
       {/* Overlay backdrop */}
       {open && (
         <div
-          className="fixed inset-0 z-[60] bg-black/20 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-xs"
           onClick={() => setOpen(false)}
         />
       )}
 
-      {/* Chat panel */}
+      {/* Chat panel / drawer */}
       <div
-        className={`fixed bottom-24 right-5 z-[70] w-[380px] max-w-[calc(100vw-2rem)] transition-all duration-200 ${
-          open ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
+        className={`fixed bottom-0 sm:bottom-6 right-0 sm:right-6 z-[70] w-full sm:w-[400px] max-w-full transition-all duration-200 ${
+          open ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
         }`}
       >
-        <div className="bg-white rounded-2xl card-shadow border border-slate-100 flex flex-col max-h-[560px] shadow-xl">
+        <div className="bg-[var(--surface)] text-[var(--ink)] rounded-t-3xl sm:rounded-2xl border border-[var(--line)] flex flex-col max-h-[85vh] sm:max-h-[580px] shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-              <MessageSquare size={16} className="text-blue-600" />
-              AI Chat
-            </h3>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                }}
-                className="h-8 w-8 inline-flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                aria-label="Close chat"
-              >
-                <X size={16} />
-              </button>
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-[#0b1434] text-white">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-white/20 text-white flex items-center justify-center font-extrabold text-xs">
+                M
+              </div>
+              <div>
+                <h3 className="text-xs sm:text-sm font-bold leading-tight flex items-center gap-1.5">
+                  <span>Mary</span>
+                  <span className="text-[10px] font-semibold bg-white/15 px-1.5 py-0.5 rounded text-white/80">AI</span>
+                </h3>
+                <p className="text-[10.5px] text-white/70">
+                  Ask about your money
+                </p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              aria-label="Close chat"
+            >
+              <X size={16} />
+            </button>
           </div>
 
           <AiChatBody isOnline={isOnline} />

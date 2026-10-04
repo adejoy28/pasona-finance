@@ -24,6 +24,8 @@ import { useMe, invalidateMe } from "@/hooks/use-me";
 import { auth as authApi } from "@/lib/api";
 import { notify } from "@/hooks/use-toast";
 
+import { getUserInitials } from "@/components/finance/ScreenHeader";
+
 const navItems = [
   { label: "Home", short: "Home", href: "/dashboard", icon: LayoutDashboard, tour: undefined },
   { label: "History", short: "History", href: "/transactions", icon: ReceiptText, tour: "history-nav" },
@@ -58,7 +60,7 @@ export function FinanceNavbar() {
     return () => document.body.classList.remove("has-app-nav");
   }, []);
 
-  const initial = user?.name ? user.name.trim().charAt(0).toUpperCase() : "U";
+  const initial = getUserInitials(user?.name, user?.email);
 
   return (
     <>
@@ -122,7 +124,6 @@ export function FinanceNavbar() {
           type="button"
           onClick={() => {
             window.dispatchEvent(new CustomEvent("pasona:open-mary"));
-            notify.info("Mary AI assistant will be available soon.");
           }}
           className="mt-2 flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 hover:bg-white/15 text-white py-2 px-3 text-xs font-bold tracking-tight transition-all duration-150 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-white/60 cursor-pointer"
         >

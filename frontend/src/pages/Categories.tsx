@@ -215,7 +215,7 @@ export function Categories() {
               aria-label="User Profile"
               title={`Profile: ${meQuery.data?.name || "User"}`}
             >
-              {getUserInitials(meQuery.data?.name)}
+              {getUserInitials(meQuery.data?.name, meQuery.data?.email)}
             </Link>
           </div>
         </div>

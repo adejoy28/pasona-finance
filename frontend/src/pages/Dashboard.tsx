@@ -13,7 +13,6 @@ import {
 import { notify } from "@/hooks/use-toast";
 import { FinanceNavbar } from "@/components/finance/Navbar";
 import { DashboardSkeleton } from "@/components/finance/Skeletons";
-import { AiChat } from "@/components/finance/AiChat";
 import { OnboardingTour } from "@/components/finance/OnboardingTour";
 import { NotificationBell } from "@/components/finance/NotificationBell";
 import { VerifyEmailBanner } from "@/components/finance/VerifyEmailBanner";
@@ -277,8 +276,8 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-[var(--bg)] pb-32">
       {/* Sticky Fixed Top Header Bar */}
-      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-6 shadow-sm border-b border-white/5 transition-all text-white">
-        <div className="max-w-5xl mx-auto flex flex-col gap-2">
+      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-4 sm:px-6 lg:px-8 xl:px-10 shadow-sm border-b border-white/5 transition-all text-white">
+        <div className="max-w-[1560px] mx-auto flex flex-col gap-2">
           <div className="flex justify-between items-center gap-3">
             <div className="min-w-0">
               <h1 className="text-base sm:text-lg font-bold tracking-tight text-white truncate">
@@ -318,7 +317,7 @@ export function Dashboard() {
                 title={`Profile: ${userQuery.data?.name || "User"}`}
                 className="w-9 h-9 rounded-full bg-[var(--primary)] text-white font-bold text-xs flex items-center justify-center transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/50 shadow-sm"
               >
-                {getUserInitials(userQuery.data?.name)}
+                {getUserInitials(userQuery.data?.name, userQuery.data?.email)}
               </Link>
             </div>
           </div>
@@ -339,23 +338,14 @@ export function Dashboard() {
         variants={fadeSlideUp}
         initial="hidden"
         animate="visible"
-        className="px-4 sm:px-6 pt-4 max-w-5xl mx-auto w-full space-y-4"
+        className="px-4 sm:px-6 lg:px-8 xl:px-10 pt-4 max-w-[1560px] mx-auto w-full space-y-4"
       >
         <VerifyEmailBanner />
 
         {/* 2-Column Responsive Layout (Phase 4.6 & Addendum E) */}
-        <div className="home-right-grid">
-          {/* Column A (Left): Capture-First + Cashflow + Budget + Accounts */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-5 items-start">
+          {/* Column A (Left): Cash Flow + Budget + Accounts + Duplicate Guard */}
           <div className="flex flex-col gap-4 min-w-0">
-            {/* Quick Log Card (G4.1: Prompt to log is the first thing on Home) */}
-            <QuickLogCard
-              transactions={recentTx.length ? recentTx : monthTx}
-              accounts={accountList}
-              categories={categories}
-              currency={userCurrency}
-              onRefresh={loadData}
-            />
-
             {/* Cash Flow Hero Card (Phase 4.1: Top card = cash flow only, spent excludes savings) */}
             <CashFlowHeroCard
               totalBalance={totalBalance}
@@ -468,8 +458,17 @@ export function Dashboard() {
             </Link>
           </div>
 
-          {/* Column B (Right): Where it went + Insights + Trend + Goals + This week */}
+          {/* Column B (Right): Quick Log + Where it went + Insights + Trend + Goals + This week */}
           <div className="flex flex-col gap-4 min-w-0">
+            {/* Quick Log Card (G4.1: Prompt to log is positioned above Where it went) */}
+            <QuickLogCard
+              transactions={recentTx.length ? recentTx : monthTx}
+              accounts={accountList}
+              categories={categories}
+              currency={userCurrency}
+              onRefresh={loadData}
+            />
+
             {/* Where It Went Donut Chart (Addendum D: savings excluded, --c1..--c5 colors) */}
             <WhereItWentDonut
               monthLabel={monthLabel}
@@ -516,7 +515,6 @@ export function Dashboard() {
         </div>
       </motion.main>
 
-      <AiChat />
       <FinanceNavbar />
       <OnboardingTour hasNoAccounts={hasNoAccounts} />
     </div>

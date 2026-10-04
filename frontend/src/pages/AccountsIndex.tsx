@@ -204,7 +204,7 @@ export function AccountsIndex() {
               aria-label="User Profile"
               title={`Profile: ${userQuery.data?.name || "User"}`}
             >
-              {getUserInitials(userQuery.data?.name)}
+              {getUserInitials(userQuery.data?.name, userQuery.data?.email)}
             </Link>
           </div>
         </div>
