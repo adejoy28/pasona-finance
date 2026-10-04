@@ -61,6 +61,21 @@ function toNumber(value: number | string | null | undefined): number {
   return typeof value === "string" ? parseFloat(value) : value;
 }
 
+interface DashboardCache {
+  summary: SummaryDto | null;
+  accountDtos: AccountDto[] | null;
+  categories: CategoryDto[];
+  monthTx: TransactionDto[];
+  recentTx: TransactionDto[];
+  key: string;
+}
+
+let cachedDashboard: DashboardCache | null = null;
+
+export function invalidateDashboardCache() {
+  cachedDashboard = null;
+}
+
 export function Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -94,12 +109,15 @@ export function Dashboard() {
   const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
   const monthTo = `${monthEnd.getFullYear()}-${pad(monthEnd.getMonth() + 1)}-${pad(monthEnd.getDate())}`;
 
-  const [summary, setSummary] = useState<SummaryDto | null>(null);
-  const [accountDtos, setAccountDtos] = useState<AccountDto[] | null>(null);
-  const [categories, setCategories] = useState<CategoryDto[]>([]);
-  const [monthTx, setMonthTx] = useState<TransactionDto[]>([]);
-  const [recentTx, setRecentTx] = useState<TransactionDto[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `${monthFrom}_${monthTo}`;
+  const hasCache = cachedDashboard !== null && cachedDashboard.key === cacheKey;
+
+  const [summary, setSummary] = useState<SummaryDto | null>(hasCache ? cachedDashboard.summary : null);
+  const [accountDtos, setAccountDtos] = useState<AccountDto[] | null>(hasCache ? cachedDashboard.accountDtos : null);
+  const [categories, setCategories] = useState<CategoryDto[]>(hasCache ? cachedDashboard.categories : []);
+  const [monthTx, setMonthTx] = useState<TransactionDto[]>(hasCache ? cachedDashboard.monthTx : []);
+  const [recentTx, setRecentTx] = useState<TransactionDto[]>(hasCache ? cachedDashboard.recentTx : []);
+  const [loading, setLoading] = useState(!hasCache);
   const [showQuickLog, setShowQuickLog] = useState(true);
 
   const loadData = async () => {
@@ -116,6 +134,15 @@ export function Dashboard() {
       setCategories(catRes);
       setMonthTx(mTxRes.data ?? []);
       setRecentTx(allTxRes.data ?? []);
+
+      cachedDashboard = {
+        summary: sumRes,
+        accountDtos: accRes,
+        categories: catRes,
+        monthTx: mTxRes.data ?? [],
+        recentTx: allTxRes.data ?? [],
+        key: cacheKey,
+      };
     } catch (err) {
       console.error("Failed to load dashboard data", err);
     } finally {
@@ -124,6 +151,17 @@ export function Dashboard() {
   };
 
   useEffect(() => {
+    const key = `${monthFrom}_${monthTo}`;
+    if (cachedDashboard && cachedDashboard.key === key) {
+      setSummary(cachedDashboard.summary);
+      setAccountDtos(cachedDashboard.accountDtos);
+      setCategories(cachedDashboard.categories);
+      setMonthTx(cachedDashboard.monthTx);
+      setRecentTx(cachedDashboard.recentTx);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     void loadData();
   }, [monthFrom, monthTo]);
 
