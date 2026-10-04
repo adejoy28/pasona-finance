@@ -197,10 +197,10 @@
   --sidebar-accent: var(--nav-active);
   --sidebar-accent-foreground: var(--nav-ink);
   --sidebar-border: var(--line);
-  --sidebar-w: clamp(188px, 17cqw, 252px);
-  --page-pad: clamp(18px, 3cqw, 44px);
+  --sidebar-w: 220px;
+  --page-pad: clamp(14px, 2vw, 24px);
   --heading-size: clamp(24px, 2.4cqw, 34px);
-  --page-max-w: 1560px;
+  --page-max-w: 1600px;
   --history-panel-w: clamp(280px, 25cqw, 380px);
   --settings-list-w: clamp(240px, 24cqw, 320px);
 }

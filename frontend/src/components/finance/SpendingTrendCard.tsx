@@ -49,7 +49,6 @@ export function SpendingTrendCard({
     [trendData]
   );
 
-  // SVG coordinate calculations for responsive line graph
   const SVG_WIDTH = 500;
   const SVG_HEIGHT = 160;
   const PADDING_X = 35;
@@ -85,7 +84,7 @@ export function SpendingTrendCard({
     <section
       aria-label="Spending trend"
       className={cn(
-        "rounded-[6px] p-4 sm:p-5 shadow-[var(--lift)] transition-all",
+        "rounded-[6px] p-3.5 sm:p-4 shadow-[var(--lift)] transition-all",
         "bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)]",
         className
       )}
@@ -93,7 +92,7 @@ export function SpendingTrendCard({
       {/* Header */}
       <div className="flex justify-between items-start gap-3 mb-2">
         <div>
-          <h3 className="font-semibold text-sm sm:text-base text-[var(--ink)] leading-snug">
+          <h3 className="font-display font-semibold text-base sm:text-lg text-[var(--ink)] leading-snug">
             Spending trend
           </h3>
           <p className="text-[11px] font-semibold text-[var(--muted)] mt-0.5">
@@ -102,18 +101,38 @@ export function SpendingTrendCard({
                 {activePoint.month}: {renderAmount(activePoint.spent, currency)}
               </span>
             ) : (
-              "6-month flow of expenses"
+              "Last 6 months, savings not included"
             )}
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setViewMode((m) => (m === "chart" ? "table" : "chart"))}
-          className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer pt-0.5"
-        >
-          {viewMode === "chart" ? "Table view" : "Line graph"}
-        </button>
+        {/* Toggle: [Chart | Table] */}
+        <div className="inline-flex rounded-[4px] border border-[var(--line)] p-0.5 bg-[var(--chip)] text-xs">
+          <button
+            type="button"
+            onClick={() => setViewMode("chart")}
+            className={cn(
+              "px-2 py-0.5 rounded-[3px] font-semibold text-[11px] transition-colors",
+              viewMode === "chart"
+                ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs font-bold"
+                : "text-[var(--muted)] hover:text-[var(--ink)]"
+            )}
+          >
+            Chart
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("table")}
+            className={cn(
+              "px-2 py-0.5 rounded-[3px] font-semibold text-[11px] transition-colors",
+              viewMode === "table"
+                ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs font-bold"
+                : "text-[var(--muted)] hover:text-[var(--ink)]"
+            )}
+          >
+            Table
+          </button>
+        </div>
       </div>
 
       {!isRevealed ? (
@@ -157,36 +176,6 @@ export function SpendingTrendCard({
               </linearGradient>
             </defs>
 
-            {/* Subtle horizontal reference lines */}
-            <line
-              x1={PADDING_X}
-              y1={PADDING_TOP}
-              x2={SVG_WIDTH - PADDING_X}
-              y2={PADDING_TOP}
-              stroke="var(--line)"
-              strokeDasharray="3 3"
-              strokeWidth="1"
-              strokeOpacity="0.7"
-            />
-            <line
-              x1={PADDING_X}
-              y1={PADDING_TOP + PLOT_HEIGHT / 2}
-              x2={SVG_WIDTH - PADDING_X}
-              y2={PADDING_TOP + PLOT_HEIGHT / 2}
-              stroke="var(--line)"
-              strokeDasharray="3 3"
-              strokeWidth="1"
-              strokeOpacity="0.7"
-            />
-            <line
-              x1={PADDING_X}
-              y1={SVG_HEIGHT - PADDING_BOTTOM}
-              x2={SVG_WIDTH - PADDING_X}
-              y2={SVG_HEIGHT - PADDING_BOTTOM}
-              stroke="var(--line)"
-              strokeWidth="1"
-            />
-
             {/* Shaded Area Fill */}
             {areaPath && (
               <path
@@ -216,7 +205,6 @@ export function SpendingTrendCard({
 
               return (
                 <g key={i}>
-                  {/* Invisible broad hit area for easy hover / touch */}
                   <circle
                     cx={pt.x}
                     cy={pt.y}
@@ -227,7 +215,6 @@ export function SpendingTrendCard({
                     onClick={() => setActiveIdx(i)}
                   />
 
-                  {/* Highlight ring if active or current */}
                   {(isHovered || isCurrent) && (
                     <circle
                       cx={pt.x}
@@ -239,7 +226,6 @@ export function SpendingTrendCard({
                     />
                   )}
 
-                  {/* Crisp dot marker */}
                   <circle
                     cx={pt.x}
                     cy={pt.y}

@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 export interface CategorySpendItem {
   category_name: string;
-  category_id?: number;
+  category_id?: number | string;
   total: number;
 }
 
@@ -17,13 +17,13 @@ interface WhereItWentDonutProps {
   className?: string;
 }
 
-// 5 core palette colors per Addendum D (no extra hues)
 const DONUT_COLORS = [
   "var(--c1, #2F66F0)",
   "var(--c2, #7557E0)",
   "var(--c3, #059669)",
   "var(--c4, #D9830F)",
   "var(--c5, #DC2626)",
+  "var(--c8, #898781)",
 ];
 
 export function WhereItWentDonut({
@@ -34,29 +34,65 @@ export function WhereItWentDonut({
   className = "",
 }: WhereItWentDonutProps) {
   const navigate = useNavigate();
-  const { renderAmount, isRevealed } = usePrivacyMode();
+  const { renderAmount } = usePrivacyMode();
 
-  // Filter out Savings category from "Where it went" (per Phase 4.3 & Addendum D)
+  // Exclude savings per spec
   const nonSavingsCategories = useMemo(
-    () => categories.filter((c) => c.category_name.toLowerCase() !== "savings"),
+    () => categories.filter((c) => c.category_name.toLowerCase() !== "savings" && c.total > 0),
     [categories]
   );
 
   const total = useMemo(
-    () => nonSavingsCategories.reduce((sum, c) => sum + c.total, 0) || spentTotal || 1,
-    [nonSavingsCategories, spentTotal]
+    () => nonSavingsCategories.reduce((sum, c) => sum + c.total, 0),
+    [nonSavingsCategories]
   );
 
-  // SVG Donut calculations (circumference for radius 44 is 2 * PI * 44 ≈ 276.46)
+  // Spec 5.7: If spent is 0: do not render the card
+  if (total <= 0) {
+    return null;
+  }
+
+  // Top 5 categories + Other if more than 5
+  const { topCategories, uncategorizedItem } = useMemo(() => {
+    const sorted = [...nonSavingsCategories].sort((a, b) => b.total - a.total);
+    const uncat = sorted.find(
+      (c) =>
+        c.category_name.toLowerCase().includes("uncategorized") ||
+        c.category_id === "uncategorized" ||
+        c.category_id === 0
+    );
+
+    if (sorted.length <= 5) {
+      return { topCategories: sorted, uncategorizedItem: uncat };
+    }
+
+    const top5 = sorted.slice(0, 5);
+    const others = sorted.slice(5);
+    const otherTotal = others.reduce((acc, c) => acc + c.total, 0);
+
+    return {
+      topCategories: [
+        ...top5,
+        {
+          category_name: "Other",
+          category_id: undefined,
+          total: otherTotal,
+        },
+      ],
+      uncategorizedItem: uncat,
+    };
+  }, [nonSavingsCategories]);
+
+  // Circumference for R = 44 is 2 * PI * 44 ≈ 276.46
   const R = 44;
   const CIRCUMFERENCE = 2 * Math.PI * R;
 
   const segments = useMemo(() => {
     let offset = 0;
-    return nonSavingsCategories.map((cat, idx) => {
+    return topCategories.map((cat, idx) => {
       const pct = cat.total / total;
       const strokeDash = pct * CIRCUMFERENCE;
-      const visibleDash = Math.max(0, strokeDash - 2);
+      const visibleDash = Math.max(0, strokeDash - 1.5);
       const strokeGap = CIRCUMFERENCE - visibleDash;
       const currentOffset = -offset;
       offset += strokeDash;
@@ -69,19 +105,22 @@ export function WhereItWentDonut({
         strokeOffset: currentOffset.toFixed(2),
       };
     });
-  }, [nonSavingsCategories, total, CIRCUMFERENCE]);
+  }, [topCategories, total, CIRCUMFERENCE]);
+
+  const uncategorizedPct = uncategorizedItem ? (uncategorizedItem.total / total) * 100 : 0;
+  const showUncategorizedWarning = uncategorizedItem && uncategorizedPct > 30;
 
   return (
     <section
       aria-label="Where it went"
       className={cn(
-        "rounded-[6px] p-4 sm:p-5 shadow-[var(--lift)] transition-all",
+        "rounded-[6px] p-3.5 sm:p-4 shadow-[var(--lift)] transition-all",
         "bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)]",
         className
       )}
     >
       {/* Header */}
-      <div className="flex justify-between items-start gap-3 mb-3">
+      <div className="flex justify-between items-start gap-3 mb-2.5">
         <div className="min-w-0">
           <h3 className="font-display font-semibold text-base sm:text-lg text-[var(--ink)] leading-snug">
             Where it went
@@ -99,93 +138,102 @@ export function WhereItWentDonut({
         </Link>
       </div>
 
-      {nonSavingsCategories.length === 0 ? (
-        <div className="py-8 text-center text-xs font-bold uppercase tracking-wider text-[var(--muted)]">
-          No spending recorded for this month
-        </div>
-      ) : (
-        <div className="flex flex-col sm:flex-row items-center gap-6 mt-2">
-          {/* Donut Chart Ring with Center Text */}
-          <div className="relative w-32 h-32 shrink-0 flex items-center justify-center">
-            <svg
-              viewBox="0 0 120 120"
-              role="img"
-              aria-label="Spending split by category"
-              className="w-full h-full -rotate-90"
-            >
-              {/* Background circle track */}
+      <div className="flex flex-col sm:flex-row items-center gap-5 mt-2">
+        {/* Donut Chart Ring with Center Text */}
+        <div className="relative w-28 h-28 sm:w-32 sm:h-32 shrink-0 flex items-center justify-center">
+          <svg
+            viewBox="0 0 120 120"
+            role="img"
+            aria-label="Spending split by category"
+            className="w-full h-full -rotate-90"
+          >
+            {/* Background circle track */}
+            <circle
+              cx="60"
+              cy="60"
+              r={R}
+              fill="none"
+              stroke="var(--chip)"
+              strokeWidth="13"
+            />
+            {/* Segments */}
+            {segments.map((seg, idx) => (
               <circle
+                key={idx}
                 cx="60"
                 cy="60"
                 r={R}
                 fill="none"
-                stroke="var(--chip)"
-                strokeWidth="14"
+                stroke={seg.color}
+                strokeWidth="13"
+                strokeDasharray={seg.strokeDash}
+                strokeDashoffset={seg.strokeOffset}
+                className="transition-all duration-500"
               />
-              {/* Segments */}
-              {segments.map((seg, idx) => (
-                <circle
-                  key={idx}
-                  cx="60"
-                  cy="60"
-                  r={R}
-                  fill="none"
-                  stroke={seg.color}
-                  strokeWidth="14"
-                  strokeDasharray={seg.strokeDash}
-                  strokeDashoffset={seg.strokeOffset}
-                  className="transition-all duration-500"
-                />
-              ))}
-            </svg>
-
-            {/* Center Label */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-2">
-              <span className="font-display font-bold text-xs sm:text-sm text-[var(--ink)] tabular-nums truncate max-w-[85px] text-center">
-                {renderAmount(total, currency)}
-              </span>
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-[var(--muted)] mt-0.5">
-                spent
-              </span>
-            </div>
-          </div>
-
-          {/* Category Legend Beside Donut */}
-          <div className="flex-1 w-full space-y-1.5 min-w-0">
-            {segments.map((item, idx) => (
-              <div
-                key={idx}
-                onClick={() => {
-                  if (item.category_id) {
-                    navigate(`/transactions?category_id=${item.category_id}`);
-                  }
-                }}
-                className={cn(
-                  "flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-[var(--chip)] transition-colors text-xs",
-                  item.category_id && "cursor-pointer"
-                )}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span
-                    className="w-2.5 h-2.5 rounded-full shrink-0"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="font-semibold text-[var(--ink)] truncate">
-                    {item.category_name}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0 tabular-nums">
-                  <span className="text-[11px] font-bold text-[var(--muted)]">
-                    {item.percentage}%
-                  </span>
-                  <span className="font-bold text-[var(--ink)]">
-                    {renderAmount(item.total, currency)}
-                  </span>
-                </div>
-              </div>
             ))}
+          </svg>
+
+          {/* Center Label */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-2">
+            <span className="font-display font-bold text-xs sm:text-sm text-[var(--ink)] tabular-nums truncate max-w-[80px] text-center">
+              {renderAmount(total, currency)}
+            </span>
+            <span className="text-[9px] font-extrabold uppercase tracking-wider text-[var(--muted)]">
+              spent
+            </span>
           </div>
+        </div>
+
+        {/* Category Legend: Category name, bold amount, percentage (Spec 5.7) */}
+        <div className="flex-1 w-full space-y-1 min-w-0">
+          {segments.map((item, idx) => (
+            <div
+              key={idx}
+              onClick={() => {
+                if (item.category_id !== undefined) {
+                  navigate(`/transactions?category_id=${item.category_id}`);
+                }
+              }}
+              className={cn(
+                "flex items-center justify-between gap-2 p-1.5 rounded-[4px] hover:bg-[var(--chip)] transition-colors text-xs",
+                item.category_id !== undefined && "cursor-pointer"
+              )}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: item.color }}
+                />
+                <span className="font-medium text-[var(--ink)] truncate">
+                  {item.category_name}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0 tabular-nums">
+                <span className="font-bold text-[var(--ink)]">
+                  {renderAmount(item.total, currency)}
+                </span>
+                <span className="text-[11px] font-medium text-[var(--muted)]">
+                  ({item.percentage}%)
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Uncategorized Warning if >30% */}
+      {showUncategorizedWarning && (
+        <div className="mt-3 pt-2.5 border-t border-[var(--line)] text-xs text-[var(--muted)] flex items-center justify-between gap-2">
+          <span>
+            {renderAmount(uncategorizedItem.total, currency)} in uncategorized transactions.
+          </span>
+          <Link
+            to="/transactions?category_id=uncategorized"
+            className="font-bold text-[var(--primary)] hover:underline shrink-0"
+          >
+            Categorize them →
+          </Link>
         </div>
       )}
     </section>
