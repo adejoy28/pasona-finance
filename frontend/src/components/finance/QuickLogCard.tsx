@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { Check, Flame, ArrowRight, Loader2 } from "lucide-react";
+import { Check, Flame, ArrowRight, Loader2, X } from "lucide-react";
 import { notify } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { parseQuickLogSentence, calculateStreak } from "@/lib/quick-log";
@@ -24,6 +24,7 @@ interface QuickLogCardProps {
   categories: CategoryRef[];
   currency?: string;
   onRefresh?: () => void;
+  onDismiss?: () => void;
   className?: string;
 }
 
@@ -33,6 +34,7 @@ export function QuickLogCard({
   categories,
   currency = DEFAULT_CURRENCY,
   onRefresh,
+  onDismiss,
   className = "",
 }: QuickLogCardProps) {
   const navigate = useNavigate();
@@ -248,25 +250,39 @@ export function QuickLogCard({
           </p>
         </div>
 
-        {/* Streak badge (.streak and .streak.on with 4px radius) */}
-        <span
-          className={cn(
-            "inline-flex items-center gap-1 text-[11px] font-extrabold px-2 py-0.5 rounded-[4px] shrink-0 transition-colors whitespace-nowrap",
-            loggedToday
-              ? "bg-[var(--pos-soft)] text-[var(--pos)]"
-              : "bg-[var(--chip)] text-[var(--muted)]"
-          )}
-          title={loggedToday ? "Streak updated for today" : "Log today to keep your streak"}
-        >
-          {loggedToday ? (
-            <Check size={12} className="stroke-[3]" />
-          ) : (
-            <Flame size={12} className="text-amber-500 fill-amber-500" />
-          )}
-          <span>
-            {loggedToday ? `${streak} day streak` : `Keep your ${streak} day streak`}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Streak badge (.streak and .streak.on with 4px radius) */}
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 text-[11px] font-extrabold px-2 py-0.5 rounded-[4px] shrink-0 transition-colors whitespace-nowrap",
+              loggedToday
+                ? "bg-[var(--pos-soft)] text-[var(--pos)]"
+                : "bg-[var(--chip)] text-[var(--muted)]"
+            )}
+            title={loggedToday ? "Streak updated for today" : "Log today to keep your streak"}
+          >
+            {loggedToday ? (
+              <Check size={12} className="stroke-[3]" />
+            ) : (
+              <Flame size={12} className="text-amber-500 fill-amber-500" />
+            )}
+            <span>
+              {loggedToday ? `${streak} day streak` : `Keep your ${streak} day streak`}
+            </span>
           </span>
-        </span>
+
+          {onDismiss && (
+            <button
+              type="button"
+              onClick={onDismiss}
+              aria-label="Dismiss quick log"
+              title="Dismiss quick log"
+              className="p-1 rounded-[4px] text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--chip)] transition-colors cursor-pointer"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Quick Sentence Input Form */}
