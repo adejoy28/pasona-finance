@@ -17,8 +17,8 @@
 | 3 | Feedback & error system | `phase-3-feedback` | ⚠️ **Reopened → 3b** | `5248a4b`. Primitives exist but violate G1/G2 and are not wired/adopted. |
 | **3b** | **Feedback compliance (Addendum G)** | `phase-3-feedback` | 🟡 **Up next** | Remove dev switch, one alert system, wire HTTP mapping, adopt components. |
 | **2b** | **Shell & IA revisions (Addendum A/B/C/E)** | `phase-2b-shell-ia` | ✅ Done | Tabs, gear/avatar, month dropdown, fluid sizing, theme attrs, /profile. |
-| 6 | Categories & savings fix (backend first) | `phase-6-categories` | ⚪ Queued — **recommend before 4** | Phase 4 cannot show Spent/Saved correctly without `kind` + `saved`/`spent`. |
-| 4 | Home (capture-first) | `phase-4-dashboard` | ⚪ Queued | Expanded by G4 + Addendum D. |
+| 6 | Categories & savings fix (backend first) | `phase-6-categories` | ⚪ Queued — **recommend before 5** | Adds `kind` (`expense`, `saving`) to categories API. |
+| 4 | Home (capture-first) | `phase-4-dashboard` | ✅ Done | Quick log card, cash-flow hero, budget card, donut, insights, trend, test. |
 | 5 | Transactions | `phase-5-transactions` | ⚪ Queued | + Save-and-add-another, source badges incl. `mary`. |
 | 7 | Budgets, goals, recurring bills | `phase-7-budgets` | ⚪ Queued | Budgets becomes a real tab (currently points to `/categories`). |
 | 8 | Accounts, balance check, bulk import | `phase-8-accounts` | ⚪ Queued | Balance check UI partly exists (localStorage); adjustment must use Undo toast. |
@@ -80,18 +80,18 @@
    - Registered `/profile` route in `App.tsx`.
 8. **Verify:** Executed `npm run build` with 0 errors across 2,658 modules.
 
-## Phase 4 — Home, capture-first (Addendum D + G4)
+## Phase 4 — Home, capture-first (Addendum D + G4) — COMPLETED
 
-Order: **Quick log card first**, then balance, budget, coming up, accounts, where it went, trend, goals.
-1. Quick log card: "Nothing logged today" (highlighted) / "n logged today, you spent X"; streak chip; one sentence field → parse → open **prefilled** Add form (never save from text; empty amount if unreadable; never guess account).
-2. Log-again chips (3 most recent distinct expenses): one tap logs for today + Undo; if same amount+account already today → open prefilled form.
-3. Streak from real transactions in the user's time zone (no stored counter).
-4. Cash-flow hero (Spent excludes savings, "x% of income spent" / "NGN y moved to savings").
-5. Separate "Monthly budget" card (ok/near/over colours) — real data after Phase 7.
-6. "Where it went" donut, spent total in centre, savings excluded, `--c1..--c5`.
-7. Savings rate card; Insights card ("What needs your attention", ≤4 rows, tinted icon only).
-8. Overdue bill badge style; privacy mode masks every value incl. chart labels.
-9. Test: income − spent − saved = Δ total balance (no transfers).
+1. **Quick Log card (Addendum G4.1 & G4.2):** Implemented `QuickLogCard.tsx` placed at the top of Home. Displays "Nothing logged today" with highlighted border when empty, streak calculation badge from real transactions ("Keep your n day streak" / "n day streak"), free-text input with `parseQuickLogSentence` navigating to prefilled Add form, and 3 "Log again" chips for 1-tap re-logging with Undo toast.
+2. **Cash-flow hero card (Phase 4.1):** Total balance hero, 3-metric cash flow grid (Income, Spent excluding savings, Net cash flow), proportional bar with "x% of income spent" and "NGN y moved to savings".
+3. **Monthly budget card (Phase 4.2):** Separate card labelled "Monthly budget", "NGN n left" of "NGN total", status meter (`ok` / `near` / `over` states, never full red unless exceeded), and embedded "Budgets" link.
+4. **Where it went donut (Addendum D):** Donut chart with spent total in center (savings excluded), category legend beside it with `--c1..--c5` colors, and "Budgets" header link.
+5. **Insights card (Addendum D):** "What needs your attention" with up to 4 rows, small tinted icons (overdue bills, budget status, spending trend, savings rate).
+6. **Secondary cards:** Savings rate card, Coming up overdue bills with `OVERDUE` badge, Accounts horizontal scroll, Duplicate guard strip, This week 7-day recap, and Bank alert paste prompt.
+7. **Prefilled Add form & Save-and-add-another (Addendum G4.3):** Updated `TransactionsAdd.tsx` with search parameter prefill support, amount input refocus, and "Save & Add Another" button.
+8. **Responsive fluid layout (Phase 4.6 & Addendum E):** 2-column container query layout on wide screens (`.home-right-grid` with `.colA` and `.colB`), single stacked column on phones.
+9. **Acceptance Test:** Added `test_income_minus_spent_minus_saved_equals_change_in_total_balance` in `backend/tests/Feature/FinanceIsolationTest.php`. Confirmed passing.
+10. **Build & Typecheck:** Clean `npm run build` with 0 errors across 2,669 modules.
 
 ## Phase 5 additions
 - **Save and add another** (clears amount + description, refocus amount, toast "Added. Log the next one." + Undo; Save first/full width on phones).

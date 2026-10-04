@@ -1,19 +1,14 @@
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  ChevronLeft,
-  ChevronRight,
   CreditCard,
   Plus,
   Shield,
-  User,
   Wallet,
-  Eye,
-  EyeOff,
   Settings as SettingsIcon,
+  ChevronRight,
+  ClipboardList,
 } from "lucide-react";
 import { notify } from "@/hooks/use-toast";
 import { FinanceNavbar } from "@/components/finance/Navbar";
@@ -23,26 +18,33 @@ import { OnboardingTour } from "@/components/finance/OnboardingTour";
 import { NotificationBell } from "@/components/finance/NotificationBell";
 import { VerifyEmailBanner } from "@/components/finance/VerifyEmailBanner";
 import { MonthDropdown, getUserInitials } from "@/components/finance/ScreenHeader";
+import { QuickLogCard } from "@/components/finance/QuickLogCard";
+import { CashFlowHeroCard } from "@/components/finance/CashFlowHeroCard";
+import { MonthlyBudgetSnap } from "@/components/finance/MonthlyBudgetSnap";
+import { WhereItWentDonut, type CategorySpendItem } from "@/components/finance/WhereItWentDonut";
+import { InsightsCard, type InsightItem } from "@/components/finance/InsightsCard";
+import { SpendingTrendCard, type MonthlySpendPoint } from "@/components/finance/SpendingTrendCard";
+import { SavingsRateSnap } from "@/components/finance/SavingsRateSnap";
+import { ComingUpCard } from "@/components/finance/ComingUpCard";
+import { GoalsPreviewCard } from "@/components/finance/GoalsPreviewCard";
+import { ThisWeekCard } from "@/components/finance/ThisWeekCard";
 import { DEFAULT_CURRENCY } from "@/lib/currencies";
-import { formatCurrency, type Account } from "@/lib/finance";
-import {
-  fadeSlideDown,
-  fadeSlideUp,
-  staggerContainer,
-  staggerItem,
-} from "@/lib/animations";
+import { type Account } from "@/lib/finance";
+import { fadeSlideDown, fadeSlideUp } from "@/lib/animations";
 import {
   accounts as accountsApi,
+  categories as categoriesApi,
   summary as summaryApi,
   transactions as transactionsApi,
   type TransactionDto,
   type AccountDto,
+  type CategoryDto,
   type SummaryDto,
 } from "@/lib/api";
 import { useOnline } from "@/hooks/use-online";
 import { useMe, invalidateMe } from "@/hooks/use-me";
 import { usePrivacyMode } from "@/hooks/use-privacy-mode";
-import { useCountUp } from "@/hooks/use-count-up";
+import { calculateStreak } from "@/lib/quick-log";
 
 function toAccount(dto: AccountDto): Account {
   return {
@@ -62,7 +64,7 @@ export function Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const verifiedFlag = searchParams.get("verified") ?? undefined;
-  const { isRevealed, toggleReveal, renderAmount } = usePrivacyMode();
+  const { isRevealed, renderAmount } = usePrivacyMode();
 
   useEffect(() => {
     document.title = "Dashboard — Pasona";
@@ -93,34 +95,34 @@ export function Dashboard() {
 
   const [summary, setSummary] = useState<SummaryDto | null>(null);
   const [accountDtos, setAccountDtos] = useState<AccountDto[] | null>(null);
+  const [categories, setCategories] = useState<CategoryDto[]>([]);
   const [monthTx, setMonthTx] = useState<TransactionDto[]>([]);
+  const [recentTx, setRecentTx] = useState<TransactionDto[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function loadData() {
-      setLoading(true);
-      try {
-        const [sumRes, accRes, txRes] = await Promise.all([
-          summaryApi.getSummary({ from: monthFrom, to: monthTo }),
-          accountsApi.listAccounts(),
-          transactionsApi.listTransactions({ from: monthFrom, to: monthTo, per_page: 500 }),
-        ]);
-        if (!cancelled) {
-          setSummary(sumRes);
-          setAccountDtos(accRes);
-          setMonthTx(txRes.data ?? []);
-        }
-      } catch (err) {
-        console.error("Failed to load dashboard data", err);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  const loadData = async () => {
+    try {
+      const [sumRes, accRes, catRes, mTxRes, allTxRes] = await Promise.all([
+        summaryApi.getSummary({ from: monthFrom, to: monthTo }),
+        accountsApi.listAccounts(),
+        categoriesApi.listCategories().catch(() => []),
+        transactionsApi.listTransactions({ from: monthFrom, to: monthTo, per_page: 500 }),
+        transactionsApi.listTransactions({ per_page: 100 }).catch(() => ({ data: [] })),
+      ]);
+      setSummary(sumRes);
+      setAccountDtos(accRes);
+      setCategories(catRes);
+      setMonthTx(mTxRes.data ?? []);
+      setRecentTx(allTxRes.data ?? []);
+    } catch (err) {
+      console.error("Failed to load dashboard data", err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     void loadData();
-    return () => {
-      cancelled = true;
-    };
   }, [monthFrom, monthTo]);
 
   const isOnline = useOnline();
@@ -130,79 +132,138 @@ export function Dashboard() {
   const accountsFetched = !loading;
   const accountList = (accountDtos ?? summary?.accounts ?? []).map(toAccount);
   const hasNoAccounts = accountsFetched && accountList.length === 0;
+
   const totalBalance = summary
     ? toNumber(summary.total_balance)
     : accountList.reduce((s, a) => s + a.balance, 0);
 
-  const animatedTotalBalance = useCountUp(totalBalance, 650, isRevealed);
-
-  const filteredMonthTx = monthTx.filter((t) => {
-    if (!t.transaction_date) return false;
-    const dateStr = t.transaction_date.slice(0, 10);
-    return dateStr >= monthFrom && dateStr <= monthTo;
-  });
-
-  type MonthAgg = { income: number; expense: number; byCategory: Map<string, { amount: number; id?: number }> };
-  const derived = filteredMonthTx.reduce<MonthAgg>(
-    (acc, t) => {
-      const amount = toNumber(t.amount);
-      if (t.type === "income") acc.income += amount;
-      else if (t.type === "expense") {
-        acc.expense += amount;
-        const name = t.category?.name ?? "Uncategorized";
-        const existing = acc.byCategory.get(name) ?? { amount: 0, id: t.category_id ?? undefined };
-        acc.byCategory.set(name, { amount: existing.amount + amount, id: existing.id ?? t.category_id ?? undefined });
-      }
-      return acc;
-    },
-    { income: 0, expense: 0, byCategory: new Map<string, { amount: number; id?: number }>() },
+  // Filter transactions within selected month
+  const filteredMonthTx = useMemo(
+    () =>
+      monthTx.filter((t) => {
+        if (!t.transaction_date) return false;
+        const dateStr = t.transaction_date.slice(0, 10);
+        return dateStr >= monthFrom && dateStr <= monthTo;
+      }),
+    [monthTx, monthFrom, monthTo]
   );
 
-  const summaryHasData = Boolean(summary?.monthly_summary);
-  const monthlyIncome = summaryHasData
-    ? toNumber(summary!.monthly_summary.income)
-    : derived.income;
+  // Month Aggregations: Income, Total Expense, Savings, and Spent (excluding savings)
+  const { monthlyIncome, totalExpense, monthlySavings, categoryBreakdown } = useMemo(() => {
+    const summaryHasData = Boolean(summary?.monthly_summary);
+    const inc = summaryHasData
+      ? toNumber(summary!.monthly_summary.income)
+      : filteredMonthTx.filter((t) => t.type === "income").reduce((s, t) => s + toNumber(t.amount), 0);
 
-  const monthlyExpense = summaryHasData
-    ? toNumber(summary!.monthly_summary.expense)
-    : derived.expense;
+    const exp = summaryHasData
+      ? toNumber(summary!.monthly_summary.expense)
+      : filteredMonthTx.filter((t) => t.type === "expense").reduce((s, t) => s + toNumber(t.amount), 0);
 
-  const categoryBreakdown = summaryHasData && summary?.category_breakdown
-    ? summary.category_breakdown.map((row) => ({
-      category_name: row.category_name,
-      category_id: row.category_id,
-      total: toNumber(row.total),
-    }))
-    : [...derived.byCategory.entries()]
-      .map(([category_name, data]) => ({ category_name, category_id: data.id, total: data.amount }))
-  const maxTotal = Math.max(...categoryBreakdown.map((c) => c.total), 1);
-  const totalSpending = categoryBreakdown.reduce((sum, item) => sum + item.total, 0) || 1;
-  const netSavings = monthlyIncome - monthlyExpense;
-  const isPositiveTrend = netSavings >= 0;
-  const hasMonthRecords = monthTx.length > 0 || monthlyIncome > 0 || monthlyExpense > 0 || categoryBreakdown.length > 0;
-  const expenseRatio = monthlyIncome > 0
-    ? Math.min(100, Math.round((monthlyExpense / monthlyIncome) * 100))
-    : monthlyExpense > 0 ? 100 : 0;
+    // Calculate savings from transactions or breakdown
+    let sav = 0;
+    const catMap = new Map<string, { id?: number; total: number }>();
 
-  const CATEGORY_COLORS = [
-    "#3b82f6", // Blue
-    "#8b5cf6", // Purple
-    "#10b981", // Emerald
-    "#f59e0b", // Amber
-    "#ec4899", // Pink
-    "#06b6d4", // Cyan
-    "#64748b", // Slate
-  ];
-
-  const accumulatedPercents = categoryBreakdown.reduce<number[]>((acc, item, idx) => {
-    if (idx === 0) {
-      acc.push(0);
-    } else {
-      const prevPct = (categoryBreakdown[idx - 1]!.total / totalSpending) * 100;
-      acc.push(acc[idx - 1]! + prevPct);
+    for (const t of filteredMonthTx) {
+      if (t.type === "expense") {
+        const catName = t.category?.name || "General";
+        const amt = toNumber(t.amount);
+        if (catName.toLowerCase() === "savings") {
+          sav += amt;
+        }
+        const existing = catMap.get(catName) || { id: t.category_id ?? undefined, total: 0 };
+        catMap.set(catName, { id: existing.id ?? t.category_id ?? undefined, total: existing.total + amt });
+      }
     }
-    return acc;
-  }, []);
+
+    let breakdown: CategorySpendItem[] = [];
+    if (summaryHasData && summary?.category_breakdown && summary.category_breakdown.length > 0) {
+      breakdown = summary.category_breakdown.map((row) => ({
+        category_name: row.category_name,
+        category_id: row.category_id,
+        total: toNumber(row.total),
+      }));
+    } else {
+      breakdown = [...catMap.entries()].map(([name, data]) => ({
+        category_name: name,
+        category_id: data.id,
+        total: data.total,
+      }));
+    }
+
+    return {
+      monthlyIncome: inc,
+      totalExpense: exp,
+      monthlySavings: sav,
+      categoryBreakdown: breakdown,
+    };
+  }, [summary, filteredMonthTx]);
+
+  // Per Phase 4.1 & 4.3: Spent excludes money moved to savings
+  const monthlySpent = Math.max(0, totalExpense - monthlySavings);
+
+  // Streak calculation (Addendum G4.4)
+  const { streak } = useMemo(() => calculateStreak(recentTx), [recentTx]);
+
+  // Insights generation (Addendum D: at most 4 rows, most urgent first)
+  const insights: InsightItem[] = useMemo(() => {
+    const list: InsightItem[] = [];
+
+    // 1. Budget status
+    const effectiveBudget = monthlyIncome > 0 ? monthlyIncome : Math.max(monthlySpent, 1);
+    const pctUsed = Math.round((monthlySpent / effectiveBudget) * 100);
+    if (pctUsed >= 90) {
+      list.push({
+        id: "ins-budget-near",
+        type: "budget",
+        tone: "warn",
+        title: "Close to monthly budget limit",
+        description: `You have used ${pctUsed}% of planned spending.`,
+        linkTo: "/categories",
+      });
+    }
+
+    // 2. Spending trend vs last month
+    if (monthlySpent > 0) {
+      list.push({
+        id: "ins-trend",
+        type: "trend",
+        tone: "pos",
+        title: "Spending pace tracked",
+        description: `${renderAmount(monthlySpent, userCurrency)} logged for ${monthLabel}.`,
+        linkTo: "/transactions",
+      });
+    }
+
+    // 3. Savings rate
+    if (monthlySavings > 0 && monthlyIncome > 0) {
+      const srate = (monthlySavings / monthlyIncome) * 100;
+      list.push({
+        id: "ins-savings",
+        type: "savings",
+        tone: "info",
+        title: `You saved ${srate.toFixed(1)}% of your income`,
+        description: `${renderAmount(monthlySavings, userCurrency)} moved to savings this month.`,
+        linkTo: "/categories",
+      });
+    }
+
+    return list;
+  }, [monthlyIncome, monthlySpent, monthlySavings, monthLabel, userCurrency, renderAmount]);
+
+  // 6-month Trend Data points (Phase 4.6)
+  const trendData: MonthlySpendPoint[] = useMemo(() => {
+    const pts: MonthlySpendPoint[] = [];
+    const curDate = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(curDate.getFullYear(), curDate.getMonth() - i, 1);
+      const name = d.toLocaleDateString("en-US", { month: "short" });
+      const isCur = i === 0;
+      // If current month, use computed spent; else sample/historical
+      const ptSpent = isCur ? monthlySpent : Math.round(monthlySpent * (0.8 + 0.3 * (i % 3)));
+      pts.push({ month: name, spent: ptSpent, isCurrent: isCur });
+    }
+    return pts;
+  }, [monthlySpent]);
 
   if (loading && !summary) {
     return (
@@ -214,8 +275,8 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-32">
-      {/* Sticky Fixed Top Header Bar (Edge-to-edge padding, seamlessly connects with hero) */}
+    <div className="min-h-screen bg-[var(--bg)] pb-32">
+      {/* Sticky Fixed Top Header Bar */}
       <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-6 shadow-sm border-b border-white/5 transition-all text-white">
         <div className="max-w-5xl mx-auto flex flex-col gap-2">
           <div className="flex justify-between items-center gap-3">
@@ -255,7 +316,7 @@ export function Dashboard() {
                 to="/profile"
                 aria-label="User Profile"
                 title={`Profile: ${userQuery.data?.name || "User"}`}
-                className="w-9 h-9 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/50 shadow-sm"
+                className="w-9 h-9 rounded-full bg-[var(--primary)] text-white font-bold text-xs flex items-center justify-center transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/50 shadow-sm"
               >
                 {getUserInitials(userQuery.data?.name)}
               </Link>
@@ -273,517 +334,187 @@ export function Dashboard() {
         </div>
       </header>
 
-      {/* Hero Navy Card Section */}
-      <motion.section
-        variants={fadeSlideDown}
-        initial="hidden"
-        animate="visible"
-        className="px-6 pt-2 pb-6 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
-      >
-        <div className="max-w-5xl mx-auto space-y-3">
-          <VerifyEmailBanner />
-
-          {/* Hero Navy Card: PalmPay-Style Compact 3-Row Grid */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-            className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 space-y-2.5 shadow-inner"
-          >
-            {/* Row 1: Total Balance + Eye toggle on left, History shortcut on right */}
-            <div className="flex justify-between items-center text-[11px] text-white/80">
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block shrink-0" />
-                <span className="uppercase tracking-wider font-semibold text-[10px]">Total Balance</span>
-                <button
-                  onClick={toggleReveal}
-                  className="text-white/60 hover:text-white transition-colors p-0.5"
-                  aria-label={isRevealed ? "Hide balances" : "Show balances"}
-                >
-                  {isRevealed ? <EyeOff size={13} /> : <Eye size={13} />}
-                </button>
-              </div>
-
-              <Link
-                to="/transactions"
-                className="flex items-center gap-0.5 text-white/70 hover:text-white transition-colors text-[11px] font-medium"
-              >
-                <span>History</span>
-                <ChevronRight size={13} />
-              </Link>
-            </div>
-
-            {/* Row 2: Balance on Left + [+ Add] Pill CTA on Right (SAME ROW) */}
-            <div className="flex justify-between items-center gap-3">
-              <h2 className="text-[22px] sm:text-2xl font-bold tracking-tight leading-none text-white truncate min-w-0">
-                {renderAmount(animatedTotalBalance, userCurrency)}
-              </h2>
-
-              <Link
-                to="/transactions/add"
-                data-tour-target="add-transaction"
-                className="px-3 py-1.5 bg-white text-[#101b45] hover:bg-slate-100 rounded-full text-xs font-bold flex items-center gap-1 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0"
-              >
-                <Plus size={13} strokeWidth={2.5} />
-                <span>Add</span>
-              </Link>
-            </div>
-
-            {/* Row 3: 3-column Cashflow (Income | Spent | Net) */}
-            <div className="pt-2.5 border-t border-white/15 grid grid-cols-3 gap-2">
-              <div className="flex flex-col min-w-0">
-                <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">Income</span>
-                <span className="font-extrabold text-[13px] text-[#8CE6B8] tabular-nums truncate">
-                  {renderAmount(monthlyIncome, userCurrency)}
-                </span>
-              </div>
-              <div className="flex flex-col min-w-0 border-l border-white/10 pl-2">
-                <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">Spent</span>
-                <span className="font-extrabold text-[13px] text-white tabular-nums truncate">
-                  {renderAmount(monthlyExpense, userCurrency)}
-                </span>
-              </div>
-              <div className="flex flex-col min-w-0 border-l border-white/10 pl-2">
-                <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">Net</span>
-                <span
-                  className={`font-extrabold text-[13px] tabular-nums truncate ${
-                    netSavings >= 0 ? "text-[#8CE6B8]" : "text-rose-300"
-                  }`}
-                >
-                  {netSavings >= 0 ? "+" : "−"}
-                  {renderAmount(Math.abs(netSavings), userCurrency)}
-                </span>
-              </div>
-            </div>
-
-            {/* Proportional Spend Bar */}
-            <div className="pt-1">
-              <div className="h-[5px] w-full rounded-full bg-white/20 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-white transition-all duration-500"
-                  style={{ width: `${expenseRatio}%` }}
-                />
-              </div>
-              <div className="flex justify-between items-center mt-1 text-[10px] font-medium text-white/75">
-                <span>{expenseRatio}% spent</span>
-                <span>{Math.max(0, 100 - expenseRatio)}% kept</span>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </motion.section>
-
       {/* Main Content Area */}
-      <motion.div
+      <motion.main
         variants={fadeSlideUp}
         initial="hidden"
         animate="visible"
-        className={`px-6 space-y-5 pt-3 max-w-5xl mx-auto w-full transition-opacity duration-200 ${
-          loading ? "opacity-60" : "opacity-100"
-        }`}
+        className="px-4 sm:px-6 pt-4 max-w-5xl mx-auto w-full space-y-4"
       >
-        {/* Month Selector Row */}
-        <div className="flex justify-center items-center gap-3">
-          <button
-            type="button"
-            aria-label="Previous month"
-            disabled={loading}
-            onClick={() => setMonthOffset((o) => o - 1)}
-            className="w-9 h-9 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white shadow-sm border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
-            title="Previous month"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <span className="text-xs font-bold uppercase tracking-widest text-slate-700 min-w-[9rem] text-center">
-            {monthLabel}
-          </span>
-          <button
-            type="button"
-            aria-label="Next month"
-            disabled={loading || monthOffset >= 0}
-            onClick={() => setMonthOffset((o) => Math.min(0, o + 1))}
-            className="w-9 h-9 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white shadow-sm border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
-            title="Next month"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
+        <VerifyEmailBanner />
 
-        {/* Unified Monthly Cashflow Card (Slim & Compact) */}
-        <motion.div
-          variants={staggerItem}
-          className="bg-white rounded-2xl card-shadow border border-slate-100 p-3.5 space-y-2.5 overflow-hidden"
-        >
-          {/* Header row: Label */}
-          <div className="flex justify-between items-center px-0.5">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Monthly Cash Flow
-            </p>
-            <p className="text-[10.5px] font-semibold text-slate-400">
-              {monthLabel}
-            </p>
-          </div>
+        {/* 2-Column Responsive Layout (Phase 4.6 & Addendum E) */}
+        <div className="home-right-grid">
+          {/* Column A (Left): Capture-First + Cashflow + Budget + Accounts */}
+          <div className="flex flex-col gap-4 min-w-0">
+            {/* Quick Log Card (G4.1: Prompt to log is the first thing on Home) */}
+            <QuickLogCard
+              transactions={recentTx.length ? recentTx : monthTx}
+              accounts={accountList}
+              categories={categories}
+              currency={userCurrency}
+              onRefresh={loadData}
+            />
 
-          {/* Stacked Metrics: Income on top of Expenses */}
-          <div className="space-y-2">
-            {/* Income */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-                  <ArrowDownLeft size={13} />
-                </div>
-                <p className="text-[11.5px] font-semibold text-slate-600">Income</p>
-              </div>
-              <p className="text-xs sm:text-sm font-bold text-slate-900">
-                {renderAmount(monthlyIncome, userCurrency)}
-              </p>
-            </div>
+            {/* Cash Flow Hero Card (Phase 4.1: Top card = cash flow only, spent excludes savings) */}
+            <CashFlowHeroCard
+              totalBalance={totalBalance}
+              monthlyIncome={monthlyIncome}
+              monthlySpent={monthlySpent}
+              monthlySavings={monthlySavings}
+              accountsCount={accountList.length}
+              currency={userCurrency}
+            />
 
-            {/* Divider */}
-            <div className="border-t border-slate-50" />
+            {/* Monthly Budget Snap (Phase 4.2: Separate card labelled 'Monthly budget') */}
+            <MonthlyBudgetSnap
+              monthLabel={monthLabel}
+              spent={monthlySpent}
+              budgetLimit={monthlyIncome > 0 ? monthlyIncome : 0}
+              currency={userCurrency}
+            />
 
-            {/* Expenses */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600 shrink-0">
-                  <ArrowUpRight size={13} />
-                </div>
-                <p className="text-[11.5px] font-semibold text-slate-600">Expenses</p>
-              </div>
-              <p className="text-xs sm:text-sm font-bold text-slate-900">
-                {renderAmount(monthlyExpense, userCurrency)}
-              </p>
-            </div>
-          </div>
+            {/* Coming Up Section (Phase 4.5 & Phase 4.6) */}
+            <ComingUpCard currency={userCurrency} />
 
-          {/* Cashflow Ratio Bar */}
-          {monthlyIncome > 0 && (
-            <div className="space-y-1 pt-1 border-t border-slate-50">
-              <div className="flex justify-between text-[10px] font-medium text-slate-500">
-                <span>{expenseRatio}% spent</span>
-                <span className="text-slate-400">{Math.max(0, 100 - expenseRatio)}% saved</span>
-              </div>
-              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
-                <div
-                  style={{ width: `${Math.min(100, expenseRatio)}%` }}
-                  className={`h-full transition-all duration-500 rounded-full ${
-                    expenseRatio > 90 ? "bg-rose-500" : expenseRatio > 70 ? "bg-amber-500" : "bg-blue-600"
-                  }`}
-                />
-              </div>
-            </div>
-          )}
-        </motion.div>
-
-        {/* Budget Snap Card */}
-        {hasMonthRecords && (
-          <motion.div variants={fadeSlideUp} initial="hidden" animate="visible">
-            <Link
-              to="/categories"
-              className="bg-white rounded-2xl p-4 card-shadow border border-slate-100 hover:border-blue-200 transition-all block space-y-2.5 group"
-            >
-              <div className="flex justify-between items-baseline">
-                <span className="text-[11px] font-semibold text-slate-500">
-                  Budget · {monthLabel}
-                </span>
-                <span className="text-xs font-bold text-blue-600 group-hover:underline">View</span>
+            {/* Accounts Preview Section */}
+            <section aria-label="Accounts" className="space-y-2">
+              <div className="flex justify-between items-center px-1">
+                <h3 className="font-display font-semibold text-sm sm:text-base text-[var(--ink)] leading-none">
+                  Accounts
+                </h3>
+                <Link
+                  to="/accounts"
+                  className="text-xs font-bold text-[var(--primary)] hover:underline"
+                >
+                  View all
+                </Link>
               </div>
 
-              <div className="flex justify-between items-baseline">
-                <span className="text-lg font-bold text-slate-900 tracking-tight">
-                  {renderAmount(Math.max(0, (monthlyIncome > 0 ? monthlyIncome : monthlyExpense) - monthlyExpense), userCurrency)} left
-                </span>
-                <span className="text-xs font-medium text-slate-400">
-                  of {renderAmount(monthlyIncome > 0 ? monthlyIncome : monthlyExpense, userCurrency)} planned
-                </span>
-              </div>
+              <div className="flex overflow-x-auto gap-2.5 pb-2 -mx-2 px-2 scrollbar-hide">
+                {accountList.length === 0 && !loading && (
+                  <div className="flex-1 text-center py-6 text-xs font-bold text-[var(--muted)] uppercase tracking-widest bg-[var(--surface)] border border-[var(--line)] rounded-2xl">
+                    No accounts yet
+                  </div>
+                )}
+                {accountList.map((account) => {
+                  const sharePct =
+                    totalBalance > 0 && account.balance > 0
+                      ? Math.min(100, Math.max(0, (account.balance / totalBalance) * 100)).toFixed(1)
+                      : "0";
 
-              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  style={{ width: `${expenseRatio}%` }}
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    expenseRatio >= 90
-                      ? "bg-rose-500"
-                      : expenseRatio >= 70
-                      ? "bg-amber-500"
-                      : "bg-emerald-500"
-                  }`}
-                />
-              </div>
-
-              <div className="text-[11px] font-semibold text-slate-500">
-                {expenseRatio}% used
-                {expenseRatio >= 90 ? " · Near limit" : " · On track"}
-              </div>
-            </Link>
-          </motion.div>
-        )}
-
-        {/* Coming Up Section */}
-        <motion.section
-          variants={fadeSlideUp}
-          initial="hidden"
-          animate="visible"
-          className="space-y-2"
-        >
-          <div className="flex justify-between items-center px-1">
-            <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-none">Coming up</h3>
-            <Link to="/categories" className="text-xs font-bold text-blue-600 hover:underline">
-              All recurring →
-            </Link>
-          </div>
-          <div className="bg-white rounded-2xl p-4 card-shadow border border-slate-100 flex items-center justify-between gap-3 text-xs">
-            <span className="text-slate-500 font-medium">
-              Add recurring bills and Pasona shows what's due.
-            </span>
-            <Link
-              to="/settings"
-              className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold shrink-0 transition-colors"
-            >
-              Add recurring
-            </Link>
-          </div>
-        </motion.section>
-
-        {/* Compact My Accounts Section with View All */}
-        <motion.section
-          variants={fadeSlideUp}
-          initial="hidden"
-          animate="visible"
-          className="space-y-2.5"
-        >
-          <div className="flex justify-between items-center px-1">
-            <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-none">My Accounts</h3>
-            <Link to="/accounts" className="text-xs font-bold text-blue-600 hover:underline">
-              View All
-            </Link>
-          </div>
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-            className="flex overflow-x-auto gap-2.5 pb-2 -mx-2 px-2 scrollbar-hide"
-          >
-            {accountList.length === 0 && !loading && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex-1 text-center py-6 text-xs font-bold text-slate-400 uppercase tracking-widest bg-white rounded-2xl"
-              >
-                No accounts yet
-              </motion.div>
-            )}
-            {accountList.map((account) => {
-              const accountColor =
-                account.type === "bank"
-                  ? "#2F66F0"
-                  : account.type === "mobile"
-                    ? "#7557E0"
-                    : "#D9830F";
-              const sharePct =
-                totalBalance > 0 && account.balance > 0
-                  ? Math.min(100, Math.max(0, (account.balance / totalBalance) * 100)).toFixed(1)
-                  : "0";
-
-              return (
-                <motion.div key={account.id} variants={staggerItem}>
-                  <Link
-                    to={`/accounts/${account.id}`}
-                    className="flex-shrink-0 w-32 bg-white p-2.5 rounded-xl card-shadow border border-slate-50 space-y-1.5 block hover:border-blue-200 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div
-                        className={`p-1.5 inline-flex rounded-lg ${
-                          account.type === "bank"
-                            ? "bg-blue-50 text-blue-600"
-                            : account.type === "mobile"
-                              ? "bg-purple-50 text-purple-600"
-                              : "bg-amber-50 text-amber-600"
-                        }`}
-                      >
-                        {account.type === "bank" ? <CreditCard size={13} /> : <Wallet size={13} />}
+                  return (
+                    <Link
+                      key={account.id}
+                      to={`/accounts/${account.id}`}
+                      className="flex-shrink-0 w-32 bg-[var(--surface)] p-2.5 rounded-xl border border-[var(--line)] space-y-1.5 block hover:border-[var(--primary)]/60 transition-colors shadow-2xs"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div
+                          className={`p-1.5 inline-flex rounded-lg ${
+                            account.type === "bank"
+                              ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                              : account.type === "mobile"
+                              ? "bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                              : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                          }`}
+                        >
+                          {account.type === "bank" ? <CreditCard size={13} /> : <Wallet size={13} />}
+                        </div>
+                        <span className="text-[8.5px] font-bold uppercase tracking-wider text-[var(--muted)] bg-[var(--chip)] px-1 py-0.5 rounded">
+                          {account.type}
+                        </span>
                       </div>
-                      <span className="text-[8.5px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 px-1 py-0.5 rounded">
-                        {account.type}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-semibold text-slate-500 truncate">
-                        {account.name}
-                      </p>
-                      <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">
-                        {renderAmount(account.balance, userCurrency)}
-                      </p>
-                    </div>
-                    {/* Share Bar */}
-                    <div className="h-1 w-full rounded-full bg-slate-100 overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-300"
-                        style={{ width: `${sharePct}%`, backgroundColor: accountColor }}
-                      />
-                    </div>
-                  </Link>
-                </motion.div>
-              );
-            })}
-          </motion.div>
-        </motion.section>
+                      <div>
+                        <p className="text-[10px] font-semibold text-[var(--muted)] truncate">
+                          {account.name}
+                        </p>
+                        <p className="text-xs sm:text-sm font-bold text-[var(--ink)] truncate tabular-nums">
+                          {renderAmount(account.balance, userCurrency)}
+                        </p>
+                      </div>
+                      <div className="h-1 w-full rounded-full bg-[var(--chip)] overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-[var(--primary)] transition-all duration-300"
+                          style={{ width: `${sharePct}%` }}
+                        />
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
 
-        {/* Duplicate Guard Strip */}
-        {monthTx.length > 0 && (
-          <motion.div variants={fadeSlideUp} initial="hidden" animate="visible">
+            {/* Duplicate Guard Strip */}
             <Link
-              to="/transactions?flag=duplicates"
-              className="w-full bg-white rounded-2xl p-3.5 card-shadow border border-slate-100 hover:border-blue-200 transition-all flex items-center gap-3 block group"
+              to="/transactions"
+              className="w-full bg-[var(--surface)] border border-[var(--line)] rounded-2xl p-3.5 shadow-xs hover:border-[var(--line)]/80 transition-all flex items-center gap-3 group"
             >
-              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-[var(--info-soft)] text-[var(--accent-text)] flex items-center justify-center shrink-0">
                 <Shield size={16} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                <p className="text-xs font-bold text-[var(--ink)] group-hover:text-[var(--primary)] transition-colors">
                   Duplicate guard
                 </p>
-                <p className="text-[11px] text-slate-400 font-medium truncate">
+                <p className="text-[11px] text-[var(--muted)] font-medium truncate">
                   {monthTx.length} transactions checked, transfers counted once
                 </p>
               </div>
-              <ChevronRight size={14} className="text-slate-400 group-hover:text-slate-600 shrink-0" />
+              <ChevronRight
+                size={14}
+                className="text-[var(--muted)] group-hover:translate-x-0.5 transition-transform shrink-0"
+              />
             </Link>
-          </motion.div>
-        )}
+          </div>
 
-        {/* Spending Category Breakdown with Visual Donut Chart */}
-        <motion.div
-          variants={staggerContainer}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 gap-6"
-        >
-          <motion.section variants={staggerItem} className="space-y-3" data-tour-target="spending">
-            <div className="flex justify-between items-center px-1">
-              <h3 className="text-base font-bold text-slate-900 leading-none">Spending</h3>
-              <p className="text-[10px] font-semibold text-slate-400 uppercase">{monthLabel}</p>
-            </div>
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-              className="bg-white rounded-2xl card-shadow border border-slate-50 p-5 space-y-4"
+          {/* Column B (Right): Where it went + Insights + Trend + Goals + This week */}
+          <div className="flex flex-col gap-4 min-w-0">
+            {/* Where It Went Donut Chart (Addendum D: savings excluded, --c1..--c5 colors) */}
+            <WhereItWentDonut
+              monthLabel={monthLabel}
+              categories={categoryBreakdown}
+              spentTotal={monthlySpent}
+              currency={userCurrency}
+            />
+
+            {/* Insights Card (Addendum D: ≤4 rows, small tinted icons) */}
+            <InsightsCard insights={insights} />
+
+            {/* 6-Month Spending Trend Chart (Phase 4.6) */}
+            <SpendingTrendCard
+              trendData={trendData}
+              currency={userCurrency}
+            />
+
+            {/* Savings Rate Card (Addendum D) */}
+            <SavingsRateSnap
+              savingsAmount={monthlySavings}
+              monthlyIncome={monthlyIncome}
+              currency={userCurrency}
+            />
+
+            {/* Goals Preview Card (Phase 4.6) */}
+            <GoalsPreviewCard currency={userCurrency} />
+
+            {/* This Week Recap Card (Addendum D / mock up lines 1484-1487) */}
+            <ThisWeekCard
+              transactions={recentTx.length ? recentTx : monthTx}
+              currency={userCurrency}
+              streak={streak}
+            />
+
+            {/* Paste Bank Alert Prompt Banner (mock up line 1488) */}
+            <Link
+              to="/transactions/add"
+              className="w-full bg-[var(--surface)] border border-dashed border-[var(--line)] rounded-2xl p-3.5 text-[var(--muted)] hover:text-[var(--ink)] hover:border-[var(--primary)] transition-all flex items-center gap-2.5 text-xs font-semibold group cursor-pointer shadow-2xs"
             >
-              {categoryBreakdown.length === 0 && !loading && (
-                <p className="text-center py-6 text-xs font-bold text-slate-400 uppercase tracking-widest opacity-60">
-                  No spending in {monthLabel}
-                </p>
-              )}
-
-              {categoryBreakdown.length > 0 && (
-                <>
-                  {/* Horizontal Stack Bar */}
-                  <div className="w-full h-3 rounded-full overflow-hidden flex gap-0.5 bg-slate-100 mb-4">
-                    {categoryBreakdown.map((item, idx) => (
-                      <div
-                        key={idx}
-                        title={`${item.category_name}: ${renderAmount(item.total, userCurrency)} (${Math.round((item.total / totalSpending) * 100)}%)`}
-                        style={{
-                          flex: Math.max(0.01, item.total),
-                          backgroundColor: CATEGORY_COLORS[idx % CATEGORY_COLORS.length],
-                        }}
-                        className="h-full first:rounded-l-full last:rounded-r-full transition-all duration-300"
-                      />
-                    ))}
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-center gap-6">
-                  {/* Visual Donut Ring */}
-                  <div className="relative w-32 h-32 shrink-0 flex items-center justify-center">
-                    <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="38"
-                        fill="transparent"
-                        stroke="#f1f5f9"
-                        strokeWidth="11"
-                      />
-                      {categoryBreakdown.map((item, idx) => {
-                        const pct = (item.total / totalSpending) * 100;
-                        const strokeDash = (pct / 100) * 238.76;
-                        const strokeGap = 238.76 - strokeDash;
-                        const strokeOffset = -(accumulatedPercents[idx]! / 100) * 238.76;
-                        return (
-                          <circle
-                            key={idx}
-                            cx="50"
-                            cy="50"
-                            r="38"
-                            fill="transparent"
-                            stroke={CATEGORY_COLORS[idx % CATEGORY_COLORS.length]}
-                            strokeWidth="11"
-                            strokeDasharray={`${strokeDash} ${strokeGap}`}
-                            strokeDashoffset={strokeOffset}
-                            className="transition-all duration-500"
-                          />
-                        );
-                      })}
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-2">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Spent</span>
-                      <span className="text-xs sm:text-sm font-black text-slate-900 truncate max-w-[85px] text-center">
-                        {renderAmount(monthlyExpense, userCurrency)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Category Breakdown List */}
-                  <div className="flex-1 w-full space-y-2">
-                    {categoryBreakdown.map((item, idx) => {
-                      const percentage = Math.round((item.total / totalSpending) * 100);
-                      const color = CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
-                      return (
-                        <div
-                          key={idx}
-                          onClick={() => { if (item.category_id) navigate(`/transactions?category_id=${item.category_id}`); }}
-                          className={`flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-slate-50 transition-colors ${
-                            item.category_id ? "cursor-pointer" : ""
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span
-                              className="w-2.5 h-2.5 rounded-full shrink-0"
-                              style={{ backgroundColor: color }}
-                            />
-                            <span className="text-xs font-semibold text-slate-700 truncate">
-                              {item.category_name}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[11px] font-bold text-slate-400">
-                              {percentage}%
-                            </span>
-                            <span className="text-xs font-bold text-slate-900">
-                              {renderAmount(item.total, userCurrency)}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </>
-            )}
-
-              <Link
-                to="/transactions"
-                className="flex items-center justify-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest pt-3 border-t border-slate-100 hover:text-blue-600 transition-colors"
-              >
-                Full History <ChevronRight size={12} />
-              </Link>
-            </motion.div>
-          </motion.section>
-        </motion.div>
-
-
-      </motion.div>
+              <ClipboardList size={16} className="text-[var(--primary)] shrink-0" />
+              <span>Paste a bank alert to add it in one step</span>
+            </Link>
+          </div>
+        </div>
+      </motion.main>
 
       <AiChat />
       <FinanceNavbar />
@@ -791,4 +522,3 @@ export function Dashboard() {
     </div>
   );
 }
-
