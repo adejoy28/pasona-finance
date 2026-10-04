@@ -20,26 +20,30 @@ interface CategoryRef {
 }
 
 interface QuickLogCardProps {
-  todayCount: number;
-  todaySpent: number;
-  loggedToday: boolean;
-  streakDays: number;
-  recentTransactions: TransactionDto[];
-  accounts: AccountRef[];
-  categories: CategoryRef[];
+  todayCount?: number;
+  todaySpent?: number;
+  loggedToday?: boolean;
+  streakDays?: number;
+  streak?: number;
+  recentTransactions?: TransactionDto[];
+  transactions?: TransactionDto[];
+  accounts?: AccountRef[];
+  categories?: CategoryRef[];
   currency?: string;
   onRefresh?: () => void;
   className?: string;
 }
 
 export function QuickLogCard({
-  todayCount,
-  todaySpent,
-  loggedToday,
+  todayCount = 0,
+  todaySpent = 0,
+  loggedToday = false,
   streakDays,
+  streak = 0,
   recentTransactions,
-  accounts,
-  categories,
+  transactions,
+  accounts = [],
+  categories = [],
   currency = DEFAULT_CURRENCY,
   onRefresh,
   className = "",
@@ -49,6 +53,8 @@ export function QuickLogCard({
   const [inputVal, setInputVal] = useState("");
   const [loggingId, setLoggingId] = useState<string | number | null>(null);
 
+  const effectiveStreak = streakDays ?? streak ?? 0;
+  const txList = useMemo(() => recentTransactions ?? transactions ?? [], [recentTransactions, transactions]);
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   // Top 3 distinct recent expenses for "Log again" chips
@@ -56,7 +62,7 @@ export function QuickLogCard({
   const recentDistinctExpenses = useMemo(() => {
     const seen = new Set<string>();
     const rec: { tx: TransactionDto; label: string }[] = [];
-    const sorted = [...recentTransactions].sort((a, b) =>
+    const sorted = [...txList].sort((a, b) =>
       a.transaction_date < b.transaction_date ? 1 : -1
     );
 
@@ -147,7 +153,7 @@ export function QuickLogCard({
     const itemAccountId = item.account_id ?? accounts[0]?.id;
 
     // Check if duplicate already exists today
-    const alreadyLoggedToday = recentTransactions.some(
+    const alreadyLoggedToday = txList.some(
       (t) =>
         t.transaction_date &&
         t.transaction_date.slice(0, 10) === todayStr &&
@@ -240,7 +246,7 @@ export function QuickLogCard({
 
           {/* Streak chip: before logging today "Keep your n day streak" (only if n >= 1);
               after logging "n day streak". If streak is 0 and nothing logged, show no chip. */}
-          {((loggedToday && streakDays > 0) || (!loggedToday && streakDays >= 1)) && (
+          {((loggedToday && effectiveStreak > 0) || (!loggedToday && effectiveStreak >= 1)) && (
             <span
               className={cn(
                 "inline-flex items-center gap-1 text-[11px] font-extrabold px-2 py-0.5 rounded-[4px] shrink-0 transition-colors whitespace-nowrap",
@@ -256,7 +262,7 @@ export function QuickLogCard({
                 <Flame size={12} className="text-amber-500 fill-amber-500" />
               )}
               <span>
-                {loggedToday ? `${streakDays} day streak` : `Keep your ${streakDays} day streak`}
+                {loggedToday ? `${effectiveStreak} day streak` : `Keep your ${effectiveStreak} day streak`}
               </span>
             </span>
           )}

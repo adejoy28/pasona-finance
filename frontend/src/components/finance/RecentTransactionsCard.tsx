@@ -7,7 +7,7 @@ import { toNumber } from "@/lib/dashboard-math";
 import { cn } from "@/lib/utils";
 
 interface RecentTransactionsCardProps {
-  transactions: TransactionDto[];
+  transactions?: TransactionDto[];
   currency: string;
   className?: string;
 }
@@ -27,7 +27,7 @@ function formatDateLabel(iso?: string | null): string {
 }
 
 export function RecentTransactionsCard({
-  transactions,
+  transactions = [],
   currency,
   className = "",
 }: RecentTransactionsCardProps) {

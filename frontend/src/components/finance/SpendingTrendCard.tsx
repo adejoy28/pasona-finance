@@ -36,7 +36,7 @@ function getSmoothPath(points: { x: number; y: number }[]): string {
 }
 
 export function SpendingTrendCard({
-  trendData,
+  trendData = [],
   currency,
   className = "",
 }: SpendingTrendCardProps) {

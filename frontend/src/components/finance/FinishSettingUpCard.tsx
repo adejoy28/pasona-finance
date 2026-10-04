@@ -5,13 +5,15 @@ import type { SetupTodoItem } from "@/hooks/use-dashboard-data";
 import { cn } from "@/lib/utils";
 
 interface FinishSettingUpCardProps {
-  todos: SetupTodoItem[];
+  todos?: SetupTodoItem[];
+  items?: SetupTodoItem[];
   className?: string;
 }
 
-export function FinishSettingUpCard({ todos, className = "" }: FinishSettingUpCardProps) {
+export function FinishSettingUpCard({ todos, items, className = "" }: FinishSettingUpCardProps) {
+  const list = todos ?? items ?? [];
   // Rendered only if at least one item is unmet
-  const unmet = todos.filter((t) => !t.completed);
+  const unmet = list.filter((t) => !t.completed);
   if (unmet.length === 0) {
     return null;
   }
@@ -20,7 +22,7 @@ export function FinishSettingUpCard({ todos, className = "" }: FinishSettingUpCa
     <section
       aria-label="Finish setting up"
       className={cn(
-        "rounded-[6px] p-4 sm:p-5 shadow-[var(--lift)] transition-all",
+        "rounded-[6px] p-3.5 sm:p-4 shadow-[var(--lift)] transition-all",
         "bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)]",
         className
       )}

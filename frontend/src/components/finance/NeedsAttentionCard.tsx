@@ -5,11 +5,11 @@ import type { AttentionItem } from "@/hooks/use-dashboard-data";
 import { cn } from "@/lib/utils";
 
 interface NeedsAttentionCardProps {
-  items: AttentionItem[];
+  items?: AttentionItem[];
   className?: string;
 }
 
-export function NeedsAttentionCard({ items, className = "" }: NeedsAttentionCardProps) {
+export function NeedsAttentionCard({ items = [], className = "" }: NeedsAttentionCardProps) {
   if (items.length === 0) {
     return null;
   }
