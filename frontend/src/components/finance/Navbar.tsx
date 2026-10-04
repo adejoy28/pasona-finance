@@ -65,7 +65,7 @@ export function FinanceNavbar() {
       {/* ===== Desktop sidebar (≥ 720px) ===== */}
       <aside
         aria-label="Primary"
-        className="pf-side-nav hidden fixed inset-y-0 left-0 w-[clamp(188px,17cqw,252px)] flex-col z-40 bg-[var(--nav-bg,#0B1434)] text-white p-4"
+        className="pf-side-nav hidden fixed inset-y-0 left-0 w-[var(--sidebar-w,220px)] flex-col z-40 bg-[var(--nav-bg,#0B1434)] text-white p-4"
       >
         {/* Brand logo */}
         <Link

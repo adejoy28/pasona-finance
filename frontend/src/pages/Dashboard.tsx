@@ -1,51 +1,30 @@
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  CreditCard,
-  Plus,
-  Shield,
-  ShieldAlert,
-  Wallet,
-  Settings as SettingsIcon,
-  ChevronRight,
-  ClipboardList,
-} from "lucide-react";
+import { Settings as SettingsIcon } from "lucide-react";
 import { notify } from "@/hooks/use-toast";
 import { FinanceNavbar } from "@/components/finance/Navbar";
 import { DashboardSkeleton } from "@/components/finance/Skeletons";
 import { OnboardingTour } from "@/components/finance/OnboardingTour";
 import { NotificationBell } from "@/components/finance/NotificationBell";
-import { VerifyEmailBanner } from "@/components/finance/VerifyEmailBanner";
 import { MonthDropdown, getUserInitials } from "@/components/finance/ScreenHeader";
-import { QuickLogCard } from "@/components/finance/QuickLogCard";
 import { CashFlowHeroCard } from "@/components/finance/CashFlowHeroCard";
+import { QuickLogCard } from "@/components/finance/QuickLogCard";
+import { NeedsAttentionCard } from "@/components/finance/NeedsAttentionCard";
 import { RecentTransactionsCard } from "@/components/finance/RecentTransactionsCard";
 import { MonthlyBudgetSnap } from "@/components/finance/MonthlyBudgetSnap";
-import { WhereItWentDonut, type CategorySpendItem } from "@/components/finance/WhereItWentDonut";
-import { InsightsCard, type InsightItem } from "@/components/finance/InsightsCard";
-import { SpendingTrendCard, type MonthlySpendPoint } from "@/components/finance/SpendingTrendCard";
-import { SavingsRateSnap } from "@/components/finance/SavingsRateSnap";
 import { ComingUpCard } from "@/components/finance/ComingUpCard";
+import { FinishSettingUpCard } from "@/components/finance/FinishSettingUpCard";
+import { WhereItWentDonut } from "@/components/finance/WhereItWentDonut";
+import { SpendingTrendCard } from "@/components/finance/SpendingTrendCard";
 import { GoalsPreviewCard } from "@/components/finance/GoalsPreviewCard";
-import { ThisWeekCard } from "@/components/finance/ThisWeekCard";
-import { DEFAULT_CURRENCY } from "@/lib/currencies";
-import { type Account } from "@/lib/finance";
-import { fadeSlideDown, fadeSlideUp } from "@/lib/animations";
-import {
-  accounts as accountsApi,
-  categories as categoriesApi,
-  summary as summaryApi,
-  transactions as transactionsApi,
-  type TransactionDto,
-  type AccountDto,
-  type CategoryDto,
-  type SummaryDto,
-} from "@/lib/api";
-import { useOnline } from "@/hooks/use-online";
+import { AccountsCard } from "@/components/finance/AccountsCard";
+import { useDashboardData, invalidateDashboardDataCache } from "@/hooks/use-dashboard-data";
 import { useMe, invalidateMe } from "@/hooks/use-me";
-import { usePrivacyMode } from "@/hooks/use-privacy-mode";
-import { calculateStreak } from "@/lib/quick-log";
+import { DEFAULT_CURRENCY } from "@/lib/currencies";
+import { fadeSlideUp } from "@/lib/animations";
+import type { Account } from "@/lib/finance";
+import type { AccountDto } from "@/lib/api";
 
 function toAccount(dto: AccountDto): Account {
   return {
@@ -56,31 +35,15 @@ function toAccount(dto: AccountDto): Account {
   };
 }
 
-function toNumber(value: number | string | null | undefined): number {
-  if (value === null || value === undefined) return 0;
-  return typeof value === "string" ? parseFloat(value) : value;
-}
-
-interface DashboardCache {
-  summary: SummaryDto | null;
-  accountDtos: AccountDto[] | null;
-  categories: CategoryDto[];
-  monthTx: TransactionDto[];
-  recentTx: TransactionDto[];
-  key: string;
-}
-
-let cachedDashboard: DashboardCache | null = null;
-
 export function invalidateDashboardCache() {
-  cachedDashboard = null;
+  invalidateDashboardDataCache();
 }
 
 export function Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const verifiedFlag = searchParams.get("verified") ?? undefined;
-  const { isRevealed, renderAmount } = usePrivacyMode();
+  const userQuery = useMe();
+  const userCurrency = userQuery.data?.currency || DEFAULT_CURRENCY;
 
   useEffect(() => {
     document.title = "Dashboard — Pasona";
@@ -100,254 +63,23 @@ export function Dashboard() {
   }, [verifiedFlag, setSearchParams]);
 
   const [monthOffset, setMonthOffset] = useState(0);
-  const monthDate = new Date();
-  monthDate.setDate(1);
-  monthDate.setMonth(monthDate.getMonth() + monthOffset);
+  const monthDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + monthOffset);
+    return d;
+  }, [monthOffset]);
+
   const monthLabel = monthDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const monthFrom = `${monthDate.getFullYear()}-${pad(monthDate.getMonth() + 1)}-01`;
-  const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
-  const monthTo = `${monthEnd.getFullYear()}-${pad(monthEnd.getMonth() + 1)}-${pad(monthEnd.getDate())}`;
+  const monthNameOnly = monthDate.toLocaleDateString("en-US", { month: "long" });
 
-  const cacheKey = `${monthFrom}_${monthTo}`;
-  const hasCache = cachedDashboard !== null && cachedDashboard.key === cacheKey;
+  // Single data source hook powering the entire Home screen (Spec Section 3)
+  const data = useDashboardData(monthDate);
 
-  const [summary, setSummary] = useState<SummaryDto | null>(hasCache ? cachedDashboard.summary : null);
-  const [accountDtos, setAccountDtos] = useState<AccountDto[] | null>(hasCache ? cachedDashboard.accountDtos : null);
-  const [categories, setCategories] = useState<CategoryDto[]>(hasCache ? cachedDashboard.categories : []);
-  const [monthTx, setMonthTx] = useState<TransactionDto[]>(hasCache ? cachedDashboard.monthTx : []);
-  const [recentTx, setRecentTx] = useState<TransactionDto[]>(hasCache ? cachedDashboard.recentTx : []);
-  const [loading, setLoading] = useState(!hasCache);
-  const [showQuickLog, setShowQuickLog] = useState(true);
+  const accountList = useMemo(() => data.accounts.map(toAccount), [data.accounts]);
+  const hasNoAccounts = accountList.length === 0;
 
-  const loadData = async () => {
-    try {
-      const [sumRes, accRes, catRes, mTxRes, allTxRes] = await Promise.all([
-        summaryApi.getSummary({ from: monthFrom, to: monthTo }),
-        accountsApi.listAccounts(),
-        categoriesApi.listCategories().catch(() => []),
-        transactionsApi.listTransactions({ from: monthFrom, to: monthTo, per_page: 500 }),
-        transactionsApi.listTransactions({ per_page: 100 }).catch(() => ({ data: [] })),
-      ]);
-      setSummary(sumRes);
-      setAccountDtos(accRes);
-      setCategories(catRes);
-      setMonthTx(mTxRes.data ?? []);
-      setRecentTx(allTxRes.data ?? []);
-
-      cachedDashboard = {
-        summary: sumRes,
-        accountDtos: accRes,
-        categories: catRes,
-        monthTx: mTxRes.data ?? [],
-        recentTx: allTxRes.data ?? [],
-        key: cacheKey,
-      };
-    } catch (err) {
-      console.error("Failed to load dashboard data", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const key = `${monthFrom}_${monthTo}`;
-    if (cachedDashboard && cachedDashboard.key === key) {
-      setSummary(cachedDashboard.summary);
-      setAccountDtos(cachedDashboard.accountDtos);
-      setCategories(cachedDashboard.categories);
-      setMonthTx(cachedDashboard.monthTx);
-      setRecentTx(cachedDashboard.recentTx);
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
-    void loadData();
-  }, [monthFrom, monthTo]);
-
-  const isOnline = useOnline();
-  const userQuery = useMe();
-  const userCurrency = userQuery.data?.currency ?? DEFAULT_CURRENCY;
-
-  const accountsFetched = !loading;
-  const accountList = (accountDtos ?? summary?.accounts ?? []).map(toAccount);
-  const hasNoAccounts = accountsFetched && accountList.length === 0;
-
-  const totalBalance = summary
-    ? toNumber(summary.total_balance)
-    : accountList.reduce((s, a) => s + a.balance, 0);
-
-  // Filter transactions within selected month
-  const filteredMonthTx = useMemo(
-    () =>
-      monthTx.filter((t) => {
-        if (!t.transaction_date) return false;
-        const dateStr = t.transaction_date.slice(0, 10);
-        return dateStr >= monthFrom && dateStr <= monthTo;
-      }),
-    [monthTx, monthFrom, monthTo]
-  );
-
-  // Month Aggregations: Income, Total Expense, Savings, and Spent (excluding savings)
-  const { monthlyIncome, totalExpense, monthlySavings, categoryBreakdown } = useMemo(() => {
-    const summaryHasData = Boolean(summary?.monthly_summary);
-    const inc = summaryHasData
-      ? toNumber(summary!.monthly_summary.income)
-      : filteredMonthTx.filter((t) => t.type === "income").reduce((s, t) => s + toNumber(t.amount), 0);
-
-    const exp = summaryHasData
-      ? toNumber(summary!.monthly_summary.expense)
-      : filteredMonthTx.filter((t) => t.type === "expense").reduce((s, t) => s + toNumber(t.amount), 0);
-
-    // Calculate savings from transactions or breakdown
-    let sav = 0;
-    const catMap = new Map<string, { id?: number; total: number }>();
-
-    for (const t of filteredMonthTx) {
-      if (t.type === "expense") {
-        const catName = t.category?.name || "General";
-        const amt = toNumber(t.amount);
-        if (catName.toLowerCase() === "savings") {
-          sav += amt;
-        }
-        const existing = catMap.get(catName) || { id: t.category_id ?? undefined, total: 0 };
-        catMap.set(catName, { id: existing.id ?? t.category_id ?? undefined, total: existing.total + amt });
-      }
-    }
-
-    let breakdown: CategorySpendItem[] = [];
-    if (summaryHasData && summary?.category_breakdown && summary.category_breakdown.length > 0) {
-      breakdown = summary.category_breakdown.map((row) => ({
-        category_name: row.category_name,
-        category_id: row.category_id,
-        total: toNumber(row.total),
-      }));
-    } else {
-      breakdown = [...catMap.entries()].map(([name, data]) => ({
-        category_name: name,
-        category_id: data.id,
-        total: data.total,
-      }));
-    }
-
-    return {
-      monthlyIncome: inc,
-      totalExpense: exp,
-      monthlySavings: sav,
-      categoryBreakdown: breakdown,
-    };
-  }, [summary, filteredMonthTx]);
-
-  // Per Phase 4.1 & 4.3: Spent excludes money moved to savings
-  const monthlySpent = Math.max(0, totalExpense - monthlySavings);
-
-  // Streak calculation (Addendum G4.4)
-  const { streak } = useMemo(() => calculateStreak(recentTx), [recentTx]);
-
-  // Insights generation (Addendum D: at most 4 rows, most urgent first)
-  const insights: InsightItem[] = useMemo(() => {
-    const list: InsightItem[] = [];
-
-    // 1. Budget status
-    const effectiveBudget = monthlyIncome > 0 ? monthlyIncome : Math.max(monthlySpent, 1);
-    const pctUsed = Math.round((monthlySpent / effectiveBudget) * 100);
-    if (pctUsed >= 90) {
-      list.push({
-        id: "ins-budget-near",
-        type: "budget",
-        tone: "warn",
-        title: "Close to monthly budget limit",
-        description: `You have used ${pctUsed}% of planned spending.`,
-        linkTo: "/categories",
-      });
-    }
-
-    // 2. Spending trend vs last month
-    if (monthlySpent > 0) {
-      list.push({
-        id: "ins-trend",
-        type: "trend",
-        tone: "pos",
-        title: "Spending pace tracked",
-        description: `${renderAmount(monthlySpent, userCurrency)} logged for ${monthLabel}.`,
-        linkTo: "/transactions",
-      });
-    }
-
-    // 3. Savings rate
-    if (monthlySavings > 0 && monthlyIncome > 0) {
-      const srate = (monthlySavings / monthlyIncome) * 100;
-      list.push({
-        id: "ins-savings",
-        type: "savings",
-        tone: "info",
-        title: `You saved ${srate.toFixed(1)}% of your income`,
-        description: `${renderAmount(monthlySavings, userCurrency)} moved to savings this month.`,
-        linkTo: "/categories",
-      });
-    }
-
-    return list;
-  }, [monthlyIncome, monthlySpent, monthlySavings, monthLabel, userCurrency, renderAmount]);
-
-  // Detect potential duplicate transactions (same amount, same account or same description within 48h)
-  const duplicateTransactions = useMemo(() => {
-    const list = recentTx.length ? recentTx : monthTx;
-    if (!list.length) return [];
-
-    const duplicates: { first: TransactionDto; second: TransactionDto }[] = [];
-    const matchedIds = new Set<number>();
-
-    for (let i = 0; i < list.length; i++) {
-      const a = list[i];
-      if (matchedIds.has(a.id)) continue;
-
-      for (let j = i + 1; j < list.length; j++) {
-        const b = list[j];
-        if (matchedIds.has(b.id)) continue;
-
-        const amountA = Math.abs(toNumber(a.amount));
-        const amountB = Math.abs(toNumber(b.amount));
-        const sameAmount = Math.abs(amountA - amountB) < 0.01;
-        const sameType = a.type === b.type;
-        const sameAccount = a.account_id && b.account_id && a.account_id === b.account_id;
-
-        // Check date difference <= 48 hours
-        const dateA = a.transaction_date ? new Date(a.transaction_date).getTime() : 0;
-        const dateB = b.transaction_date ? new Date(b.transaction_date).getTime() : 0;
-        const within48h = Math.abs(dateA - dateB) <= 48 * 60 * 60 * 1000;
-
-        const descA = (a.description || "").trim().toLowerCase();
-        const descB = (b.description || "").trim().toLowerCase();
-        const sameDesc = descA.length > 0 && descA === descB;
-
-        if (sameAmount && sameType && within48h && (sameAccount || sameDesc)) {
-          duplicates.push({ first: a, second: b });
-          matchedIds.add(a.id);
-          matchedIds.add(b.id);
-          break;
-        }
-      }
-    }
-    return duplicates;
-  }, [recentTx, monthTx]);
-
-  // 6-month Trend Data points (Phase 4.6)
-  const trendData: MonthlySpendPoint[] = useMemo(() => {
-    const pts: MonthlySpendPoint[] = [];
-    const curDate = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(curDate.getFullYear(), curDate.getMonth() - i, 1);
-      const name = d.toLocaleDateString("en-US", { month: "short" });
-      const isCur = i === 0;
-      // If current month, use computed spent; else sample/historical
-      const ptSpent = isCur ? monthlySpent : Math.round(monthlySpent * (0.8 + 0.3 * (i % 3)));
-      pts.push({ month: name, spent: ptSpent, isCurrent: isCur });
-    }
-    return pts;
-  }, [monthlySpent]);
-
-  if (loading && !summary) {
+  if (data.loading && !data.accounts.length && data.balanceTotal === 0 && data.income === 0 && data.spent === 0) {
     return (
       <>
         <DashboardSkeleton />
@@ -359,8 +91,8 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-[var(--bg)] pb-32">
       {/* Sticky Fixed Top Header Bar */}
-      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-4 sm:px-6 lg:px-8 xl:px-10 shadow-sm border-b border-white/5 transition-all text-white">
-        <div className="max-w-[1560px] mx-auto flex flex-col gap-2">
+      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-3 sm:px-5 lg:px-6 shadow-sm border-b border-white/5 transition-all text-white">
+        <div className="w-full flex flex-col gap-2">
           <div className="flex justify-between items-center gap-3">
             <div className="min-w-0">
               <h1 className="text-base sm:text-lg font-bold tracking-tight text-white truncate">
@@ -372,7 +104,7 @@ export function Dashboard() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {/* Desktop Month Dropdown (Addendum C) */}
+              {/* Desktop Month Dropdown */}
               <div className="hidden sm:block">
                 <MonthDropdown
                   currentLabel={monthLabel}
@@ -383,7 +115,7 @@ export function Dashboard() {
 
               <NotificationBell />
 
-              {/* Mobile-only gear icon leading to /settings (Addendum A) */}
+              {/* Mobile-only gear icon leading to /settings */}
               <Link
                 to="/settings"
                 aria-label="Settings"
@@ -393,7 +125,7 @@ export function Dashboard() {
                 <SettingsIcon size={16} />
               </Link>
 
-              {/* Avatar on every main screen leading to /profile (Addendum A) */}
+              {/* Avatar on every main screen leading to /profile */}
               <Link
                 to="/profile"
                 aria-label="User Profile"
@@ -405,7 +137,7 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Phone-only own-row month dropdown (Addendum C) */}
+          {/* Phone-only own-row month dropdown */}
           <div className="sm:hidden self-start">
             <MonthDropdown
               currentLabel={monthLabel}
@@ -416,212 +148,123 @@ export function Dashboard() {
         </div>
       </header>
 
-      {/* Main Content Area */}
+      {/* Main Content Area: Expanded container with reduced padding per user feedback */}
       <motion.main
         variants={fadeSlideUp}
         initial="hidden"
         animate="visible"
-        className="px-4 sm:px-6 lg:px-8 xl:px-10 pt-4 max-w-[1560px] mx-auto w-full space-y-4"
+        className="w-full px-3 sm:px-5 lg:px-6 pt-3 sm:pt-4 space-y-4 sm:space-y-5"
       >
-        <VerifyEmailBanner />
-
-        {/* 2-Column Responsive Layout: Activity & Analysis (Left) vs Budgeting & Structure (Right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-5 items-start">
-          {/* Column A (Left): Cash Flow Hero (Top Balance) + Duplicate Guard Alert (Conditional) + Quick Log + Donut + Line Trend + Recent Activity */}
-          <div className="flex flex-col gap-4 min-w-0">
-            {/* Cash Flow Hero Card (Total balance & Net cash flow - Always at top) */}
-            <CashFlowHeroCard
-              totalBalance={totalBalance}
-              monthlyIncome={monthlyIncome}
-              monthlySpent={monthlySpent}
-              monthlySavings={monthlySavings}
-              accountsCount={accountList.length}
-              currency={userCurrency}
-            />
-
-            {/* Duplicate Guard Alert (High-priority notice ONLY if duplicate transactions exist) */}
-            {duplicateTransactions.length > 0 && (
-              <div
-                role="alert"
-                className="bg-amber-500/10 border border-amber-500/30 rounded-[6px] p-3.5 shadow-[var(--lift)] flex items-center justify-between gap-3"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-[4px] bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                    <ShieldAlert size={17} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-[var(--ink)] leading-snug">
-                      {duplicateTransactions.length} potential duplicate {duplicateTransactions.length === 1 ? "transaction" : "transactions"} detected
-                    </p>
-                    <p className="text-[11px] text-[var(--muted)] truncate">
-                      Review to avoid double-counting expenses or transfers
-                    </p>
-                  </div>
-                </div>
-                <Link
-                  to="/transactions"
-                  className="px-2.5 py-1 text-xs font-bold rounded-[4px] bg-amber-600 hover:bg-amber-700 text-white shrink-0 transition-colors"
-                >
-                  Review
-                </Link>
-              </div>
-            )}
-
-            {/* Quick Log Card (Dismissible so Top Balance stays cleanly anchored at the top) */}
-            {showQuickLog ? (
-              <QuickLogCard
-                transactions={recentTx.length ? recentTx : monthTx}
-                accounts={accountList}
-                categories={categories}
+        {/* Row 1: Balance (Col 1) | Quick Log (Col 2). Mobile: Quick Log first. Equal height on desktop. */}
+        <section aria-label="Overview & Quick Log">
+          <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-4 sm:gap-5 lg:items-stretch">
+            <div className="order-2 lg:order-1 flex flex-col min-w-0">
+              <CashFlowHeroCard
+                totalBalance={data.balanceTotal}
+                monthlyIncome={data.income}
+                monthlySpent={data.spent}
+                monthlySavings={data.saved}
+                accountsCount={data.accountCount}
+                spentChangeVsLastMonth={data.spentChangeVsLastMonth}
+                lastMonthName={data.lastMonthName}
                 currency={userCurrency}
-                onRefresh={loadData}
-                onDismiss={() => setShowQuickLog(false)}
+                className="h-full"
               />
-            ) : (
-              <div className="flex justify-end -mt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowQuickLog(true)}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--primary)] hover:text-[var(--primary)]/80 bg-[var(--surface)] hover:bg-[var(--chip)] border border-[var(--line)] px-2.5 py-1 rounded-[4px] shadow-sm transition-all cursor-pointer"
-                >
-                  <Plus size={13} />
-                  <span>Quick log</span>
-                </button>
-              </div>
-            )}
+            </div>
 
-            {/* Where It Went Donut Chart (Breakdown of past spending) */}
-            <WhereItWentDonut
-              monthLabel={monthLabel}
-              categories={categoryBreakdown}
-              spentTotal={monthlySpent}
-              currency={userCurrency}
-            />
-
-            {/* 6-Month Spending Trend Chart (Line Chart Flow) */}
-            <SpendingTrendCard
-              trendData={trendData}
-              currency={userCurrency}
-            />
-
-            {/* Recent Activity / Last 5 Transactions Card (Moved down per user feedback) */}
-            <RecentTransactionsCard
-              transactions={recentTx.length ? recentTx : monthTx}
-              currency={userCurrency}
-            />
+            <div className="order-1 lg:order-2 flex flex-col min-w-0">
+              <QuickLogCard
+                transactions={data.recent}
+                accounts={accountList}
+                categories={data.categories}
+                currency={userCurrency}
+                streak={data.streakDays}
+                onRefresh={data.refresh}
+                className="h-full"
+              />
+            </div>
           </div>
+        </section>
 
-          {/* Column B (Right): Insights (Promoted to top) + Monthly Budget + Savings Rate + Accounts + Coming Up + Goals + This week + Paste Alert */}
-          <div className="flex flex-col gap-4 min-w-0">
-            {/* Insights Card (Moved up per user guidance) */}
-            <InsightsCard insights={insights} />
+        {/* Row 2: Needs attention (conditional, spans full width) */}
+        {data.attention.length > 0 && (
+          <section aria-label="Needs attention">
+            <NeedsAttentionCard items={data.attention} />
+          </section>
+        )}
 
-            {/* Monthly Budget Snap */}
-            <MonthlyBudgetSnap
-              monthLabel={monthLabel}
-              spent={monthlySpent}
-              budgetLimit={monthlyIncome > 0 ? monthlyIncome : 0}
-              currency={userCurrency}
-            />
+        {/* Row 3: Recent activity (Col 1) | Budget, Coming up, Finish setting up (Col 2 stacked) */}
+        <section aria-label="Activity & Budgeting">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-4 sm:gap-5 items-start">
+            <div className="min-w-0">
+              <RecentTransactionsCard
+                transactions={data.recent}
+                currency={userCurrency}
+              />
+            </div>
 
-            {/* Savings Rate Card */}
-            <SavingsRateSnap
-              savingsAmount={monthlySavings}
-              monthlyIncome={monthlyIncome}
-              currency={userCurrency}
-            />
+            <div className="flex flex-col gap-4 min-w-0">
+              <MonthlyBudgetSnap
+                monthLabel={monthNameOnly}
+                spent={data.spent}
+                budgetLimit={data.budget?.planned ?? 0}
+                currency={userCurrency}
+              />
 
-            {/* Coming Up / Recurring Subscriptions Section */}
-            <ComingUpCard currency={userCurrency} />
+              <ComingUpCard
+                bills={data.bills}
+                currency={userCurrency}
+              />
 
-            {/* Goals Preview Card */}
-            <GoalsPreviewCard currency={userCurrency} />
-
-            {/* Accounts Preview Section */}
-            <section aria-label="Accounts" className="space-y-2">
-              <div className="flex justify-between items-center px-1">
-                <h3 className="font-display font-semibold text-sm sm:text-base text-[var(--ink)] leading-none">
-                  Accounts
-                </h3>
-                <Link
-                  to="/accounts"
-                  className="text-xs font-bold text-[var(--primary)] hover:underline"
-                >
-                  View all
-                </Link>
-              </div>
-
-              <div className="flex overflow-x-auto gap-2.5 pb-2 -mx-2 px-2 scrollbar-hide">
-                {accountList.length === 0 && !loading && (
-                  <div className="flex-1 text-center py-6 text-xs font-bold text-[var(--muted)] uppercase tracking-widest bg-[var(--surface)] border border-[var(--line)] rounded-[6px] shadow-[var(--lift)]">
-                    No accounts yet
-                  </div>
-                )}
-                {accountList.map((account) => {
-                  const sharePct =
-                    totalBalance > 0 && account.balance > 0
-                      ? Math.min(100, Math.max(0, (account.balance / totalBalance) * 100)).toFixed(1)
-                      : "0";
-
-                  return (
-                    <Link
-                      key={account.id}
-                      to={`/accounts/${account.id}`}
-                      className="flex-shrink-0 w-32 bg-[var(--surface)] p-2.5 rounded-[6px] border border-[var(--line)] space-y-1.5 block hover:border-[var(--primary)]/60 transition-colors shadow-[var(--lift)]"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div
-                          className={`p-1.5 inline-flex rounded-[4px] ${
-                            account.type === "bank"
-                              ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                              : account.type === "mobile"
-                              ? "bg-purple-500/10 text-purple-600 dark:text-purple-400"
-                              : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                          }`}
-                        >
-                          {account.type === "bank" ? <CreditCard size={13} /> : <Wallet size={13} />}
-                        </div>
-                        <span className="text-[8.5px] font-bold uppercase tracking-wider text-[var(--muted)] bg-[var(--chip)] px-1 py-0.5 rounded-[4px]">
-                          {account.type}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-semibold text-[var(--muted)] truncate">
-                          {account.name}
-                        </p>
-                        <p className="text-xs sm:text-sm font-bold text-[var(--ink)] truncate tabular-nums">
-                          {renderAmount(account.balance, userCurrency)}
-                        </p>
-                      </div>
-                      <div className="h-1 w-full rounded-full bg-[var(--chip)] overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-[var(--primary)] transition-all duration-300"
-                          style={{ width: `${sharePct}%` }}
-                        />
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </section>
-
-            {/* This Week Recap Card */}
-            <ThisWeekCard
-              transactions={recentTx.length ? recentTx : monthTx}
-              currency={userCurrency}
-              streak={streak}
-            />
-
-            {/* Paste Bank Alert Prompt Banner */}
-            <Link
-              to="/transactions/add"
-              className="w-full bg-[var(--surface)] border border-dashed border-[var(--line)] rounded-[6px] p-3.5 text-[var(--muted)] hover:text-[var(--ink)] hover:border-[var(--primary)] transition-all flex items-center gap-2.5 text-xs font-semibold group cursor-pointer shadow-[var(--lift)]"
-            >
-              <ClipboardList size={16} className="text-[var(--primary)] shrink-0" />
-              <span>Paste a bank alert to add it in one step</span>
-            </Link>
+              <FinishSettingUpCard
+                items={data.setupTodos}
+              />
+            </div>
           </div>
-        </div>
+        </section>
+
+        {/* Row 4: Where it went (Col 1) | Spending trend (Col 2) */}
+        <section aria-label="Spending Analysis">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-4 sm:gap-5 items-start">
+            <div className="min-w-0">
+              <WhereItWentDonut
+                monthLabel={monthLabel}
+                categories={data.categoryBreakdown}
+                spentTotal={data.spent}
+                currency={userCurrency}
+              />
+            </div>
+
+            <div className="min-w-0">
+              <SpendingTrendCard
+                trendData={data.trend6}
+                currency={userCurrency}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Row 5: Goals (Col 1) | Accounts (Col 2) */}
+        <section aria-label="Goals & Accounts">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-4 sm:gap-5 items-start">
+            <div className="min-w-0">
+              <GoalsPreviewCard
+                goals={data.goals}
+                currency={userCurrency}
+                savingsRate={data.income > 0 ? (data.saved / data.income) * 100 : 0}
+                income={data.income}
+              />
+            </div>
+
+            <div className="min-w-0">
+              <AccountsCard
+                accounts={accountList}
+                totalBalance={data.balanceTotal}
+                currency={userCurrency}
+              />
+            </div>
+          </div>
+        </section>
       </motion.main>
 
       <FinanceNavbar />
