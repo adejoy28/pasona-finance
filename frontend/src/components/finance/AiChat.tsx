@@ -19,6 +19,7 @@ import {
   summary as summaryApi,
   type SummaryDto,
 } from "@/lib/api";
+import { FormattedAiResponse } from "@/components/finance/FormattedAiResponse";
 
 const QUICK_PROMPTS = [
   "Where can I cut down expenses?",
@@ -258,6 +259,9 @@ function AiChatBody({ isOnline }: { isOnline: boolean }) {
             {isOnline ? `${trimmedInput.length}/${MAX_QUESTION_LENGTH}` : ""}
           </p>
         </div>
+        <p className="text-[10px] text-slate-400 text-center leading-relaxed pt-1">
+          For budgeting guidance only. Does not constitute certified financial advice.
+        </p>
       </div>
     </>
   );
@@ -268,13 +272,13 @@ function ChatBubble({ message }: { message: ChatMessage }) {
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
-        className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+        className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
           isUser
-            ? "bg-blue-600 text-white rounded-br-md"
+            ? "bg-blue-600 text-white rounded-br-md whitespace-pre-wrap"
             : "bg-slate-50 text-slate-800 rounded-bl-md"
         }`}
       >
-        {message.content}
+        {isUser ? message.content : <FormattedAiResponse text={message.content} />}
       </div>
     </div>
   );
