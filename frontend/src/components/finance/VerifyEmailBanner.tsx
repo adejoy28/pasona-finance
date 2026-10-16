@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Check, Mail, X } from "lucide-react";
-import { usePopup } from "@/components/ui/popup";
+import { notify } from "@/hooks/use-toast";
 import { ApiError, auth as authApi } from "@/lib/api";
 import { useMe, invalidateMe } from "@/hooks/use-me";
 
@@ -15,7 +15,6 @@ import { useMe, invalidateMe } from "@/hooks/use-me";
  */
 export function VerifyEmailBanner() {
   const meQuery = useMe();
-  const popup = usePopup();
   const [hidden, setHidden] = useState(false);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -41,7 +40,7 @@ export function VerifyEmailBanner() {
         // its way and the user shouldn't see a confusing error.
         setSent(true);
       } else {
-        popup.error("Couldn't resend the confirmation email. Please try again.");
+        notify.error("Couldn't resend the confirmation email. Please try again.");
       }
     } finally {
       setSending(false);

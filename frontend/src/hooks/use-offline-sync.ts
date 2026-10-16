@@ -36,13 +36,20 @@ export function useOfflineSync() {
       return;
     }
     if (pending.length === 0) return;
+    const count = pending.length;
     setIsSyncing(true);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("pasona:sync-start", { detail: { count } }));
+    }
     try {
       const payload = pending.map(({ id: _id, created_at: _ca, ...rest }) => rest);
       await transactionsApi.syncTransactions(payload);
       await clearQueuedTransactions();
-      // Emit a custom event so pages can refetch if they want
-      window.dispatchEvent(new CustomEvent("pasona:sync-complete"));
+      // Emit events with mutation count for UI feedback
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("pasona:sync-complete", { detail: { count } }));
+        window.dispatchEvent(new CustomEvent("pasona:sync-success", { detail: { count } }));
+      }
     } catch (err) {
       console.error("[offline-sync] flush failed", err);
     } finally {
