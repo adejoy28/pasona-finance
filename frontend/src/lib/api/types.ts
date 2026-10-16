@@ -90,6 +90,8 @@ export type SummaryDto = {
   monthly_summary: {
     income: number | string;
     expense: number | string;
+    spent?: number | string;
+    saved?: number | string;
     net: number | string;
   };
   category_breakdown: { category_id?: number | null; category_name: string; total: number | string }[];

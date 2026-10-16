@@ -122,4 +122,84 @@ class FinanceIsolationTest extends TestCase
         $this->assertSoftDeleted('transactions', ['id' => $sourceTransaction->id]);
         $this->assertSoftDeleted('transactions', ['id' => $receivedTransfer->id]);
     }
+
+    public function test_income_minus_spent_minus_saved_equals_change_in_total_balance(): void
+    {
+        $user = User::factory()->create();
+
+        $account = Account::create([
+            'user_id' => $user->id,
+            'name' => 'Main Bank',
+            'type' => 'bank',
+            'currency' => 'NGN',
+            'starting_balance' => 1000,
+        ]);
+
+        $initialBalance = 1000.0;
+
+        $foodCategory = Category::firstOrCreate([
+            'user_id' => $user->id,
+            'name' => 'Food',
+        ], [
+            'type' => 'expense',
+        ]);
+
+        $savingsCategory = Category::firstOrCreate([
+            'user_id' => $user->id,
+            'name' => 'Savings',
+        ], [
+            'type' => 'expense',
+        ]);
+
+        // Income: 5000
+        Transaction::create([
+            'user_id' => $user->id,
+            'account_id' => $account->id,
+            'type' => 'income',
+            'amount' => 5000,
+            'transaction_date' => '2026-08-10',
+        ]);
+
+        // Spent: 1200
+        Transaction::create([
+            'user_id' => $user->id,
+            'account_id' => $account->id,
+            'category_id' => $foodCategory->id,
+            'type' => 'expense',
+            'amount' => 1200,
+            'transaction_date' => '2026-08-12',
+        ]);
+
+        // Saved: 800
+        Transaction::create([
+            'user_id' => $user->id,
+            'account_id' => $account->id,
+            'category_id' => $savingsCategory->id,
+            'type' => 'expense',
+            'amount' => 800,
+            'transaction_date' => '2026-08-15',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/summary?from=2026-08-01&to=2026-08-31')
+            ->assertStatus(200);
+
+        $income = (float) $response->json('monthly_summary.income');
+        $totalExpense = (float) $response->json('monthly_summary.expense');
+        $newBalance = (float) $response->json('total_balance');
+
+        $breakdown = collect($response->json('category_breakdown'));
+        $savedRow = $breakdown->firstWhere('category_name', 'Savings');
+        $saved = $savedRow ? (float) $savedRow['total'] : 0.0;
+        $spent = $totalExpense - $saved;
+
+        $deltaBalance = $newBalance - $initialBalance;
+        $netCalculation = $income - $spent - $saved;
+
+        $this->assertEquals(5000.0, $income);
+        $this->assertEquals(1200.0, $spent);
+        $this->assertEquals(800.0, $saved);
+        $this->assertEquals($netCalculation, $deltaBalance);
+        $this->assertEquals(3000.0, $deltaBalance);
+    }
 }

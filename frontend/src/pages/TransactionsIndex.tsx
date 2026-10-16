@@ -346,7 +346,7 @@ export function TransactionsIndex() {
               aria-label="User Profile"
               title={`Profile: ${user?.name || "User"}`}
             >
-              {getUserInitials(user?.name)}
+              {getUserInitials(user?.name, user?.email)}
             </Link>
           </div>
         </div>

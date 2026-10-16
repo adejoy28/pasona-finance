@@ -4,6 +4,7 @@ import type { SummaryDto } from "./types";
 export type GetSummaryParams = {
   from?: string;
   to?: string;
+  month?: string;
 };
 
 export function getSummary(params?: GetSummaryParams): Promise<SummaryDto> {
