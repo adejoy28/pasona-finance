@@ -12,13 +12,31 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-export function getUserInitials(name?: string | null): string {
-  if (!name || !name.trim()) return "U";
-  const parts = name.trim().split(/\s+/);
+export function getUserInitials(name?: string | null, email?: string | null): string {
+  if (!name && !email) return "JA";
+  const raw = (name && name.trim()) || (email && email.split("@")[0]) || "";
+  if (!raw) return "JA";
+
+  const lower = raw.toLowerCase();
+  // Standard John Adebayo / adejoy John / Adejoy / John matching
+  if (lower.includes("john") || lower.includes("adejoy") || lower.includes("adebayo")) {
+    return "JA";
+  }
+
+  // Strip non-letter characters like parentheses, brackets, numbers
+  const cleaned = raw.replace(/[^a-zA-Z\s]/g, " ").trim();
+  const parts = cleaned.split(/\s+/).filter(Boolean);
+
   if (parts.length >= 2) {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
-  return parts[0].slice(0, 2).toUpperCase();
+  if (parts.length === 1 && parts[0].length >= 2) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  if (parts.length === 1) {
+    return parts[0][0].toUpperCase();
+  }
+  return "JA";
 }
 
 export interface MonthDropdownProps {
@@ -119,7 +137,7 @@ export function ScreenHeader({
 }: ScreenHeaderProps) {
   const { isRevealed, toggleReveal } = usePrivacyMode();
   const { data: user } = useMe();
-  const initials = getUserInitials(user?.name);
+  const initials = getUserInitials(user?.name, user?.email);
 
   return (
     <header className={`flex flex-col gap-2 mb-3.5 ${className}`}>

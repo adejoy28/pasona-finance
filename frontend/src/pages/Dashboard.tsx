@@ -1,48 +1,30 @@
-import { Link, useNavigate, useSearchParams } from "react-router";
-import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  ChevronLeft,
-  ChevronRight,
-  CreditCard,
-  Plus,
-  Shield,
-  User,
-  Wallet,
-  Eye,
-  EyeOff,
-  Settings as SettingsIcon,
-} from "lucide-react";
+import { Settings as SettingsIcon } from "lucide-react";
 import { notify } from "@/hooks/use-toast";
 import { FinanceNavbar } from "@/components/finance/Navbar";
 import { DashboardSkeleton } from "@/components/finance/Skeletons";
-import { AiChat } from "@/components/finance/AiChat";
 import { OnboardingTour } from "@/components/finance/OnboardingTour";
 import { NotificationBell } from "@/components/finance/NotificationBell";
-import { VerifyEmailBanner } from "@/components/finance/VerifyEmailBanner";
 import { MonthDropdown, getUserInitials } from "@/components/finance/ScreenHeader";
-import { DEFAULT_CURRENCY } from "@/lib/currencies";
-import { formatCurrency, type Account } from "@/lib/finance";
-import {
-  fadeSlideDown,
-  fadeSlideUp,
-  staggerContainer,
-  staggerItem,
-} from "@/lib/animations";
-import {
-  accounts as accountsApi,
-  summary as summaryApi,
-  transactions as transactionsApi,
-  type TransactionDto,
-  type AccountDto,
-  type SummaryDto,
-} from "@/lib/api";
-import { useOnline } from "@/hooks/use-online";
+import { CashFlowHeroCard } from "@/components/finance/CashFlowHeroCard";
+import { QuickLogCard } from "@/components/finance/QuickLogCard";
+import { NeedsAttentionCard } from "@/components/finance/NeedsAttentionCard";
+import { RecentTransactionsCard } from "@/components/finance/RecentTransactionsCard";
+import { MonthlyBudgetSnap } from "@/components/finance/MonthlyBudgetSnap";
+import { ComingUpCard } from "@/components/finance/ComingUpCard";
+import { FinishSettingUpCard } from "@/components/finance/FinishSettingUpCard";
+import { WhereItWentDonut } from "@/components/finance/WhereItWentDonut";
+import { SpendingTrendCard } from "@/components/finance/SpendingTrendCard";
+import { GoalsPreviewCard } from "@/components/finance/GoalsPreviewCard";
+import { AccountsCard } from "@/components/finance/AccountsCard";
+import { useDashboardData, invalidateDashboardDataCache } from "@/hooks/use-dashboard-data";
 import { useMe, invalidateMe } from "@/hooks/use-me";
-import { usePrivacyMode } from "@/hooks/use-privacy-mode";
-import { useCountUp } from "@/hooks/use-count-up";
+import { DEFAULT_CURRENCY } from "@/lib/currencies";
+import { fadeSlideUp } from "@/lib/animations";
+import type { Account } from "@/lib/finance";
+import type { AccountDto } from "@/lib/api";
 
 function toAccount(dto: AccountDto): Account {
   return {
@@ -53,16 +35,15 @@ function toAccount(dto: AccountDto): Account {
   };
 }
 
-function toNumber(value: number | string | null | undefined): number {
-  if (value === null || value === undefined) return 0;
-  return typeof value === "string" ? parseFloat(value) : value;
+export function invalidateDashboardCache() {
+  invalidateDashboardDataCache();
 }
 
 export function Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const verifiedFlag = searchParams.get("verified") ?? undefined;
-  const { isRevealed, toggleReveal, renderAmount } = usePrivacyMode();
+  const userQuery = useMe();
+  const userCurrency = userQuery.data?.currency || DEFAULT_CURRENCY;
 
   useEffect(() => {
     document.title = "Dashboard — Pasona";
@@ -82,129 +63,23 @@ export function Dashboard() {
   }, [verifiedFlag, setSearchParams]);
 
   const [monthOffset, setMonthOffset] = useState(0);
-  const monthDate = new Date();
-  monthDate.setDate(1);
-  monthDate.setMonth(monthDate.getMonth() + monthOffset);
+  const monthDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + monthOffset);
+    return d;
+  }, [monthOffset]);
+
   const monthLabel = monthDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const monthFrom = `${monthDate.getFullYear()}-${pad(monthDate.getMonth() + 1)}-01`;
-  const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
-  const monthTo = `${monthEnd.getFullYear()}-${pad(monthEnd.getMonth() + 1)}-${pad(monthEnd.getDate())}`;
+  const monthNameOnly = monthDate.toLocaleDateString("en-US", { month: "long" });
 
-  const [summary, setSummary] = useState<SummaryDto | null>(null);
-  const [accountDtos, setAccountDtos] = useState<AccountDto[] | null>(null);
-  const [monthTx, setMonthTx] = useState<TransactionDto[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Single data source hook powering the entire Home screen (Spec Section 3)
+  const data = useDashboardData(monthDate);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function loadData() {
-      setLoading(true);
-      try {
-        const [sumRes, accRes, txRes] = await Promise.all([
-          summaryApi.getSummary({ from: monthFrom, to: monthTo }),
-          accountsApi.listAccounts(),
-          transactionsApi.listTransactions({ from: monthFrom, to: monthTo, per_page: 500 }),
-        ]);
-        if (!cancelled) {
-          setSummary(sumRes);
-          setAccountDtos(accRes);
-          setMonthTx(txRes.data ?? []);
-        }
-      } catch (err) {
-        console.error("Failed to load dashboard data", err);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    void loadData();
-    return () => {
-      cancelled = true;
-    };
-  }, [monthFrom, monthTo]);
+  const accountList = useMemo(() => data.accounts.map(toAccount), [data.accounts]);
+  const hasNoAccounts = accountList.length === 0;
 
-  const isOnline = useOnline();
-  const userQuery = useMe();
-  const userCurrency = userQuery.data?.currency ?? DEFAULT_CURRENCY;
-
-  const accountsFetched = !loading;
-  const accountList = (accountDtos ?? summary?.accounts ?? []).map(toAccount);
-  const hasNoAccounts = accountsFetched && accountList.length === 0;
-  const totalBalance = summary
-    ? toNumber(summary.total_balance)
-    : accountList.reduce((s, a) => s + a.balance, 0);
-
-  const animatedTotalBalance = useCountUp(totalBalance, 650, isRevealed);
-
-  const filteredMonthTx = monthTx.filter((t) => {
-    if (!t.transaction_date) return false;
-    const dateStr = t.transaction_date.slice(0, 10);
-    return dateStr >= monthFrom && dateStr <= monthTo;
-  });
-
-  type MonthAgg = { income: number; expense: number; byCategory: Map<string, { amount: number; id?: number }> };
-  const derived = filteredMonthTx.reduce<MonthAgg>(
-    (acc, t) => {
-      const amount = toNumber(t.amount);
-      if (t.type === "income") acc.income += amount;
-      else if (t.type === "expense") {
-        acc.expense += amount;
-        const name = t.category?.name ?? "Uncategorized";
-        const existing = acc.byCategory.get(name) ?? { amount: 0, id: t.category_id ?? undefined };
-        acc.byCategory.set(name, { amount: existing.amount + amount, id: existing.id ?? t.category_id ?? undefined });
-      }
-      return acc;
-    },
-    { income: 0, expense: 0, byCategory: new Map<string, { amount: number; id?: number }>() },
-  );
-
-  const summaryHasData = Boolean(summary?.monthly_summary);
-  const monthlyIncome = summaryHasData
-    ? toNumber(summary!.monthly_summary.income)
-    : derived.income;
-
-  const monthlyExpense = summaryHasData
-    ? toNumber(summary!.monthly_summary.expense)
-    : derived.expense;
-
-  const categoryBreakdown = summaryHasData && summary?.category_breakdown
-    ? summary.category_breakdown.map((row) => ({
-      category_name: row.category_name,
-      category_id: row.category_id,
-      total: toNumber(row.total),
-    }))
-    : [...derived.byCategory.entries()]
-      .map(([category_name, data]) => ({ category_name, category_id: data.id, total: data.amount }))
-  const maxTotal = Math.max(...categoryBreakdown.map((c) => c.total), 1);
-  const totalSpending = categoryBreakdown.reduce((sum, item) => sum + item.total, 0) || 1;
-  const netSavings = monthlyIncome - monthlyExpense;
-  const isPositiveTrend = netSavings >= 0;
-  const hasMonthRecords = monthTx.length > 0 || monthlyIncome > 0 || monthlyExpense > 0 || categoryBreakdown.length > 0;
-  const expenseRatio = monthlyIncome > 0
-    ? Math.min(100, Math.round((monthlyExpense / monthlyIncome) * 100))
-    : monthlyExpense > 0 ? 100 : 0;
-
-  const CATEGORY_COLORS = [
-    "#3b82f6", // Blue
-    "#8b5cf6", // Purple
-    "#10b981", // Emerald
-    "#f59e0b", // Amber
-    "#ec4899", // Pink
-    "#06b6d4", // Cyan
-    "#64748b", // Slate
-  ];
-
-  const accumulatedPercents = categoryBreakdown.reduce<number[]>((acc, item, idx) => {
-    if (idx === 0) {
-      acc.push(0);
-    } else {
-      const prevPct = (categoryBreakdown[idx - 1]!.total / totalSpending) * 100;
-      acc.push(acc[idx - 1]! + prevPct);
-    }
-    return acc;
-  }, []);
-
-  if (loading && !summary) {
+  if (data.loading && !data.accounts.length && data.balanceTotal === 0 && data.income === 0 && data.spent === 0) {
     return (
       <>
         <DashboardSkeleton />
@@ -214,10 +89,10 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-32">
-      {/* Sticky Fixed Top Header Bar (Edge-to-edge padding, seamlessly connects with hero) */}
-      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-6 shadow-sm border-b border-white/5 transition-all text-white">
-        <div className="max-w-5xl mx-auto flex flex-col gap-2">
+    <div className="min-h-screen bg-[var(--bg)] pb-32">
+      {/* Sticky Fixed Top Header Bar */}
+      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-3 sm:px-5 lg:px-6 shadow-sm border-b border-white/5 transition-all text-white">
+        <div className="w-full flex flex-col gap-2">
           <div className="flex justify-between items-center gap-3">
             <div className="min-w-0">
               <h1 className="text-base sm:text-lg font-bold tracking-tight text-white truncate">
@@ -229,7 +104,7 @@ export function Dashboard() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {/* Desktop Month Dropdown (Addendum C) */}
+              {/* Desktop Month Dropdown */}
               <div className="hidden sm:block">
                 <MonthDropdown
                   currentLabel={monthLabel}
@@ -240,7 +115,7 @@ export function Dashboard() {
 
               <NotificationBell />
 
-              {/* Mobile-only gear icon leading to /settings (Addendum A) */}
+              {/* Mobile-only gear icon leading to /settings */}
               <Link
                 to="/settings"
                 aria-label="Settings"
@@ -250,19 +125,19 @@ export function Dashboard() {
                 <SettingsIcon size={16} />
               </Link>
 
-              {/* Avatar on every main screen leading to /profile (Addendum A) */}
+              {/* Avatar on every main screen leading to /profile */}
               <Link
                 to="/profile"
                 aria-label="User Profile"
                 title={`Profile: ${userQuery.data?.name || "User"}`}
-                className="w-9 h-9 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/50 shadow-sm"
+                className="w-9 h-9 rounded-full bg-[var(--primary)] text-white font-bold text-xs flex items-center justify-center transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/50 shadow-sm"
               >
-                {getUserInitials(userQuery.data?.name)}
+                {getUserInitials(userQuery.data?.name, userQuery.data?.email)}
               </Link>
             </div>
           </div>
 
-          {/* Phone-only own-row month dropdown (Addendum C) */}
+          {/* Phone-only own-row month dropdown */}
           <div className="sm:hidden self-start">
             <MonthDropdown
               currentLabel={monthLabel}
@@ -273,522 +148,108 @@ export function Dashboard() {
         </div>
       </header>
 
-      {/* Hero Navy Card Section */}
-      <motion.section
-        variants={fadeSlideDown}
-        initial="hidden"
-        animate="visible"
-        className="px-6 pt-2 pb-6 bg-gradient-to-b from-[#0b1434] via-[#101b45] to-[#162356] text-white border-b border-white/10 shadow-xl shadow-navy-950/20"
-      >
-        <div className="max-w-5xl mx-auto space-y-3">
-          <VerifyEmailBanner />
-
-          {/* Hero Navy Card: PalmPay-Style Compact 3-Row Grid */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-            className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 space-y-2.5 shadow-inner"
-          >
-            {/* Row 1: Total Balance + Eye toggle on left, History shortcut on right */}
-            <div className="flex justify-between items-center text-[11px] text-white/80">
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block shrink-0" />
-                <span className="uppercase tracking-wider font-semibold text-[10px]">Total Balance</span>
-                <button
-                  onClick={toggleReveal}
-                  className="text-white/60 hover:text-white transition-colors p-0.5"
-                  aria-label={isRevealed ? "Hide balances" : "Show balances"}
-                >
-                  {isRevealed ? <EyeOff size={13} /> : <Eye size={13} />}
-                </button>
-              </div>
-
-              <Link
-                to="/transactions"
-                className="flex items-center gap-0.5 text-white/70 hover:text-white transition-colors text-[11px] font-medium"
-              >
-                <span>History</span>
-                <ChevronRight size={13} />
-              </Link>
-            </div>
-
-            {/* Row 2: Balance on Left + [+ Add] Pill CTA on Right (SAME ROW) */}
-            <div className="flex justify-between items-center gap-3">
-              <h2 className="text-[22px] sm:text-2xl font-bold tracking-tight leading-none text-white truncate min-w-0">
-                {renderAmount(animatedTotalBalance, userCurrency)}
-              </h2>
-
-              <Link
-                to="/transactions/add"
-                data-tour-target="add-transaction"
-                className="px-3 py-1.5 bg-white text-[#101b45] hover:bg-slate-100 rounded-full text-xs font-bold flex items-center gap-1 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0"
-              >
-                <Plus size={13} strokeWidth={2.5} />
-                <span>Add</span>
-              </Link>
-            </div>
-
-            {/* Row 3: 3-column Cashflow (Income | Spent | Net) */}
-            <div className="pt-2.5 border-t border-white/15 grid grid-cols-3 gap-2">
-              <div className="flex flex-col min-w-0">
-                <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">Income</span>
-                <span className="font-extrabold text-[13px] text-[#8CE6B8] tabular-nums truncate">
-                  {renderAmount(monthlyIncome, userCurrency)}
-                </span>
-              </div>
-              <div className="flex flex-col min-w-0 border-l border-white/10 pl-2">
-                <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">Spent</span>
-                <span className="font-extrabold text-[13px] text-white tabular-nums truncate">
-                  {renderAmount(monthlyExpense, userCurrency)}
-                </span>
-              </div>
-              <div className="flex flex-col min-w-0 border-l border-white/10 pl-2">
-                <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">Net</span>
-                <span
-                  className={`font-extrabold text-[13px] tabular-nums truncate ${
-                    netSavings >= 0 ? "text-[#8CE6B8]" : "text-rose-300"
-                  }`}
-                >
-                  {netSavings >= 0 ? "+" : "−"}
-                  {renderAmount(Math.abs(netSavings), userCurrency)}
-                </span>
-              </div>
-            </div>
-
-            {/* Proportional Spend Bar */}
-            <div className="pt-1">
-              <div className="h-[5px] w-full rounded-full bg-white/20 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-white transition-all duration-500"
-                  style={{ width: `${expenseRatio}%` }}
-                />
-              </div>
-              <div className="flex justify-between items-center mt-1 text-[10px] font-medium text-white/75">
-                <span>{expenseRatio}% spent</span>
-                <span>{Math.max(0, 100 - expenseRatio)}% kept</span>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </motion.section>
-
-      {/* Main Content Area */}
-      <motion.div
+      {/* Main Content Area: 2-column layout on desktop, single-column responsive on mobile */}
+      <motion.main
         variants={fadeSlideUp}
         initial="hidden"
         animate="visible"
-        className={`px-6 space-y-5 pt-3 max-w-5xl mx-auto w-full transition-opacity duration-200 ${
-          loading ? "opacity-60" : "opacity-100"
-        }`}
+        className="w-full px-3 sm:px-5 lg:px-6 pt-3 sm:pt-4 pb-32"
       >
-        {/* Month Selector Row */}
-        <div className="flex justify-center items-center gap-3">
-          <button
-            type="button"
-            aria-label="Previous month"
-            disabled={loading}
-            onClick={() => setMonthOffset((o) => o - 1)}
-            className="w-9 h-9 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white shadow-sm border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
-            title="Previous month"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <span className="text-xs font-bold uppercase tracking-widest text-slate-700 min-w-[9rem] text-center">
-            {monthLabel}
-          </span>
-          <button
-            type="button"
-            aria-label="Next month"
-            disabled={loading || monthOffset >= 0}
-            onClick={() => setMonthOffset((o) => Math.min(0, o + 1))}
-            className="w-9 h-9 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white shadow-sm border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
-            title="Next month"
-          >
-            <ChevronRight size={16} />
-          </button>
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-4 sm:gap-5 items-start">
+          {/* Column A (Left): Balance, Tasks, Duplicates/Needs Attention, Donut, Line Chart, Recent Activity */}
+          <div className="flex flex-col gap-4 min-w-0 order-2 lg:order-1">
+            {/* 1. Cash Flow Balance Hero */}
+            <CashFlowHeroCard
+              totalBalance={data.balanceTotal}
+              monthlyIncome={data.income}
+              monthlySpent={data.spent}
+              monthlySavings={data.saved}
+              accountsCount={data.accountCount}
+              spentChangeVsLastMonth={data.spentChangeVsLastMonth}
+              lastMonthName={data.lastMonthName}
+              currency={userCurrency}
+            />
+
+            {/* 2. Tasks to be done */}
+            <FinishSettingUpCard
+              todos={data.setupTodos}
+            />
+
+            {/* 3. Duplicates & Needs Attention: Compact, bright, kept to the left under tasks */}
+            {data.attention.length > 0 && (
+              <NeedsAttentionCard items={data.attention} />
+            )}
+
+            {/* 4. Where did it go? Donut (Above recent stats) */}
+            <WhereItWentDonut
+              monthLabel={monthLabel}
+              categories={data.categoryBreakdown}
+              spentTotal={data.spent}
+              currency={userCurrency}
+            />
+
+            {/* 5. Spending Trend Line Chart (Above recent stats) */}
+            <SpendingTrendCard
+              trendData={data.trend6}
+              currency={userCurrency}
+            />
+
+            {/* 6. Recent Activity / Stats (Below Donut and Line Chart) */}
+            <RecentTransactionsCard
+              transactions={data.recent}
+              currency={userCurrency}
+            />
+          </div>
+
+          {/* Column B (Right): Quick Log, Budget, Coming Up, Goals, Accounts */}
+          <div className="flex flex-col gap-4 min-w-0 order-1 lg:order-2">
+            {/* Quick Log Card (Pinned to top on mobile for instant logging) */}
+            <QuickLogCard
+              todayCount={data.today.count}
+              todaySpent={data.today.spent}
+              loggedToday={data.today.loggedToday}
+              streakDays={data.streakDays}
+              recentTransactions={data.recent}
+              accounts={accountList}
+              categories={data.categories}
+              currency={userCurrency}
+              onRefresh={data.refresh}
+            />
+
+            {/* Monthly Budget Snap */}
+            <MonthlyBudgetSnap
+              monthLabel={monthNameOnly}
+              spent={data.spent}
+              budgetLimit={data.budget?.planned ?? 0}
+              currency={userCurrency}
+            />
+
+            {/* Coming Up (Recurring bills) */}
+            <ComingUpCard
+              bills={data.bills}
+              currency={userCurrency}
+            />
+
+            {/* Goals Preview */}
+            <GoalsPreviewCard
+              goals={data.goals}
+              currency={userCurrency}
+              savingsRate={data.income > 0 ? (data.saved / data.income) * 100 : 0}
+              income={data.income}
+            />
+
+            {/* Accounts */}
+            <AccountsCard
+              accounts={accountList}
+              totalBalance={data.balanceTotal}
+              currency={userCurrency}
+            />
+          </div>
         </div>
+      </motion.main>
 
-        {/* Unified Monthly Cashflow Card (Slim & Compact) */}
-        <motion.div
-          variants={staggerItem}
-          className="bg-white rounded-2xl card-shadow border border-slate-100 p-3.5 space-y-2.5 overflow-hidden"
-        >
-          {/* Header row: Label */}
-          <div className="flex justify-between items-center px-0.5">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Monthly Cash Flow
-            </p>
-            <p className="text-[10.5px] font-semibold text-slate-400">
-              {monthLabel}
-            </p>
-          </div>
-
-          {/* Stacked Metrics: Income on top of Expenses */}
-          <div className="space-y-2">
-            {/* Income */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-                  <ArrowDownLeft size={13} />
-                </div>
-                <p className="text-[11.5px] font-semibold text-slate-600">Income</p>
-              </div>
-              <p className="text-xs sm:text-sm font-bold text-slate-900">
-                {renderAmount(monthlyIncome, userCurrency)}
-              </p>
-            </div>
-
-            {/* Divider */}
-            <div className="border-t border-slate-50" />
-
-            {/* Expenses */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600 shrink-0">
-                  <ArrowUpRight size={13} />
-                </div>
-                <p className="text-[11.5px] font-semibold text-slate-600">Expenses</p>
-              </div>
-              <p className="text-xs sm:text-sm font-bold text-slate-900">
-                {renderAmount(monthlyExpense, userCurrency)}
-              </p>
-            </div>
-          </div>
-
-          {/* Cashflow Ratio Bar */}
-          {monthlyIncome > 0 && (
-            <div className="space-y-1 pt-1 border-t border-slate-50">
-              <div className="flex justify-between text-[10px] font-medium text-slate-500">
-                <span>{expenseRatio}% spent</span>
-                <span className="text-slate-400">{Math.max(0, 100 - expenseRatio)}% saved</span>
-              </div>
-              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
-                <div
-                  style={{ width: `${Math.min(100, expenseRatio)}%` }}
-                  className={`h-full transition-all duration-500 rounded-full ${
-                    expenseRatio > 90 ? "bg-rose-500" : expenseRatio > 70 ? "bg-amber-500" : "bg-blue-600"
-                  }`}
-                />
-              </div>
-            </div>
-          )}
-        </motion.div>
-
-        {/* Budget Snap Card */}
-        {hasMonthRecords && (
-          <motion.div variants={fadeSlideUp} initial="hidden" animate="visible">
-            <Link
-              to="/categories"
-              className="bg-white rounded-2xl p-4 card-shadow border border-slate-100 hover:border-blue-200 transition-all block space-y-2.5 group"
-            >
-              <div className="flex justify-between items-baseline">
-                <span className="text-[11px] font-semibold text-slate-500">
-                  Budget · {monthLabel}
-                </span>
-                <span className="text-xs font-bold text-blue-600 group-hover:underline">View</span>
-              </div>
-
-              <div className="flex justify-between items-baseline">
-                <span className="text-lg font-bold text-slate-900 tracking-tight">
-                  {renderAmount(Math.max(0, (monthlyIncome > 0 ? monthlyIncome : monthlyExpense) - monthlyExpense), userCurrency)} left
-                </span>
-                <span className="text-xs font-medium text-slate-400">
-                  of {renderAmount(monthlyIncome > 0 ? monthlyIncome : monthlyExpense, userCurrency)} planned
-                </span>
-              </div>
-
-              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  style={{ width: `${expenseRatio}%` }}
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    expenseRatio >= 90
-                      ? "bg-rose-500"
-                      : expenseRatio >= 70
-                      ? "bg-amber-500"
-                      : "bg-emerald-500"
-                  }`}
-                />
-              </div>
-
-              <div className="text-[11px] font-semibold text-slate-500">
-                {expenseRatio}% used
-                {expenseRatio >= 90 ? " · Near limit" : " · On track"}
-              </div>
-            </Link>
-          </motion.div>
-        )}
-
-        {/* Coming Up Section */}
-        <motion.section
-          variants={fadeSlideUp}
-          initial="hidden"
-          animate="visible"
-          className="space-y-2"
-        >
-          <div className="flex justify-between items-center px-1">
-            <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-none">Coming up</h3>
-            <Link to="/categories" className="text-xs font-bold text-blue-600 hover:underline">
-              All recurring →
-            </Link>
-          </div>
-          <div className="bg-white rounded-2xl p-4 card-shadow border border-slate-100 flex items-center justify-between gap-3 text-xs">
-            <span className="text-slate-500 font-medium">
-              Add recurring bills and Pasona shows what's due.
-            </span>
-            <Link
-              to="/settings"
-              className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold shrink-0 transition-colors"
-            >
-              Add recurring
-            </Link>
-          </div>
-        </motion.section>
-
-        {/* Compact My Accounts Section with View All */}
-        <motion.section
-          variants={fadeSlideUp}
-          initial="hidden"
-          animate="visible"
-          className="space-y-2.5"
-        >
-          <div className="flex justify-between items-center px-1">
-            <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-none">My Accounts</h3>
-            <Link to="/accounts" className="text-xs font-bold text-blue-600 hover:underline">
-              View All
-            </Link>
-          </div>
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-            className="flex overflow-x-auto gap-2.5 pb-2 -mx-2 px-2 scrollbar-hide"
-          >
-            {accountList.length === 0 && !loading && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex-1 text-center py-6 text-xs font-bold text-slate-400 uppercase tracking-widest bg-white rounded-2xl"
-              >
-                No accounts yet
-              </motion.div>
-            )}
-            {accountList.map((account) => {
-              const accountColor =
-                account.type === "bank"
-                  ? "#2F66F0"
-                  : account.type === "mobile"
-                    ? "#7557E0"
-                    : "#D9830F";
-              const sharePct =
-                totalBalance > 0 && account.balance > 0
-                  ? Math.min(100, Math.max(0, (account.balance / totalBalance) * 100)).toFixed(1)
-                  : "0";
-
-              return (
-                <motion.div key={account.id} variants={staggerItem}>
-                  <Link
-                    to={`/accounts/${account.id}`}
-                    className="flex-shrink-0 w-32 bg-white p-2.5 rounded-xl card-shadow border border-slate-50 space-y-1.5 block hover:border-blue-200 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div
-                        className={`p-1.5 inline-flex rounded-lg ${
-                          account.type === "bank"
-                            ? "bg-blue-50 text-blue-600"
-                            : account.type === "mobile"
-                              ? "bg-purple-50 text-purple-600"
-                              : "bg-amber-50 text-amber-600"
-                        }`}
-                      >
-                        {account.type === "bank" ? <CreditCard size={13} /> : <Wallet size={13} />}
-                      </div>
-                      <span className="text-[8.5px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 px-1 py-0.5 rounded">
-                        {account.type}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-semibold text-slate-500 truncate">
-                        {account.name}
-                      </p>
-                      <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">
-                        {renderAmount(account.balance, userCurrency)}
-                      </p>
-                    </div>
-                    {/* Share Bar */}
-                    <div className="h-1 w-full rounded-full bg-slate-100 overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-300"
-                        style={{ width: `${sharePct}%`, backgroundColor: accountColor }}
-                      />
-                    </div>
-                  </Link>
-                </motion.div>
-              );
-            })}
-          </motion.div>
-        </motion.section>
-
-        {/* Duplicate Guard Strip */}
-        {monthTx.length > 0 && (
-          <motion.div variants={fadeSlideUp} initial="hidden" animate="visible">
-            <Link
-              to="/transactions?flag=duplicates"
-              className="w-full bg-white rounded-2xl p-3.5 card-shadow border border-slate-100 hover:border-blue-200 transition-all flex items-center gap-3 block group"
-            >
-              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                <Shield size={16} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                  Duplicate guard
-                </p>
-                <p className="text-[11px] text-slate-400 font-medium truncate">
-                  {monthTx.length} transactions checked, transfers counted once
-                </p>
-              </div>
-              <ChevronRight size={14} className="text-slate-400 group-hover:text-slate-600 shrink-0" />
-            </Link>
-          </motion.div>
-        )}
-
-        {/* Spending Category Breakdown with Visual Donut Chart */}
-        <motion.div
-          variants={staggerContainer}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 gap-6"
-        >
-          <motion.section variants={staggerItem} className="space-y-3" data-tour-target="spending">
-            <div className="flex justify-between items-center px-1">
-              <h3 className="text-base font-bold text-slate-900 leading-none">Spending</h3>
-              <p className="text-[10px] font-semibold text-slate-400 uppercase">{monthLabel}</p>
-            </div>
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-              className="bg-white rounded-2xl card-shadow border border-slate-50 p-5 space-y-4"
-            >
-              {categoryBreakdown.length === 0 && !loading && (
-                <p className="text-center py-6 text-xs font-bold text-slate-400 uppercase tracking-widest opacity-60">
-                  No spending in {monthLabel}
-                </p>
-              )}
-
-              {categoryBreakdown.length > 0 && (
-                <>
-                  {/* Horizontal Stack Bar */}
-                  <div className="w-full h-3 rounded-full overflow-hidden flex gap-0.5 bg-slate-100 mb-4">
-                    {categoryBreakdown.map((item, idx) => (
-                      <div
-                        key={idx}
-                        title={`${item.category_name}: ${renderAmount(item.total, userCurrency)} (${Math.round((item.total / totalSpending) * 100)}%)`}
-                        style={{
-                          flex: Math.max(0.01, item.total),
-                          backgroundColor: CATEGORY_COLORS[idx % CATEGORY_COLORS.length],
-                        }}
-                        className="h-full first:rounded-l-full last:rounded-r-full transition-all duration-300"
-                      />
-                    ))}
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-center gap-6">
-                  {/* Visual Donut Ring */}
-                  <div className="relative w-32 h-32 shrink-0 flex items-center justify-center">
-                    <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="38"
-                        fill="transparent"
-                        stroke="#f1f5f9"
-                        strokeWidth="11"
-                      />
-                      {categoryBreakdown.map((item, idx) => {
-                        const pct = (item.total / totalSpending) * 100;
-                        const strokeDash = (pct / 100) * 238.76;
-                        const strokeGap = 238.76 - strokeDash;
-                        const strokeOffset = -(accumulatedPercents[idx]! / 100) * 238.76;
-                        return (
-                          <circle
-                            key={idx}
-                            cx="50"
-                            cy="50"
-                            r="38"
-                            fill="transparent"
-                            stroke={CATEGORY_COLORS[idx % CATEGORY_COLORS.length]}
-                            strokeWidth="11"
-                            strokeDasharray={`${strokeDash} ${strokeGap}`}
-                            strokeDashoffset={strokeOffset}
-                            className="transition-all duration-500"
-                          />
-                        );
-                      })}
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-2">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Spent</span>
-                      <span className="text-xs sm:text-sm font-black text-slate-900 truncate max-w-[85px] text-center">
-                        {renderAmount(monthlyExpense, userCurrency)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Category Breakdown List */}
-                  <div className="flex-1 w-full space-y-2">
-                    {categoryBreakdown.map((item, idx) => {
-                      const percentage = Math.round((item.total / totalSpending) * 100);
-                      const color = CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
-                      return (
-                        <div
-                          key={idx}
-                          onClick={() => { if (item.category_id) navigate(`/transactions?category_id=${item.category_id}`); }}
-                          className={`flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-slate-50 transition-colors ${
-                            item.category_id ? "cursor-pointer" : ""
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span
-                              className="w-2.5 h-2.5 rounded-full shrink-0"
-                              style={{ backgroundColor: color }}
-                            />
-                            <span className="text-xs font-semibold text-slate-700 truncate">
-                              {item.category_name}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[11px] font-bold text-slate-400">
-                              {percentage}%
-                            </span>
-                            <span className="text-xs font-bold text-slate-900">
-                              {renderAmount(item.total, userCurrency)}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </>
-            )}
-
-              <Link
-                to="/transactions"
-                className="flex items-center justify-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest pt-3 border-t border-slate-100 hover:text-blue-600 transition-colors"
-              >
-                Full History <ChevronRight size={12} />
-              </Link>
-            </motion.div>
-          </motion.section>
-        </motion.div>
-
-
-      </motion.div>
-
-      <AiChat />
       <FinanceNavbar />
       <OnboardingTour hasNoAccounts={hasNoAccounts} />
     </div>
   );
 }
-

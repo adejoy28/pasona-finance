@@ -1,10 +1,12 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, useNavigate, Navigate } from "react-router";
+import { BrowserRouter, Routes, Route, useNavigate, Navigate, useLocation } from "react-router";
 import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "@/lib/auth/guard";
 import { onUnauthorized } from "@/lib/api";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { getCachedUser } from "@/hooks/use-me";
+import { getAuthToken } from "@/lib/auth/token";
+import { AiChat } from "@/components/finance/AiChat";
 
 import { SplashPage } from "@/pages/SplashPage";
 import { Dashboard } from "@/pages/Dashboard";
@@ -53,6 +55,26 @@ function UnauthorizedHandler() {
   return null;
 }
 
+function GlobalMary() {
+  const location = useLocation();
+  const token = getAuthToken();
+  const publicPaths = [
+    "/",
+    "/login",
+    "/register",
+    "/forgot-password",
+    "/reset-password",
+    "/privacy",
+    "/terms",
+    "/download",
+    "/test-input",
+  ];
+  if (!token || publicPaths.includes(location.pathname) || location.pathname.startsWith("/email/verify")) {
+    return null;
+  }
+  return <AiChat />;
+}
+
 export function App() {
   useTheme();
 
@@ -76,6 +98,7 @@ export function App() {
         <SessionExpiredModal />
         <NativeNotificationListener />
         <UnauthorizedHandler />
+        <GlobalMary />
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<SplashPage />} />
