@@ -69,6 +69,8 @@ export function TransactionDialog({
   const [categoryId, setCategoryId] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
+  const [tags, setTags] = useState("");
+  const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -99,6 +101,21 @@ export function TransactionDialog({
       setCategoryId(transaction.category_id ? String(transaction.category_id) : "");
       setDescription(transaction.description ?? "");
       setDate(transaction.transaction_date.split(" ")[0] || transaction.transaction_date);
+
+      try {
+        const raw = localStorage.getItem(`pasona.tx_meta:${transaction.id}`);
+        if (raw) {
+          const m = JSON.parse(raw);
+          setTags(m.tags ?? "");
+          setNote(m.note ?? "");
+        } else {
+          setTags("");
+          setNote("");
+        }
+      } catch {
+        setTags("");
+        setNote("");
+      }
     } else {
       setAmount("");
       setType("expense");
@@ -107,6 +124,8 @@ export function TransactionDialog({
       setCategoryId("");
       setDescription("");
       setDate(new Date().toISOString().split("T")[0]!);
+      setTags("");
+      setNote("");
     }
     setError(null);
   }, [open, transaction]);
@@ -157,6 +176,14 @@ export function TransactionDialog({
     setIsSubmitting(true);
     try {
       await transactionsApi.updateTransaction(transaction!.id, payload);
+      try {
+        localStorage.setItem(
+          `pasona.tx_meta:${transaction!.id}`,
+          JSON.stringify({ tags: tags.trim(), note: note.trim() })
+        );
+      } catch {
+        // ignore
+      }
       popup.success("Transaction updated");
       onSaved();
       onOpenChange(false);
@@ -359,6 +386,34 @@ export function TransactionDialog({
               className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-sm font-bold text-slate-800 focus:border-indigo-300"
               value={date}
               onChange={(e) => setDate(e.target.value)}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+              Tags
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. school, urgent"
+              className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-sm font-bold text-slate-800 placeholder:text-slate-300 focus:border-indigo-300"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+              Note
+            </label>
+            <textarea
+              rows={3}
+              placeholder="Anything worth remembering"
+              className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-sm font-medium text-slate-800 placeholder:text-slate-300 focus:border-indigo-300 resize-none"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
               disabled={isSubmitting}
             />
           </div>
