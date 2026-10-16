@@ -2,12 +2,10 @@ import { Link } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft,
   ArrowUpCircle,
   ArrowDownCircle,
   Pencil,
   Plus,
-  Tag,
   Trash2,
   User,
 } from "lucide-react";
@@ -16,11 +14,33 @@ import { FinanceNavbar } from "@/components/finance/Navbar";
 import { CategoryDialog } from "@/components/finance/CategoryDialog";
 import { NotificationBell } from "@/components/finance/NotificationBell";
 import { CategoriesSkeleton } from "@/components/finance/Skeletons";
-import { ApiError, categories as categoriesApi, type CategoryDto } from "@/lib/api";
-import type { Category } from "@/lib/finance";
+import {
+  ApiError,
+  categories as categoriesApi,
+  transactions as transactionsApi,
+  type CategoryDto,
+  type TransactionDto,
+} from "@/lib/api";
+import { formatCurrency, type Category } from "@/lib/finance";
+import { DEFAULT_CURRENCY } from "@/lib/currencies";
 import { useOnline } from "@/hooks/use-online";
+import { usePrivacyMode } from "@/hooks/use-privacy-mode";
+import { useMe } from "@/hooks/use-me";
 import { fadeSlideDown } from "@/lib/animations";
 import { cn } from "@/lib/utils";
+
+const CATEGORY_COLORS = [
+  "#2563eb", // blue
+  "#7c3aed", // violet
+  "#db2777", // pink
+  "#ea580c", // orange
+  "#059669", // emerald
+  "#0284c7", // sky
+  "#d97706", // amber
+  "#dc2626", // red
+  "#4f46e5", // indigo
+  "#0d9488", // teal
+];
 
 function toCategory(dto: CategoryDto): Category {
   return {
@@ -32,6 +52,7 @@ function toCategory(dto: CategoryDto): Category {
 
 export function Categories() {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [transactions, setTransactions] = useState<TransactionDto[]>([]);
   const [activeTab, setActiveTab] = useState<"expense" | "income">("expense");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,15 +60,22 @@ export function Categories() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const isOnline = useOnline();
   const popup = usePopup();
+  const { renderAmount } = usePrivacyMode();
+  const meQuery = useMe();
+  const currency = meQuery.data?.currency ?? DEFAULT_CURRENCY;
 
   useEffect(() => {
     document.title = "Categories — Pasona";
   }, []);
 
-  const loadCategories = async () => {
+  const loadData = async () => {
     try {
-      const data = await categoriesApi.listCategories();
-      setCategories(data.map(toCategory));
+      const [catsData, txsData] = await Promise.all([
+        categoriesApi.listCategories(),
+        transactionsApi.listTransactions({ per_page: 500 }).catch(() => ({ data: [] })),
+      ]);
+      setCategories(catsData.map(toCategory));
+      setTransactions(txsData.data || []);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -58,7 +86,7 @@ export function Categories() {
   };
 
   useEffect(() => {
-    void loadCategories();
+    void loadData();
   }, []);
 
   const openCreate = () => {
@@ -108,6 +136,41 @@ export function Categories() {
     [categories],
   );
 
+  // Calculate monthly spending/income per category
+  const currentMonthPrefix = useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  }, []);
+
+  const categorySpendMap = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const tx of transactions) {
+      if (tx.date && !tx.date.startsWith(currentMonthPrefix)) continue;
+      if (tx.category_id) {
+        map.set(tx.category_id, (map.get(tx.category_id) || 0) + Number(tx.amount || 0));
+      }
+    }
+    return map;
+  }, [transactions, currentMonthPrefix]);
+
+  const maxExpenseSpend = useMemo(() => {
+    let mx = 0;
+    for (const c of expenseCategories) {
+      const s = categorySpendMap.get(c.id) || 0;
+      if (s > mx) mx = s;
+    }
+    return mx > 0 ? mx : 1;
+  }, [expenseCategories, categorySpendMap]);
+
+  const maxIncomeSpend = useMemo(() => {
+    let mx = 0;
+    for (const c of incomeCategories) {
+      const s = categorySpendMap.get(c.id) || 0;
+      if (s > mx) mx = s;
+    }
+    return mx > 0 ? mx : 1;
+  }, [incomeCategories, categorySpendMap]);
+
   if (loading && categories.length === 0) {
     return (
       <>
@@ -116,6 +179,9 @@ export function Categories() {
       </>
     );
   }
+
+  const activeCategories = activeTab === "expense" ? expenseCategories : incomeCategories;
+  const activeMax = activeTab === "expense" ? maxExpenseSpend : maxIncomeSpend;
 
   return (
     <div className="min-h-screen bg-slate-50 pb-32">
@@ -180,6 +246,9 @@ export function Categories() {
                 <span>New Category</span>
               </button>
             </div>
+            <p className="text-[11px] text-white/60">
+              Bar length is relative to your highest spending category this month.
+            </p>
           </motion.div>
         </div>
       </motion.section>
@@ -197,95 +266,121 @@ export function Categories() {
               type="button"
               onClick={() => setActiveTab("expense")}
               className={cn(
-                "flex-1 py-2 rounded-lg text-xs font-black transition-all text-center select-none flex items-center justify-center gap-2",
+                "flex-1 py-2 rounded-lg text-xs font-black transition-all text-center select-none flex items-center justify-center gap-2 cursor-pointer",
                 activeTab === "expense"
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-500 hover:text-slate-800"
+                  ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
+                  : "text-[var(--muted)] hover:text-[var(--ink)]"
               )}
             >
-              <ArrowDownCircle size={14} className={activeTab === "expense" ? "text-red-500" : ""} />
+              <ArrowDownCircle size={14} className={activeTab === "expense" ? "text-rose-500" : ""} />
               Expenses ({expenseCategories.length})
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("income")}
               className={cn(
-                "flex-1 py-2 rounded-lg text-xs font-black transition-all text-center select-none flex items-center justify-center gap-2",
+                "flex-1 py-2 rounded-lg text-xs font-black transition-all text-center select-none flex items-center justify-center gap-2 cursor-pointer",
                 activeTab === "income"
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-500 hover:text-slate-800"
+                  ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
+                  : "text-[var(--muted)] hover:text-[var(--ink)]"
               )}
             >
-              <ArrowUpCircle size={14} className={activeTab === "income" ? "text-green-500" : ""} />
+              <ArrowUpCircle size={14} className={activeTab === "income" ? "text-emerald-500" : ""} />
               Income ({incomeCategories.length})
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl card-shadow border border-slate-50 overflow-hidden divide-y divide-slate-50">
-            {activeTab === "expense" ? (
-              <>
-                {expenseCategories.map((c) => (
-                  <div key={c.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors group">
-                    <Link to={`/transactions?category_id=${c.id}`} className="flex items-center gap-3 flex-1">
-                      <div className="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                        <Tag size={16} />
+          <div className="bg-white rounded-2xl card-shadow border border-slate-100 overflow-hidden divide-y divide-slate-100">
+            {activeCategories.map((c, i) => {
+              const spend = categorySpendMap.get(c.id) || 0;
+              const barPct = Math.round((spend / activeMax) * 100);
+              const color = CATEGORY_COLORS[i % CATEGORY_COLORS.length];
+
+              return (
+                <div key={c.id} className="p-4 hover:bg-slate-50/80 transition-colors group">
+                  <div className="flex items-center justify-between gap-3">
+                    <Link
+                      to={`/transactions?category_id=${c.id}`}
+                      className="flex-1 min-w-0 space-y-1.5 block cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span
+                            className="w-2.5 h-2.5 rounded-sm shrink-0"
+                            style={{ backgroundColor: color }}
+                          />
+                          <span className="text-xs font-bold text-slate-800 truncate">
+                            {c.name}
+                          </span>
+                        </div>
+                        <span className="text-xs font-black text-slate-900 tabular-nums shrink-0">
+                          {spend > 0 ? (
+                            renderAmount(formatCurrency(spend, currency))
+                          ) : (
+                            <span className="text-slate-400 font-normal">No activity</span>
+                          )}
+                        </span>
                       </div>
-                      <span className="text-xs font-bold text-slate-800">{c.name}</span>
+
+                      {/* Horizontal activity bar */}
+                      <div
+                        className="h-1.5 w-full rounded-full overflow-hidden"
+                        style={{ backgroundColor: `color-mix(in srgb, ${color} 18%, #f1f5f9)` }}
+                      >
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${Math.min(100, Math.max(spend > 0 ? 5 : 0, barPct))}%`,
+                            backgroundColor: color,
+                          }}
+                        />
+                      </div>
+
+                      {/* Subtitle / Limit / Status */}
+                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                        {/* TODO: wire up category limits when backend exposes them */}
+                        <span className="text-slate-400 font-medium">No limit set</span>
+                        {spend > 0 && (
+                          <span className="text-[10px] text-slate-400 font-medium">
+                            {barPct}% of top
+                          </span>
+                        )}
+                      </div>
                     </Link>
-                    <div className="flex items-center gap-1">
+
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
                       <button
                         type="button"
-                        onClick={(e) => { e.preventDefault(); openEdit(c); }}
-                        className="p-2 text-slate-300 hover:text-blue-500 transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          openEdit(c);
+                        }}
+                        className="p-2 text-[var(--muted)] hover:text-[var(--primary)] transition-colors cursor-pointer"
+                        title="Edit category"
                       >
-                        <Pencil size={16} />
+                        <Pencil size={15} />
                       </button>
                       <button
                         type="button"
-                        onClick={(e) => { e.preventDefault(); void handleDelete(c.id); }}
-                        className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          void handleDelete(c.id);
+                        }}
+                        className="p-2 text-[var(--muted)] hover:text-rose-500 transition-colors cursor-pointer"
+                        title="Delete category"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   </div>
-                ))}
-                {!loading && expenseCategories.length === 0 && (
-                  <p className="p-4 text-xs text-slate-400 text-center font-medium">No expense categories yet</p>
-                )}
-              </>
-            ) : (
-              <>
-                {incomeCategories.map((c) => (
-                  <div key={c.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors group">
-                    <Link to={`/transactions?category_id=${c.id}`} className="flex items-center gap-3 flex-1">
-                      <div className="w-8 h-8 rounded-xl bg-green-50 text-green-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                        <Tag size={16} />
-                      </div>
-                      <span className="text-xs font-bold text-slate-800">{c.name}</span>
-                    </Link>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={(e) => { e.preventDefault(); openEdit(c); }}
-                        className="p-2 text-slate-300 hover:text-blue-500 transition-colors"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.preventDefault(); void handleDelete(c.id); }}
-                        className="p-2 text-slate-300 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                {!loading && incomeCategories.length === 0 && (
-                  <p className="p-4 text-xs text-slate-400 text-center font-medium">No income categories yet</p>
-                )}
-              </>
+                </div>
+              );
+            })}
+
+            {!loading && activeCategories.length === 0 && (
+              <p className="p-6 text-xs text-slate-400 text-center font-medium">
+                No {activeTab} categories yet
+              </p>
             )}
           </div>
         </div>
@@ -301,3 +396,4 @@ export function Categories() {
     </div>
   );
 }
+

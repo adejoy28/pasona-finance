@@ -8,6 +8,7 @@ import {
   ChevronRight,
   CreditCard,
   Plus,
+  Shield,
   User,
   Wallet,
   Eye,
@@ -39,6 +40,7 @@ import {
 import { useOnline } from "@/hooks/use-online";
 import { useMe, invalidateMe } from "@/hooks/use-me";
 import { usePrivacyMode } from "@/hooks/use-privacy-mode";
+import { useCountUp } from "@/hooks/use-count-up";
 
 function toAccount(dto: AccountDto): Account {
   return {
@@ -130,6 +132,8 @@ export function Dashboard() {
   const totalBalance = summary
     ? toNumber(summary.total_balance)
     : accountList.reduce((s, a) => s + a.balance, 0);
+
+  const animatedTotalBalance = useCountUp(totalBalance, 650, isRevealed);
 
   const filteredMonthTx = monthTx.filter((t) => {
     if (!t.transaction_date) return false;
@@ -276,7 +280,7 @@ export function Dashboard() {
             {/* Row 2: Balance on Left + [+ Add] Pill CTA on Right (SAME ROW) */}
             <div className="flex justify-between items-center gap-3">
               <h2 className="text-[22px] sm:text-2xl font-bold tracking-tight leading-none text-white truncate min-w-0">
-                {renderAmount(totalBalance, userCurrency)}
+                {renderAmount(animatedTotalBalance, userCurrency)}
               </h2>
 
               <Link
@@ -289,26 +293,45 @@ export function Dashboard() {
               </Link>
             </div>
 
-            {/* Row 3: Integrated Cashflow Insight Strip */}
-            <div className="pt-2 border-t border-white/10 flex justify-between items-center text-[11px]">
-              <div
-                className={`flex items-center gap-1 font-semibold ${
-                  isPositiveTrend ? "text-emerald-300" : "text-rose-300"
-                }`}
-              >
-                <span aria-hidden="true">{isPositiveTrend ? "▲" : "▼"}</span>
-                <span className="sr-only">
-                  {isPositiveTrend ? "Positive cashflow:" : "Negative cashflow:"}
-                </span>
-                <span>
-                  {isPositiveTrend ? "+" : "-"}
-                  {renderAmount(Math.abs(netSavings), userCurrency)} net this month
+            {/* Row 3: 3-column Cashflow (Income | Spent | Net) */}
+            <div className="pt-2.5 border-t border-white/15 grid grid-cols-3 gap-2">
+              <div className="flex flex-col min-w-0">
+                <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">Income</span>
+                <span className="font-extrabold text-[13px] text-[#8CE6B8] tabular-nums truncate">
+                  {renderAmount(monthlyIncome, userCurrency)}
                 </span>
               </div>
+              <div className="flex flex-col min-w-0 border-l border-white/10 pl-2">
+                <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">Spent</span>
+                <span className="font-extrabold text-[13px] text-white tabular-nums truncate">
+                  {renderAmount(monthlyExpense, userCurrency)}
+                </span>
+              </div>
+              <div className="flex flex-col min-w-0 border-l border-white/10 pl-2">
+                <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">Net</span>
+                <span
+                  className={`font-extrabold text-[13px] tabular-nums truncate ${
+                    netSavings >= 0 ? "text-[#8CE6B8]" : "text-rose-300"
+                  }`}
+                >
+                  {netSavings >= 0 ? "+" : "−"}
+                  {renderAmount(Math.abs(netSavings), userCurrency)}
+                </span>
+              </div>
+            </div>
 
-              <span className="text-[10px] text-white/60 font-medium">
-                {monthLabel}
-              </span>
+            {/* Proportional Spend Bar */}
+            <div className="pt-1">
+              <div className="h-[5px] w-full rounded-full bg-white/20 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-white transition-all duration-500"
+                  style={{ width: `${expenseRatio}%` }}
+                />
+              </div>
+              <div className="flex justify-between items-center mt-1 text-[10px] font-medium text-white/75">
+                <span>{expenseRatio}% spent</span>
+                <span>{Math.max(0, 100 - expenseRatio)}% kept</span>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -416,6 +439,76 @@ export function Dashboard() {
           )}
         </motion.div>
 
+        {/* Budget Snap Card */}
+        {hasMonthRecords && (
+          <motion.div variants={fadeSlideUp} initial="hidden" animate="visible">
+            <Link
+              to="/categories"
+              className="bg-white rounded-2xl p-4 card-shadow border border-slate-100 hover:border-blue-200 transition-all block space-y-2.5 group"
+            >
+              <div className="flex justify-between items-baseline">
+                <span className="text-[11px] font-semibold text-slate-500">
+                  Budget · {monthLabel}
+                </span>
+                <span className="text-xs font-bold text-blue-600 group-hover:underline">View</span>
+              </div>
+
+              <div className="flex justify-between items-baseline">
+                <span className="text-lg font-bold text-slate-900 tracking-tight">
+                  {renderAmount(Math.max(0, (monthlyIncome > 0 ? monthlyIncome : monthlyExpense) - monthlyExpense), userCurrency)} left
+                </span>
+                <span className="text-xs font-medium text-slate-400">
+                  of {renderAmount(monthlyIncome > 0 ? monthlyIncome : monthlyExpense, userCurrency)} planned
+                </span>
+              </div>
+
+              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  style={{ width: `${expenseRatio}%` }}
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    expenseRatio >= 90
+                      ? "bg-rose-500"
+                      : expenseRatio >= 70
+                      ? "bg-amber-500"
+                      : "bg-emerald-500"
+                  }`}
+                />
+              </div>
+
+              <div className="text-[11px] font-semibold text-slate-500">
+                {expenseRatio}% used
+                {expenseRatio >= 90 ? " · Near limit" : " · On track"}
+              </div>
+            </Link>
+          </motion.div>
+        )}
+
+        {/* Coming Up Section */}
+        <motion.section
+          variants={fadeSlideUp}
+          initial="hidden"
+          animate="visible"
+          className="space-y-2"
+        >
+          <div className="flex justify-between items-center px-1">
+            <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-none">Coming up</h3>
+            <Link to="/categories" className="text-xs font-bold text-blue-600 hover:underline">
+              All recurring →
+            </Link>
+          </div>
+          <div className="bg-white rounded-2xl p-4 card-shadow border border-slate-100 flex items-center justify-between gap-3 text-xs">
+            <span className="text-slate-500 font-medium">
+              Add recurring bills and Pasona shows what's due.
+            </span>
+            <Link
+              to="/settings"
+              className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold shrink-0 transition-colors"
+            >
+              Add recurring
+            </Link>
+          </div>
+        </motion.section>
+
         {/* Compact My Accounts Section with View All */}
         <motion.section
           variants={fadeSlideUp}
@@ -444,41 +537,84 @@ export function Dashboard() {
                 No accounts yet
               </motion.div>
             )}
-            {accountList.map((account) => (
-              <motion.div key={account.id} variants={staggerItem}>
-                <Link
-                  to={`/accounts/${account.id}`}
-                  className="flex-shrink-0 w-32 bg-white p-2.5 rounded-xl card-shadow border border-slate-50 space-y-1.5 block hover:border-blue-200 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div
-                      className={`p-1.5 inline-flex rounded-lg ${
-                        account.type === "bank"
-                          ? "bg-blue-50 text-blue-600"
-                          : account.type === "mobile"
-                            ? "bg-purple-50 text-purple-600"
-                            : "bg-amber-50 text-amber-600"
-                      }`}
-                    >
-                      {account.type === "bank" ? <CreditCard size={13} /> : <Wallet size={13} />}
+            {accountList.map((account) => {
+              const accountColor =
+                account.type === "bank"
+                  ? "#2F66F0"
+                  : account.type === "mobile"
+                    ? "#7557E0"
+                    : "#D9830F";
+              const sharePct =
+                totalBalance > 0 && account.balance > 0
+                  ? Math.min(100, Math.max(0, (account.balance / totalBalance) * 100)).toFixed(1)
+                  : "0";
+
+              return (
+                <motion.div key={account.id} variants={staggerItem}>
+                  <Link
+                    to={`/accounts/${account.id}`}
+                    className="flex-shrink-0 w-32 bg-white p-2.5 rounded-xl card-shadow border border-slate-50 space-y-1.5 block hover:border-blue-200 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div
+                        className={`p-1.5 inline-flex rounded-lg ${
+                          account.type === "bank"
+                            ? "bg-blue-50 text-blue-600"
+                            : account.type === "mobile"
+                              ? "bg-purple-50 text-purple-600"
+                              : "bg-amber-50 text-amber-600"
+                        }`}
+                      >
+                        {account.type === "bank" ? <CreditCard size={13} /> : <Wallet size={13} />}
+                      </div>
+                      <span className="text-[8.5px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 px-1 py-0.5 rounded">
+                        {account.type}
+                      </span>
                     </div>
-                    <span className="text-[8.5px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 px-1 py-0.5 rounded">
-                      {account.type}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-semibold text-slate-500 truncate">
-                      {account.name}
-                    </p>
-                    <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">
-                      {renderAmount(account.balance, userCurrency)}
-                    </p>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
+                    <div>
+                      <p className="text-[10px] font-semibold text-slate-500 truncate">
+                        {account.name}
+                      </p>
+                      <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                        {renderAmount(account.balance, userCurrency)}
+                      </p>
+                    </div>
+                    {/* Share Bar */}
+                    <div className="h-1 w-full rounded-full bg-slate-100 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{ width: `${sharePct}%`, backgroundColor: accountColor }}
+                      />
+                    </div>
+                  </Link>
+                </motion.div>
+              );
+            })}
           </motion.div>
         </motion.section>
+
+        {/* Duplicate Guard Strip */}
+        {monthTx.length > 0 && (
+          <motion.div variants={fadeSlideUp} initial="hidden" animate="visible">
+            <Link
+              to="/transactions?flag=duplicates"
+              className="w-full bg-white rounded-2xl p-3.5 card-shadow border border-slate-100 hover:border-blue-200 transition-all flex items-center gap-3 block group"
+            >
+              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <Shield size={16} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                  Duplicate guard
+                </p>
+                <p className="text-[11px] text-slate-400 font-medium truncate">
+                  {monthTx.length} transactions checked, transfers counted once
+                </p>
+              </div>
+              <ChevronRight size={14} className="text-slate-400 group-hover:text-slate-600 shrink-0" />
+            </Link>
+          </motion.div>
+        )}
 
         {/* Spending Category Breakdown with Visual Donut Chart */}
         <motion.div
@@ -505,7 +641,23 @@ export function Dashboard() {
               )}
 
               {categoryBreakdown.length > 0 && (
-                <div className="flex flex-col sm:flex-row items-center gap-6">
+                <>
+                  {/* Horizontal Stack Bar */}
+                  <div className="w-full h-3 rounded-full overflow-hidden flex gap-0.5 bg-slate-100 mb-4">
+                    {categoryBreakdown.map((item, idx) => (
+                      <div
+                        key={idx}
+                        title={`${item.category_name}: ${renderAmount(item.total, userCurrency)} (${Math.round((item.total / totalSpending) * 100)}%)`}
+                        style={{
+                          flex: Math.max(0.01, item.total),
+                          backgroundColor: CATEGORY_COLORS[idx % CATEGORY_COLORS.length],
+                        }}
+                        className="h-full first:rounded-l-full last:rounded-r-full transition-all duration-300"
+                      />
+                    ))}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-6">
                   {/* Visual Donut Ring */}
                   <div className="relative w-32 h-32 shrink-0 flex items-center justify-center">
                     <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
@@ -581,7 +733,8 @@ export function Dashboard() {
                     })}
                   </div>
                 </div>
-              )}
+              </>
+            )}
 
               <Link
                 to="/transactions"

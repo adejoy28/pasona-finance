@@ -265,10 +265,10 @@ export function TransactionsAdd() {
               type="button"
               onClick={() => setType("expense")}
               className={cn(
-                "flex-1 py-3 rounded-xl text-xs font-black transition-all",
+                "flex-1 py-3 rounded-xl text-xs font-black transition-all cursor-pointer",
                 type === "expense"
-                  ? "bg-white text-slate-900 card-shadow"
-                  : "text-slate-500 hover:text-slate-900",
+                  ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
+                  : "text-[var(--muted)] hover:text-[var(--ink)]",
               )}
             >
               Expense
@@ -277,10 +277,10 @@ export function TransactionsAdd() {
               type="button"
               onClick={() => setType("income")}
               className={cn(
-                "flex-1 py-3 rounded-xl text-xs font-black transition-all",
+                "flex-1 py-3 rounded-xl text-xs font-black transition-all cursor-pointer",
                 type === "income"
-                  ? "bg-white text-green-600 card-shadow"
-                  : "text-slate-500 hover:text-slate-900",
+                  ? "bg-[var(--surface)] text-[var(--pos)] shadow-xs"
+                  : "text-[var(--muted)] hover:text-[var(--ink)]",
               )}
             >
               Income
@@ -289,10 +289,10 @@ export function TransactionsAdd() {
               type="button"
               onClick={() => setType("transfer")}
               className={cn(
-                "flex-1 py-3 rounded-xl text-xs font-black transition-all",
+                "flex-1 py-3 rounded-xl text-xs font-black transition-all cursor-pointer",
                 type === "transfer"
-                  ? "bg-white text-blue-600 card-shadow"
-                  : "text-slate-500 hover:text-slate-900",
+                  ? "bg-[var(--surface)] text-[var(--primary)] shadow-xs"
+                  : "text-[var(--muted)] hover:text-[var(--ink)]",
               )}
             >
               Transfer
@@ -300,7 +300,7 @@ export function TransactionsAdd() {
           </div>
 
           <div className="bg-white p-6 rounded-3xl card-shadow border border-slate-50 text-center space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">
+            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--muted)] block">
               Amount ({amountSymbol})
             </label>
             <div className="relative inline-block w-full">
@@ -310,7 +310,7 @@ export function TransactionsAdd() {
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
                 className={cn(
-                  "w-full text-center font-black text-slate-900 placeholder:text-slate-200 bg-transparent outline-none tracking-tight transition-all",
+                  "w-full text-center font-black text-[var(--ink)] placeholder:text-[var(--muted)]/50 bg-transparent outline-none tracking-tight transition-all",
                   amount.length > 11
                     ? "text-2xl sm:text-3xl"
                     : amount.length > 7
@@ -321,7 +321,7 @@ export function TransactionsAdd() {
               />
             </div>
             {amountParse.isExpression && (
-              <p className="text-xs font-bold text-blue-600">
+              <p className="text-xs font-bold text-[var(--primary)]">
                 = {renderAmount(amountParse.projected ?? 0, userCurrency)}
               </p>
             )}

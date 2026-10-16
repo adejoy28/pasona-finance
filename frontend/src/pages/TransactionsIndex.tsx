@@ -106,6 +106,59 @@ export function TransactionsIndex() {
   const [searchParams] = useSearchParams();
   const categoryId = searchParams.get("category_id");
 
+  const [savedFilters, setSavedFilters] = useState<
+    { id: string; name: string; type?: Filter; search?: string; dateFilter?: string }[]
+  >(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = localStorage.getItem("pasona.saved_filters");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const isFilterActive = filter !== "all" || Boolean(search.trim()) || dateFilter !== "all";
+
+  const saveCurrentFilter = () => {
+    const parts: string[] = [];
+    if (search.trim()) parts.push(`"${search.trim()}"`);
+    if (filter !== "all") parts.push(filter.charAt(0).toUpperCase() + filter.slice(1));
+    if (dateFilter !== "all") {
+      const dateNames: Record<string, string> = {
+        today: "Today",
+        yesterday: "Yesterday",
+        this_week: "This week",
+        last_week: "Last week",
+        custom: "Custom",
+      };
+      parts.push(dateNames[dateFilter] ?? dateFilter);
+    }
+    const name = parts.join(" · ") || "Saved filter";
+    const newFilter = {
+      id: String(Date.now()),
+      name,
+      type: filter,
+      search: search.trim() || undefined,
+      dateFilter: dateFilter !== "all" ? dateFilter : undefined,
+    };
+    const updated = [newFilter, ...savedFilters].slice(0, 6);
+    setSavedFilters(updated);
+    try {
+      localStorage.setItem("pasona.saved_filters", JSON.stringify(updated));
+      popup.success("Filter saved");
+    } catch (err) {
+      console.error("Failed to save filter", err);
+    }
+  };
+
+  const applySavedFilter = (sf: { type?: Filter; search?: string; dateFilter?: string }) => {
+    setFilter(sf.type ?? "all");
+    setSearch(sf.search ?? "");
+    if (sf.search) setShowSearchInput(true);
+    setDateFilter(sf.dateFilter ?? "all");
+  };
+
   useEffect(() => {
     document.title = "History — Pasona";
   }, []);
@@ -198,6 +251,16 @@ export function TransactionsIndex() {
     }
     return { income, expense, net: income - expense };
   }, [filtered]);
+
+  const allTotals = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const t of transactions) {
+      if (t.type === "income") income += t.amount;
+      else if (t.type === "expense") expense += t.amount;
+    }
+    return { income, expense, count: transactions.length };
+  }, [transactions]);
 
   const heroTitle = useMemo(() => {
     if (filter === "income") return "Total Income";
@@ -335,6 +398,28 @@ export function TransactionsIndex() {
 
       {/* Main Content Area */}
       <main className="max-w-5xl mx-auto px-6 space-y-6 pt-4 w-full">
+        {/* Compact 3-Stat Bar (Task 2.2) */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-white border border-slate-200/70 rounded-2xl p-2.5 sm:p-3 shadow-xs min-w-0">
+            <div className="text-[9px] font-extrabold tracking-wider uppercase text-slate-400">In</div>
+            <div className="font-extrabold text-xs sm:text-sm text-emerald-600 tabular-nums truncate mt-0.5">
+              +{renderAmount(allTotals.income, userCurrency)}
+            </div>
+          </div>
+          <div className="bg-white border border-slate-200/70 rounded-2xl p-2.5 sm:p-3 shadow-xs min-w-0">
+            <div className="text-[9px] font-extrabold tracking-wider uppercase text-slate-400">Out</div>
+            <div className="font-extrabold text-xs sm:text-sm text-slate-900 tabular-nums truncate mt-0.5">
+              -{renderAmount(allTotals.expense, userCurrency)}
+            </div>
+          </div>
+          <div className="bg-white border border-slate-200/70 rounded-2xl p-2.5 sm:p-3 shadow-xs min-w-0">
+            <div className="text-[9px] font-extrabold tracking-wider uppercase text-slate-400">Entries</div>
+            <div className="font-extrabold text-xs sm:text-sm text-slate-900 tabular-nums truncate mt-0.5">
+              {allTotals.count}
+            </div>
+          </div>
+        </div>
+
         {/* Expandable Search Input */}
         <AnimatePresence>
           {(showSearchInput || search) && (
@@ -380,10 +465,10 @@ export function TransactionsIndex() {
                   type="button"
                   onClick={() => setFilter(f.id)}
                   className={cn(
-                    "flex-1 py-2 rounded-lg text-xs font-black transition-all text-center select-none",
+                    "flex-1 py-2 rounded-lg text-xs font-black transition-all text-center select-none cursor-pointer",
                     active
-                      ? "bg-white text-slate-900 shadow-sm"
-                      : "text-slate-500 hover:text-slate-800",
+                      ? "bg-[var(--surface)] text-[var(--ink)] shadow-xs"
+                      : "text-[var(--muted)] hover:text-[var(--ink)]",
                   )}
                 >
                   {f.label}
@@ -395,7 +480,7 @@ export function TransactionsIndex() {
           <select 
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
-            className="w-full bg-white border border-slate-200/60 rounded-xl px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:border-blue-500 shadow-xs appearance-none"
+            className="w-full bg-[var(--surface)] border border-[var(--line)] rounded-xl px-3 py-2 text-xs font-bold text-[var(--ink)] focus:outline-none focus:border-[var(--primary)] shadow-xs appearance-none"
           >
             <option value="all">All Time</option>
             <option value="today">Today</option>
@@ -410,39 +495,71 @@ export function TransactionsIndex() {
                 type="date"
                 value={customFrom}
                 onChange={(e) => setCustomFrom(e.target.value)}
-                className="w-full bg-white border border-slate-200/60 rounded-xl px-3 py-2 text-xs text-slate-600 focus:outline-none focus:border-blue-500 shadow-xs"
+                className="w-full bg-[var(--surface)] border border-[var(--line)] rounded-xl px-3 py-2 text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--primary)] shadow-xs"
               />
               <input 
                 type="date"
                 value={customTo}
                 onChange={(e) => setCustomTo(e.target.value)}
-                className="w-full bg-white border border-slate-200/60 rounded-xl px-3 py-2 text-xs text-slate-600 focus:outline-none focus:border-blue-500 shadow-xs"
+                className="w-full bg-[var(--surface)] border border-[var(--line)] rounded-xl px-3 py-2 text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--primary)] shadow-xs"
               />
             </div>
           )}
+
+          {/* Saved Filter Chips (Task 2.3) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
+            {savedFilters.map((sf) => {
+              const isMatch =
+                filter === (sf.type ?? "all") &&
+                search === (sf.search ?? "") &&
+                dateFilter === (sf.dateFilter ?? "all");
+
+              return (
+                <button
+                  key={sf.id}
+                  type="button"
+                  onClick={() => applySavedFilter(sf)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0 transition-all flex items-center gap-1 cursor-pointer",
+                    isMatch
+                      ? "bg-[var(--primary)] text-white shadow-xs"
+                      : "bg-[var(--chip)] text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)]"
+                  )}
+                >
+                  <span>{sf.name}</span>
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const updated = savedFilters.filter((f) => f.id !== sf.id);
+                      setSavedFilters(updated);
+                      try {
+                        localStorage.setItem("pasona.saved_filters", JSON.stringify(updated));
+                      } catch {
+                        // ignore
+                      }
+                    }}
+                    className="opacity-60 hover:opacity-100 ml-0.5"
+                    title="Remove filter"
+                  >
+                    ×
+                  </span>
+                </button>
+              );
+            })}
+
+            {isFilterActive && savedFilters.length < 6 && (
+              <button
+                type="button"
+                onClick={saveCurrentFilter}
+                className="px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0 border border-dashed border-[var(--line)] text-[var(--muted)] hover:border-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)] transition-colors cursor-pointer"
+              >
+                + Save this filter
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Sleek Summary Strip */}
-        <div className="bg-white px-4 py-3 rounded-2xl border border-slate-200/60 shadow-xs flex items-center justify-between text-xs font-bold text-slate-500 overflow-x-auto no-scrollbar">
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-            <span className="text-slate-400 font-medium">In:</span>
-            <span className="text-slate-900 font-extrabold tabular-nums">+{isMasked ? "****" : formatCompactCurrency(totals.income, userCurrency)}</span>
-          </div>
-          <div className="h-3 w-px bg-slate-200 shrink-0 mx-1" />
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
-            <span className="text-slate-400 font-medium">Out:</span>
-            <span className="text-slate-900 font-extrabold tabular-nums">-{isMasked ? "****" : formatCompactCurrency(totals.expense, userCurrency)}</span>
-          </div>
-          <div className="h-3 w-px bg-slate-200 shrink-0 mx-1" />
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-slate-400 font-medium">Net:</span>
-            <span className={cn("font-extrabold tabular-nums", totals.net >= 0 ? "text-indigo-600" : "text-rose-600")}>
-              {isMasked ? "****" : formatCompactCurrency(totals.net, userCurrency)}
-            </span>
-          </div>
-        </div>
+
 
         {error && (
           <div className="p-3.5 bg-rose-50 border border-rose-100 text-rose-600 rounded-xl text-xs font-bold flex items-center gap-2">
@@ -473,10 +590,33 @@ export function TransactionsIndex() {
         <div className="space-y-4">
           {grouped.map(([day, items]) => (
             <div key={day} className="space-y-1.5">
-              {/* Date Separator Header */}
+              {/* Date Separator Header (Task 2.1) */}
               <div className="px-1 pt-2 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
                 <span>{formatDateHeader(day)}</span>
-                <span className="font-semibold text-slate-300">{items.length}</span>
+                {(() => {
+                  const dayNet = items.reduce((sum, item) => {
+                    const amt = Number(item.amount) || 0;
+                    if (item.type === "income") return sum + amt;
+                    if (item.type === "expense") return sum - amt;
+                    return sum;
+                  }, 0);
+
+                  return (
+                    <span
+                      className={cn(
+                        "font-extrabold text-[11px] tabular-nums tracking-normal normal-case",
+                        dayNet > 0
+                          ? "text-emerald-600"
+                          : dayNet < 0
+                          ? "text-rose-600"
+                          : "text-slate-400"
+                      )}
+                    >
+                      {dayNet > 0 ? "+" : dayNet < 0 ? "−" : ""}
+                      {renderAmount(Math.abs(dayNet), userCurrency)}
+                    </span>
+                  );
+                })()}
               </div>
 
               {/* Transactions Card List */}
@@ -525,6 +665,25 @@ export function TransactionsIndex() {
                                   <span className="text-slate-500">{tx.category.name}</span>
                                 </>
                               )}
+                              {(() => {
+                                const ref = rawDto?.reference?.toLowerCase() ?? "";
+                                const sourceBadge =
+                                  ref.includes("csv") || ref.includes("import")
+                                    ? "Imported"
+                                    : ref.includes("alert")
+                                    ? "From alert"
+                                    : null;
+
+                                if (!sourceBadge) return null;
+                                return (
+                                  <>
+                                    <span>•</span>
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide uppercase bg-slate-100 text-slate-600">
+                                      {sourceBadge}
+                                    </span>
+                                  </>
+                                );
+                              })()}
                             </p>
                           </div>
                         </Link>
