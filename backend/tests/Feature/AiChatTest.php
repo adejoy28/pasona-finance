@@ -142,4 +142,61 @@ class AiChatTest extends TestCase
                 'retryable' => true,
             ]);
     }
+
+    public function test_ai_payload_anonymizes_user_and_omits_transaction_descriptions(): void
+    {
+        Config::set('services.groq.api_key', 'gsk_dummy_test_key');
+
+        Http::fake([
+            'https://api.groq.com/openai/v1/chat/completions' => Http::response([
+                'choices' => [
+                    [
+                        'message' => [
+                            'role' => 'assistant',
+                            'content' => 'Reviewing your finances anonymously.',
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $user = User::factory()->create([
+            'name' => 'Secret User John Doe',
+        ]);
+
+        $account = Account::create([
+            'user_id' => $user->id,
+            'name' => 'Checking',
+            'type' => 'bank',
+            'currency' => 'NGN',
+            'starting_balance' => 10000,
+        ]);
+
+        \App\Models\Transaction::create([
+            'user_id' => $user->id,
+            'account_id' => $account->id,
+            'type' => 'expense',
+            'amount' => 4500,
+            'description' => 'Super Secret Medication at Clinic',
+            'transaction_date' => '2026-09-15',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/ai/chat', [
+                'question' => 'How much did I spend recently?',
+            ]);
+
+        $response->assertStatus(200);
+
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request) {
+            $data = json_encode($request->data());
+            // Must NOT leak user name
+            $this->assertStringNotContainsString('Secret User John Doe', $data);
+            // Must NOT leak raw transaction description/memo
+            $this->assertStringNotContainsString('Super Secret Medication at Clinic', $data);
+            // Must include non-advisory disclaimer in system guidelines
+            $this->assertStringContainsString('Non-Advisory Disclaimer', $data);
+            return true;
+        });
+    }
 }

@@ -399,27 +399,8 @@ export function AccountDetail() {
                   <Building2 size={20} />
                 </div>
               </div>
-
-              {/* Task 3.1: In / Out / Entries KPI block */}
-              <div className="pt-2.5 border-t border-white/10 grid grid-cols-3 gap-2">
-                <div className="min-w-0">
-                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-300">In</div>
-                  <div className="font-extrabold text-xs sm:text-sm text-emerald-300 tabular-nums truncate">
-                    +{renderAmount(accountStats.income, userCurrency)}
-                  </div>
-                </div>
-                <div className="min-w-0 border-l border-white/10 pl-2">
-                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-300">Out</div>
-                  <div className="font-extrabold text-xs sm:text-sm text-white tabular-nums truncate">
-                    -{renderAmount(accountStats.expense, userCurrency)}
-                  </div>
-                </div>
-                <div className="min-w-0 border-l border-white/10 pl-2">
-                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-300">Entries</div>
-                  <div className="font-extrabold text-xs sm:text-sm text-white tabular-nums truncate">
-                    {accountStats.entries}
-                  </div>
-                </div>
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
+                {getTypeIcon(account.type)}
               </div>
             </div>
           ) : null}
