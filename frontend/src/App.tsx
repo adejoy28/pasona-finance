@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useNavigate, Navigate } from "react-router";
 import { PopupProvider } from "@/components/ui/popup";
+import { UndoToastProvider } from "@/hooks/use-undo-toast";
 import { ProtectedRoute } from "@/lib/auth/guard";
 import { onUnauthorized } from "@/lib/api";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
@@ -32,7 +33,8 @@ import { initCapacitor } from "@/lib/capacitor";
 import { SubtlePopups } from "@/components/finance/SubtlePopups";
 import { SyncIndicator } from "@/components/finance/SyncIndicator";
 import { SplashScreen } from "@/components/finance/SplashScreen";
-import { NativeNotificationListener } from "@/components/finance/NativeNotificationListener";
+import { useMe } from "@/hooks/use-me";
+import { useTheme } from "@/hooks/use-theme";
 
 function UnauthorizedHandler() {
   const navigate = useNavigate();
@@ -47,6 +49,8 @@ function UnauthorizedHandler() {
 }
 
 export function App() {
+  useTheme();
+
   useEffect(() => {
     initCapacitor();
     if ("serviceWorker" in navigator) {
@@ -61,7 +65,8 @@ export function App() {
     <BrowserRouter>
       <ErrorBoundary>
         <PopupProvider>
-          <SplashScreen duration={1500} />
+          <UndoToastProvider>
+            <SplashScreen duration={1500} />
           <SubtlePopups />
           <SyncIndicator />
           <NativeNotificationListener />
@@ -149,6 +154,7 @@ export function App() {
           {/* 404 fallback */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+          </UndoToastProvider>
       </PopupProvider>
     </ErrorBoundary>
   </BrowserRouter>
