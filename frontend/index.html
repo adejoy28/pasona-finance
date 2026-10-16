@@ -28,12 +28,19 @@
         try {
           var raw = localStorage.getItem('pasona.theme');
           var cfg = raw ? JSON.parse(raw) : {};
-          var skin = cfg.skin === 'fresh' ? 'fresh' : 'original';
-          var mode = (cfg.mode === 'light' || cfg.mode === 'dark' || cfg.mode === 'system') ? cfg.mode : 'system';
+          var skin = (cfg.skin === 'new' || cfg.skin === 'fresh') ? 'new' : 'original';
+          var mode = 'auto';
+          if (cfg.mode === 'light' || cfg.theme === 'light') mode = 'light';
+          else if (cfg.mode === 'dark' || cfg.theme === 'dark') mode = 'dark';
           var root = document.documentElement;
           root.setAttribute('data-skin', skin);
-          root.setAttribute('data-mode', mode);
-          var isDark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (mode === 'auto') {
+            root.removeAttribute('data-theme');
+          } else {
+            root.setAttribute('data-theme', mode);
+          }
+          root.setAttribute('data-mode', mode === 'auto' ? 'system' : mode);
+          var isDark = mode === 'dark' || (mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
           if (isDark) {
             root.classList.add('dark');
           } else {
@@ -41,7 +48,7 @@
           }
         } catch (e) {
           document.documentElement.setAttribute('data-skin', 'original');
-          document.documentElement.setAttribute('data-mode', 'system');
+          document.documentElement.removeAttribute('data-theme');
         }
       })();
     </script>

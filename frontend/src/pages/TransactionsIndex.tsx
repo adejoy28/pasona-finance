@@ -1,7 +1,8 @@
 import { Link, useSearchParams } from "react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { usePopup } from "@/components/ui/popup";
+import { notify } from "@/hooks/use-toast";
+import { ConfirmDestructiveDialog } from "@/components/ui/confirm-destructive-dialog";
 import { usePrivacyMode } from "@/hooks/use-privacy-mode";
 import {
   AlertTriangle,
@@ -14,6 +15,7 @@ import {
   Plus,
   ReceiptText,
   Search,
+  Settings as SettingsIcon,
   Tag,
   Trash2,
   User,
@@ -30,16 +32,7 @@ import { SwipeReveal } from "@/components/finance/SwipeReveal";
 import { useMe } from "@/hooks/use-me";
 import { useOnline } from "@/hooks/use-online";
 import { fadeSlideDown, fadeSlideUp } from "@/lib/animations";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { getUserInitials } from "@/components/finance/ScreenHeader";
 
 type Filter = "all" | "expense" | "income" | "transfer";
 
@@ -94,6 +87,7 @@ function groupByDay(items: Transaction[]) {
 }
 
 export function TransactionsIndex() {
+  const { data: user } = useMe();
   const [txDtos, setTxDtos] = useState<TransactionDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
@@ -146,7 +140,7 @@ export function TransactionsIndex() {
     setSavedFilters(updated);
     try {
       localStorage.setItem("pasona.saved_filters", JSON.stringify(updated));
-      popup.success("Filter saved");
+      notify.success("Filter saved");
     } catch (err) {
       console.error("Failed to save filter", err);
     }
@@ -167,7 +161,6 @@ export function TransactionsIndex() {
   const userQuery = useMe();
   const userCurrency = userQuery.data?.currency ?? DEFAULT_CURRENCY;
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const popup = usePopup();
   const { renderAmount, isMasked } = usePrivacyMode();
 
   const loadData = async () => {
@@ -290,11 +283,11 @@ export function TransactionsIndex() {
     setIsDeleting(true);
     try {
       await transactionsApi.deleteTransaction(deletingTransaction.id);
-      popup.success("Transaction deleted");
+      notify.success("Transaction deleted");
       setDeletingTransaction(null);
       void loadData();
     } catch (err) {
-      popup.error(
+      notify.error(
         err instanceof ApiError
           ? err.message
           : "Unable to delete transaction. Please try again.",
@@ -314,16 +307,6 @@ export function TransactionsIndex() {
       <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-6 shadow-sm border-b border-white/5 transition-all">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2.5">
-            <Link
-              to="/settings"
-              className={`w-9 h-9 rounded-full flex items-center justify-center text-white transition-all shadow-sm relative overflow-hidden ring-2 ring-offset-2 ring-offset-[#0b1434] ${
-                isOnline ? "ring-emerald-400 bg-white/10" : "ring-amber-400 bg-white/10"
-              }`}
-              aria-label="Profile settings"
-              title={isOnline ? "Online" : "Offline"}
-            >
-              <User size={18} />
-            </Link>
             <h1 className="text-base font-bold tracking-tight text-white">History</h1>
           </div>
 
@@ -348,6 +331,22 @@ export function TransactionsIndex() {
               aria-label="Add Transaction"
             >
               <Plus size={18} />
+            </Link>
+            <Link
+              to="/settings"
+              className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all md:hidden"
+              aria-label="Settings"
+              title="Settings"
+            >
+              <SettingsIcon size={16} />
+            </Link>
+            <Link
+              to="/profile"
+              className="w-9 h-9 rounded-full bg-[var(--primary)] text-white font-bold text-xs flex items-center justify-center transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] shadow-sm"
+              aria-label="User Profile"
+              title={`Profile: ${user?.name || "User"}`}
+            >
+              {getUserInitials(user?.name)}
             </Link>
           </div>
         </div>
@@ -745,33 +744,16 @@ export function TransactionsIndex() {
       )}
 
       {/* Delete Confirmation */}
-      <AlertDialog
+      <ConfirmDestructiveDialog
         open={!!deletingTransaction}
         onOpenChange={(open) => {
           if (!open) setDeletingTransaction(null);
         }}
-      >
-        <AlertDialogContent className="rounded-2xl max-w-sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-base font-black text-rose-600">Delete transaction?</AlertDialogTitle>
-            <AlertDialogDescription className="text-xs text-slate-500">
-              This will remove "{deletingTransaction?.description || "this transaction"}" and update your account balance.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row gap-2 justify-end">
-            <AlertDialogCancel className="rounded-xl text-xs font-bold border-slate-200 mt-0">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              disabled={isDeleting}
-              className="rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white border-0"
-            >
-              {isDeleting ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Delete transaction?"
+        description={`This will remove "${deletingTransaction?.description || "this transaction"}" and update your account balance.`}
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

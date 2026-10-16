@@ -71,3 +71,7 @@ export function invalidateMe(): void {
 export function setCachedUser(user: UserDto | null): void {
   cachedUser = user;
 }
+
+export function getCachedUser(): UserDto | null {
+  return cachedUser;
+}

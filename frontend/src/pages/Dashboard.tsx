@@ -13,14 +13,16 @@ import {
   Wallet,
   Eye,
   EyeOff,
+  Settings as SettingsIcon,
 } from "lucide-react";
-import { usePopup } from "@/components/ui/popup";
+import { notify } from "@/hooks/use-toast";
 import { FinanceNavbar } from "@/components/finance/Navbar";
 import { DashboardSkeleton } from "@/components/finance/Skeletons";
 import { AiChat } from "@/components/finance/AiChat";
 import { OnboardingTour } from "@/components/finance/OnboardingTour";
 import { NotificationBell } from "@/components/finance/NotificationBell";
 import { VerifyEmailBanner } from "@/components/finance/VerifyEmailBanner";
+import { MonthDropdown, getUserInitials } from "@/components/finance/ScreenHeader";
 import { DEFAULT_CURRENCY } from "@/lib/currencies";
 import { formatCurrency, type Account } from "@/lib/finance";
 import {
@@ -60,7 +62,6 @@ export function Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const verifiedFlag = searchParams.get("verified") ?? undefined;
-  const popup = usePopup();
   const { isRevealed, toggleReveal, renderAmount } = usePrivacyMode();
 
   useEffect(() => {
@@ -70,15 +71,15 @@ export function Dashboard() {
   useEffect(() => {
     if (!verifiedFlag) return;
     if (verifiedFlag === "1") {
-      popup.success("Email confirmed");
+      notify.success("Email confirmed");
     } else if (verifiedFlag === "already") {
-      popup.info("Email was already verified");
+      notify.info("Email was already verified");
     } else if (verifiedFlag === "error") {
-      popup.error("That confirmation link is invalid or has expired.");
+      notify.error("That confirmation link is invalid or has expired.");
     }
     invalidateMe();
     setSearchParams({}, { replace: true });
-  }, [verifiedFlag, popup, setSearchParams]);
+  }, [verifiedFlag, setSearchParams]);
 
   const [monthOffset, setMonthOffset] = useState(0);
   const monthDate = new Date();
@@ -215,25 +216,60 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-50 pb-32">
       {/* Sticky Fixed Top Header Bar (Edge-to-edge padding, seamlessly connects with hero) */}
-      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-6 shadow-sm border-b border-white/5 transition-all">
-        <div className="max-w-5xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2.5">
-            <Link
-              to="/settings"
-              className={`w-9 h-9 rounded-full flex items-center justify-center text-white transition-all shadow-sm relative overflow-hidden ring-2 ring-offset-2 ring-offset-[#0b1434] ${
-                isOnline ? "ring-emerald-400 bg-white/10" : "ring-amber-400 bg-white/10"
-              }`}
-              aria-label="Profile settings"
-              title={isOnline ? "Online" : "Offline"}
-            >
-              <User size={18} />
-            </Link>
-            <h1 className="text-sm sm:text-base font-bold tracking-tight text-white truncate">
-              {userQuery.data?.name ? `Hi, ${userQuery.data.name.trim().split(" ")[0]}` : "Hi, User"}
-            </h1>
+      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-6 shadow-sm border-b border-white/5 transition-all text-white">
+        <div className="max-w-5xl mx-auto flex flex-col gap-2">
+          <div className="flex justify-between items-center gap-3">
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-bold tracking-tight text-white truncate">
+                {userQuery.data?.name ? `Hi, ${userQuery.data.name.trim().split(" ")[0]}` : "Hi, User"}
+              </h1>
+              <p className="text-[11px] font-semibold text-white/70">
+                Your overview for {monthLabel}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Desktop Month Dropdown (Addendum C) */}
+              <div className="hidden sm:block">
+                <MonthDropdown
+                  currentLabel={monthLabel}
+                  monthOffset={monthOffset}
+                  onSelectOffset={setMonthOffset}
+                />
+              </div>
+
+              <NotificationBell />
+
+              {/* Mobile-only gear icon leading to /settings (Addendum A) */}
+              <Link
+                to="/settings"
+                aria-label="Settings"
+                title="Settings"
+                className="w-9 h-9 rounded-xl border border-white/10 bg-white/10 text-white flex items-center justify-center transition-colors hover:bg-white/20 md:hidden outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+              >
+                <SettingsIcon size={16} />
+              </Link>
+
+              {/* Avatar on every main screen leading to /profile (Addendum A) */}
+              <Link
+                to="/profile"
+                aria-label="User Profile"
+                title={`Profile: ${userQuery.data?.name || "User"}`}
+                className="w-9 h-9 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/50 shadow-sm"
+              >
+                {getUserInitials(userQuery.data?.name)}
+              </Link>
+            </div>
           </div>
 
-          <NotificationBell />
+          {/* Phone-only own-row month dropdown (Addendum C) */}
+          <div className="sm:hidden self-start">
+            <MonthDropdown
+              currentLabel={monthLabel}
+              monthOffset={monthOffset}
+              onSelectOffset={setMonthOffset}
+            />
+          </div>
         </div>
       </header>
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Share, PlusSquare, Download, ShieldCheck, DownloadCloud } from "lucide-react";
+import { notify } from "@/hooks/use-toast";
 
 export function DownloadPage() {
   const navigate = useNavigate();
@@ -144,7 +145,7 @@ export function DownloadPage() {
                     className="inline-flex items-center justify-center w-full gap-2 py-3 rounded-xl font-bold text-white text-sm bg-[#3b82f6] hover:bg-[#2563eb] transition-colors"
                     onClick={(e) => {
                       e.preventDefault();
-                      alert("Download link is currently a placeholder.");
+                      notify.info("Download link is currently a placeholder.");
                     }}
                   >
                     <Download size={18} />

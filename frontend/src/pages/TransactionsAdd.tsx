@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AlertCircle, ArrowLeft, Check, ChevronDown, CloudOff, Plus, Wallet } from "lucide-react";
-import { usePopup } from "@/components/ui/popup";
+import { notify } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { AccountDialog } from "@/components/finance/AccountDialog";
 import { CategoryDialog } from "@/components/finance/CategoryDialog";
@@ -40,7 +40,6 @@ function toCategory(dto: CategoryDto): Category {
 
 export function TransactionsAdd() {
   const navigate = useNavigate();
-  const popup = usePopup();
   const [amount, setAmount] = useState("");
   const [type, setType] = useState<"income" | "expense" | "transfer">("expense");
   const [accountId, setAccountId] = useState("");
@@ -158,10 +157,10 @@ export function TransactionsAdd() {
       if (isOnline) {
         await transactionsApi.createTransaction(payload);
         void loadFormData();
-        popup.success("Transaction saved", { duration: 2000 });
+        notify.success("Transaction saved", { duration: 2000 });
       } else {
         await enqueue(payload);
-        popup.success("Saved offline. We'll sync it when you're back online.", { duration: 2000 });
+        notify.success("Saved offline. We'll sync it when you're back online.", { duration: 2000 });
       }
       // Retain selected options (type, accountId, toAccountId, categoryId, date)
       // and reset transaction-specific input fields for fast consecutive recording
