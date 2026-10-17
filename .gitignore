@@ -24,3 +24,9 @@ promotions/ffmpeg.zip
 .idea/studiobot.xml
 .idea/vcs.xml
 .idea/caches/deviceStreaming.xml
+
+# Private bank statements and financial imports
+app/backend/app/Http/Controllers/API/Import/JOHN AYOMIDE ADEBAYO_8163414246_20260605135756.xlsx
+app/frontend/src/import/Statements download_20261001225804_18f6e0c4-be0c-464c-aa3f-fb22ed4e1725.pdf
+app/frontend/src/import/kuda Statement.xlsx
+app/frontend/src/import/opay.xlsx
