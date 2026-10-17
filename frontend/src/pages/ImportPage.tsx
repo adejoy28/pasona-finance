@@ -679,7 +679,7 @@ export function ImportPage() {
               >
                 <input
                   type="file"
-                  accept={bankConfig.accepts}
+                  accept=".csv, .xlsx, .xls, .pdf, application/pdf, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, text/csv"
                   onChange={(e) => handlePickFile(e.target.files?.[0] ?? null)}
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />
