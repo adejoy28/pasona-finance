@@ -128,7 +128,7 @@ export function BudgetsIndex() {
     ? "bg-[var(--warn)]"
     : "bg-[var(--primary)]";
 
-  if (loading && !budgetData) {
+  if (loading && !budgetData && !goalsData?.goals?.length && !billsData?.bills?.length) {
     return (
       <>
         <BudgetsSkeleton />
@@ -456,7 +456,7 @@ export function BudgetsIndex() {
 
                 {/* Categories List */}
                 <div className="divide-y divide-[var(--line)]">
-                  {loading ? (
+                  {loading && (!budgetData || sortedCategories.length === 0) ? (
                     Array.from({ length: 5 }).map((_, i) => (
                       <div key={i} className="py-3 flex flex-col gap-2 px-1 animate-pulse">
                         <div className="flex items-center justify-between">

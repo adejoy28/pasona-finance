@@ -118,8 +118,7 @@ export interface DashboardViewModel {
   refresh: () => Promise<void>;
 }
 
-// In-memory module cache for SWR instant page loads
-interface CacheEntry {
+export interface DashboardCacheEntry {
   summary: SummaryDto;
   accounts: AccountDto[];
   categories: CategoryDto[];
@@ -132,10 +131,14 @@ interface CacheEntry {
   timestamp: number;
 }
 
-const dataCache = new Map<string, CacheEntry>();
+const dataCache = new Map<string, DashboardCacheEntry>();
 
 export function invalidateDashboardDataCache(): void {
   dataCache.clear();
+}
+
+export function getDashboardCacheEntry(monthKey: string): DashboardCacheEntry | undefined {
+  return dataCache.get(monthKey);
 }
 
 export function useDashboardData(monthDate: Date): DashboardViewModel {
