@@ -23,6 +23,7 @@ import { TransactionsIndex } from "@/pages/TransactionsIndex";
 import { TransactionsAdd } from "@/pages/TransactionsAdd";
 import { TransactionDetail } from "@/pages/TransactionDetail";
 import { Categories } from "@/pages/Categories";
+import { DuplicateReviewPage } from "@/pages/DuplicateReviewPage";
 import { BudgetsIndex } from "@/pages/BudgetsIndex";
 import { Settings } from "@/pages/Settings";
 import { ProfilePage } from "@/pages/ProfilePage";
@@ -145,6 +146,7 @@ export function App() {
           >
             <Route index element={<TransactionsIndex />} />
             <Route path="add" element={<TransactionsAdd />} />
+            <Route path="duplicates" element={<DuplicateReviewPage />} />
             <Route path=":transactionId" element={<TransactionDetail />} />
           </Route>
 

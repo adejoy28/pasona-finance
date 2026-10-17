@@ -36,6 +36,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type Transaction } from "@/lib/finance";
+import { DuplicateReviewView } from "@/components/finance/DuplicateReviewView";
+import { detectDuplicatePairs } from "@/lib/duplicate-detector";
 import {
   ApiError,
   accounts as accountsApi,
@@ -645,9 +647,15 @@ function TransactionDetailModal({
 export function TransactionsIndex() {
   const { data: user } = useMe();
   const { isRevealed, renderAmount } = usePrivacyMode();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const categoryIdParam = searchParams.get("category_id");
   const accountIdParam = searchParams.get("account_id");
+  const duplicateFlag =
+    searchParams.get("flag") === "duplicates" ||
+    searchParams.get("tab") === "duplicates" ||
+    searchParams.get("view") === "duplicates";
+  const [viewMode, setViewMode] = useState<"history" | "duplicates">("history");
+  const isDuplicateView = viewMode === "duplicates" || duplicateFlag;
 
   const [txDtos, setTxDtos] = useState<TransactionDto[]>([]);
   const [accountsList, setAccountsList] = useState<AccountDto[]>([]);
@@ -671,7 +679,6 @@ export function TransactionsIndex() {
   const [activeModalDto, setActiveModalDto] = useState<TransactionDto | null>(null);
   const [deletingTransaction, setDeletingTransaction] = useState<TransactionDto | null>(null);
   const [openMenuTxId, setOpenMenuTxId] = useState<string | null>(null);
-  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTxIds, setSelectedTxIds] = useState<Set<string>>(new Set());
@@ -745,20 +752,20 @@ export function TransactionsIndex() {
 
   const transactions = useMemo(() => txDtos.map(toTransaction), [txDtos]);
 
-  const duplicateTransactions = useMemo(() => {
-    const seen = new Map<string, string>();
-    const dupes: Transaction[] = [];
+  const openDuplicatePairs = useMemo(() => {
+    return detectDuplicatePairs(txDtos);
+  }, [txDtos]);
 
-    for (const t of transactions) {
-      const key = `${t.transaction_date.split(" ")[0]}_${t.account?.name || ""}_${t.amount}_${t.type}`;
-      if (seen.has(key)) {
-        dupes.push(t);
-      } else {
-        seen.set(key, t.id);
+  const duplicateTransactions = useMemo(() => {
+    const duplicateIds = new Set<number>();
+    for (const pair of openDuplicatePairs) {
+      if (pair.kind === "dup") {
+        duplicateIds.add(pair.a.id);
+        duplicateIds.add(pair.b.id);
       }
     }
-    return dupes;
-  }, [transactions]);
+    return transactions.filter((t) => duplicateIds.has(Number(t.id)));
+  }, [openDuplicatePairs, transactions]);
 
   const filtered = useMemo(() => {
     return transactions.filter((t) => {
@@ -1020,6 +1027,30 @@ export function TransactionsIndex() {
     return <HistorySkeleton />;
   }
 
+  if (isDuplicateView) {
+    return (
+      <main className="p-4 sm:p-6 max-w-5xl mx-auto">
+        <DuplicateReviewView
+          transactions={txDtos}
+          userCurrency={userCurrency}
+          onRefresh={loadData}
+          onBack={() => {
+            setViewMode("history");
+            if (duplicateFlag) {
+              setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                next.delete("flag");
+                next.delete("tab");
+                next.delete("view");
+                return next;
+              });
+            }
+          }}
+        />
+      </main>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[var(--bg)] pb-32">
       {/* ===================================================================
@@ -1252,14 +1283,14 @@ export function TransactionsIndex() {
 
           {/* Right: Dropdowns + Duplicate Review Button */}
           <div className="flex items-center gap-2 flex-wrap">
-            {duplicateTransactions.length > 0 && (
+            {openDuplicatePairs.length > 0 && (
               <button
                 type="button"
-                onClick={() => setShowDuplicateModal(true)}
+                onClick={() => setViewMode("duplicates")}
                 className="px-2.5 py-1.5 rounded-[var(--r-sm)] bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1.5 text-xs font-bold hover:bg-amber-500/25 transition-all cursor-pointer"
               >
                 <ShieldAlert size={14} />
-                <span>{duplicateTransactions.length} duplicates to review</span>
+                <span>{openDuplicatePairs.length} duplicates to review</span>
               </button>
             )}
 
@@ -1733,6 +1764,29 @@ export function TransactionsIndex() {
 
           {/* Column 2: Stacked Sidebar Cards */}
           <aside className="aside order-1 lg:order-2 space-y-4">
+            {/* Redesign Duplicate Guard Alert Banner */}
+            {openDuplicatePairs.length > 0 && (
+              <div className="dup flex items-center gap-2.5 p-3 rounded-xl bg-[var(--info-soft)] text-[var(--ink)] border border-[var(--line)]">
+                <ShieldAlert size={18} className="text-[var(--primary)] shrink-0" />
+                <div className="grow min-w-0">
+                  <b className="block text-xs font-bold text-[var(--ink)]">
+                    {openDuplicatePairs.length}{" "}
+                    {openDuplicatePairs.length === 1 ? "item" : "items"} to review
+                  </b>
+                  <span className="text-[11px] text-[var(--muted)]">
+                    Possible duplicates and transfers
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("duplicates")}
+                  className="font-extrabold text-xs text-[var(--accent-text)] hover:underline cursor-pointer px-1 py-0.5"
+                >
+                  Review
+                </button>
+              </div>
+            )}
+
             {/* Card 1: Your accounts */}
             <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[var(--r-md)] p-4 shadow-[var(--lift)] space-y-3">
               <div className="flex items-center justify-between">
@@ -1974,87 +2028,6 @@ export function TransactionsIndex() {
           </aside>
         </div>
       </main>
-
-      {/* Duplicate Review Modal */}
-      {showDuplicateModal && (
-        <div className="fixed inset-0 z-50 bg-[rgba(8,12,40,0.6)] flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl bg-[var(--surface)] border border-[var(--line)] rounded-[var(--r-xl)] shadow-[var(--lift)] p-5 space-y-4 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-[var(--line)] pb-3">
-              <div className="flex items-center gap-2">
-                <ShieldAlert size={18} className="text-amber-500" />
-                <h3 className="font-display font-bold text-base text-[var(--ink)]">
-                  Duplicate Review ({duplicateTransactions.length} items flagged)
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowDuplicateModal(false)}
-                className="w-7 h-7 rounded-[var(--r-sm)] border border-[var(--line)] flex items-center justify-center text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
-              >
-                <X size={14} />
-              </button>
-            </div>
-
-            <p className="text-xs text-[var(--muted)] leading-relaxed">
-              Pasona flags rows with matching dates, amounts, and accounts. Two matching legs of one move between your accounts can be linked as a transfer so neither counts as spending.
-            </p>
-
-            <div className="space-y-3">
-              {duplicateTransactions.map((tx) => {
-                const rawDto = txDtos.find((d) => d.id === tx.id);
-                return (
-                  <div
-                    key={tx.id}
-                    className="bg-[var(--bg)] border border-[var(--line)] rounded-[var(--r-md)] p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs text-[var(--ink)]">
-                          {tx.description || "Transaction"}
-                        </span>
-                        <span className="px-2 py-0.5 rounded-[var(--r-sm)] bg-amber-500/10 text-amber-600 text-[10px] font-bold">
-                          Duplicate
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-[var(--muted)]">
-                        {tx.account?.name || "Account"} · {formatDateHeader(tx.transaction_date)}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <span className="font-bold text-sm text-[var(--ink)] font-mono">
-                        {renderAmount(tx.amount, userCurrency)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (rawDto) {
-                            setDeletingTransaction(rawDto);
-                            setShowDuplicateModal(false);
-                          }
-                        }}
-                        className="px-2.5 py-1 rounded-[var(--r-sm)] bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold hover:bg-rose-100 cursor-pointer"
-                      >
-                        Delete
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          notify.info("Kept transaction in history");
-                          setShowDuplicateModal(false);
-                        }}
-                        className="px-2.5 py-1 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] text-xs font-bold text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
-                      >
-                        Keep
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Transaction Details Modal strictly modeled on mockup lines 1951-1965 */}
       {activeModalDto && (

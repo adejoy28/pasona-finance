@@ -24,7 +24,7 @@ This document audits every feature from the approved mockup (`pasona-redesign.ht
 | **Add: Single transaction** | Exists | Exists (`POST /api/transactions`) | Supports income, expense, and transfer with account selectors. |
 | **Add: Paste alert tab** | Partial | Missing dedicated parser endpoint | Client AI chat can parse alerts; needs dedicated tab in Add screen with empty-field error fallback. |
 | **Add: Bulk import tab** | Exists | Exists (`POST /api/import/*`) | Full statement parser with preview, duplicate check, and batch persistence. |
-| **Duplicate Review: Side-by-side resolution** | Partial | Exists (`409` conflict & `?flag=duplicates`) | Currently filtered in History list; needs side-by-side comparison screen (Keep both, Remove one, Link as transfer). |
+| **Duplicate Review: Side-by-side resolution** | Exists | Exists (`409` conflict & `?flag=duplicates`) | Full side-by-side comparison screen matching mockup with match chips (Keep both, Remove one, Link as transfer), banner in History, and Undo toasts. |
 | **Accounts: List with share of balance bar** | Exists | Exists (`GET /api/accounts`) | Renders account cards with balance proportion bars. |
 | **Account Detail: In / Out / Entries KPIs** | Exists | Exists (`GET /api/accounts/{id}`) | Displays account level metrics on detail card. |
 | **Account Detail: Balance-over-time chart** | Missing | Missing (or derived client-side) | Needs area/line chart of cumulative account balance over time. |
