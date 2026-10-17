@@ -666,6 +666,8 @@ export function TransactionsIndex() {
   const [filter, setFilter] = useState<Filter>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>(categoryIdParam || "all");
   const [selectedAccount, setSelectedAccount] = useState<string>(accountIdParam || "all");
+  const [selectedTag, setSelectedTag] = useState<string>("all");
+  const [hasNoteOnly, setHasNoteOnly] = useState<boolean>(false);
   const [dateFilter, setDateFilter] = useState("all");
   const [minAmount, setMinAmount] = useState<string>("");
   const [customFrom, setCustomFrom] = useState("");
@@ -691,6 +693,32 @@ export function TransactionsIndex() {
     if (accountIdParam) setSelectedAccount(accountIdParam);
   }, [accountIdParam]);
 
+  const getTxMeta = (id: number): { note?: string; tags?: string } | null => {
+    try {
+      const raw = localStorage.getItem(`pasona.tx_meta:${id}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const availableTags = useMemo(() => {
+    const set = new Set<string>();
+    for (const tx of txDtos) {
+      const rawDto = tx as any;
+      const meta = getTxMeta(tx.id);
+      const tagsStr = (rawDto.tags || meta?.tags || "") as string;
+      if (tagsStr) {
+        tagsStr
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter(Boolean)
+          .forEach((t: string) => set.add(t));
+      }
+    }
+    return Array.from(set).sort();
+  }, [txDtos]);
+
   const [savedFilters, setSavedFilters] = useState<
     {
       id: string;
@@ -701,6 +729,8 @@ export function TransactionsIndex() {
       category?: string;
       account?: string;
       minAmount?: string;
+      tag?: string;
+      hasNoteOnly?: boolean;
     }[]
   >(() => {
     if (typeof window === "undefined") return [];
@@ -718,6 +748,8 @@ export function TransactionsIndex() {
     dateFilter !== "all" ||
     selectedCategory !== "all" ||
     selectedAccount !== "all" ||
+    selectedTag !== "all" ||
+    hasNoteOnly ||
     Boolean(minAmount);
 
   const loadData = async () => {
@@ -820,6 +852,21 @@ export function TransactionsIndex() {
         }
       }
 
+      if (selectedTag !== "all") {
+        const rawDto = txDtos.find((dto) => dto.id === t.id) as any;
+        const meta = getTxMeta(t.id);
+        const tagsStr = ((rawDto?.tags || meta?.tags || "") as string).toLowerCase();
+        const tagList = tagsStr.split(",").map((s) => s.trim()).filter(Boolean);
+        if (!tagList.includes(selectedTag.toLowerCase())) return false;
+      }
+
+      if (hasNoteOnly) {
+        const rawDto = txDtos.find((dto) => dto.id === t.id) as any;
+        const meta = getTxMeta(t.id);
+        const noteText = ((rawDto?.note || meta?.note || "") as string).trim();
+        if (!noteText) return false;
+      }
+
       if (search.trim()) {
         const query = search.toLowerCase();
         const desc = (t.description || "").toLowerCase();
@@ -846,6 +893,8 @@ export function TransactionsIndex() {
     filter,
     selectedAccount,
     selectedCategory,
+    selectedTag,
+    hasNoteOnly,
     minAmount,
     dateFilter,
     customFrom,
@@ -943,6 +992,8 @@ export function TransactionsIndex() {
     setFilter("all");
     setSelectedCategory("all");
     setSelectedAccount("all");
+    setSelectedTag("all");
+    setHasNoteOnly(false);
     setDateFilter("all");
     setMinAmount("");
     setCustomFrom("");
@@ -952,19 +1003,53 @@ export function TransactionsIndex() {
     setSelectedTxIds(new Set());
   };
 
-  const saveCurrentFilter = () => {
-    const filterName = prompt("Name this filter:", `Filter ${savedFilters.length + 1}`);
-    if (!filterName || !filterName.trim()) return;
+  const generateFilterName = (): string => {
+    const parts: string[] = [];
+    if (search.trim()) parts.push(`“${search.trim()}”`);
+    if (selectedCategory !== "all") {
+      const cat = categoriesList.find((c) => String(c.id) === selectedCategory);
+      if (cat) parts.push(cat.name);
+    }
+    if (selectedAccount !== "all") {
+      const acc = accountsList.find((a) => String(a.id) === selectedAccount);
+      if (acc) parts.push(acc.name);
+    }
+    if (filter !== "all") {
+      parts.push(filter.charAt(0).toUpperCase() + filter.slice(1));
+    }
+    if (dateFilter !== "all") {
+      const map: Record<string, string> = {
+        "7": "Last 7 days",
+        "30": "Last 30 days",
+        month: "This month",
+        today: "Today",
+        yesterday: "Yesterday",
+      };
+      if (map[dateFilter]) parts.push(map[dateFilter]!);
+    }
+    if (minAmount) parts.push(`>${minAmount}`);
+    if (selectedTag !== "all") parts.push(`#${selectedTag}`);
+    if (hasNoteOnly) parts.push("Notes");
+    return parts.join(" · ") || "Saved filter";
+  };
 
+  const saveCurrentFilter = () => {
+    if (savedFilters.length >= 6) {
+      notify.warn("Maximum 6 saved filters reached");
+      return;
+    }
+    const filterName = generateFilterName();
     const newFilter = {
       id: String(Date.now()),
-      name: filterName.trim(),
+      name: filterName,
       type: filter,
       search,
       dateFilter,
       category: selectedCategory,
       account: selectedAccount,
       minAmount,
+      tag: selectedTag,
+      hasNoteOnly,
     };
 
     const updated = [...savedFilters, newFilter];
@@ -984,6 +1069,9 @@ export function TransactionsIndex() {
     if (sf.category) setSelectedCategory(sf.category);
     if (sf.account) setSelectedAccount(sf.account);
     if (sf.minAmount !== undefined) setMinAmount(sf.minAmount);
+    if (sf.tag) setSelectedTag(sf.tag);
+    if (sf.hasNoteOnly !== undefined) setHasNoteOnly(sf.hasNoteOnly);
+    setCurrentPage(1);
   };
 
   const deleteSavedFilter = (id: string) => {
@@ -1340,9 +1428,53 @@ export function TransactionsIndex() {
           </div>
         </div>
 
+        {/* Saved Filters Row */}
+        {(savedFilters.length > 0 || isFilterActive) && (
+          <div className="chips items-center flex-wrap gap-1.5 pt-0.5">
+            {savedFilters.map((sf) => (
+              <div
+                key={sf.id}
+                className="inline-flex items-center bg-[var(--chip)] rounded-[var(--r-sm)] pr-1 transition-colors hover:bg-[var(--line)]"
+              >
+                <button
+                  type="button"
+                  onClick={() => applySavedFilter(sf)}
+                  className="px-2.5 py-1 text-xs font-bold text-[var(--ink)] cursor-pointer flex items-center gap-1.5 bg-transparent border-none"
+                  title={`Apply filter: ${sf.name}`}
+                >
+                  <FilterIcon size={11} className="text-[var(--muted)]" />
+                  <span>{sf.name}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteSavedFilter(sf.id);
+                  }}
+                  className="p-1 text-[var(--muted)] hover:text-rose-500 rounded cursor-pointer transition-colors"
+                  title="Remove saved filter"
+                  aria-label={`Remove saved filter ${sf.name}`}
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+            {isFilterActive && savedFilters.length < 6 && (
+              <button
+                type="button"
+                onClick={saveCurrentFilter}
+                className="chip save text-xs font-bold text-[var(--ink)] hover:border-[var(--primary)] transition-colors cursor-pointer"
+                title="Save this filter"
+              >
+                + Save this filter
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Filter Panel (if showF) */}
         {showF && (
-          <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[var(--r-md)] p-3.5 shadow-[var(--lift)] grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[var(--r-md)] p-3.5 shadow-[var(--lift)] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <div>
               <label
                 htmlFor="f-min"
@@ -1387,8 +1519,52 @@ export function TransactionsIndex() {
                 <option value="custom">Custom range</option>
               </select>
             </div>
+            <div>
+              <label
+                htmlFor="f-tag"
+                className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] block mb-1"
+              >
+                Tag
+              </label>
+              <select
+                id="f-tag"
+                className="w-full bg-[var(--bg)] border border-[var(--line)] rounded-[var(--r-sm)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink)] cursor-pointer"
+                value={selectedTag}
+                onChange={(e) => {
+                  setSelectedTag(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="all">All tags</option>
+                {availableTags.map((t) => (
+                  <option key={t} value={t}>
+                    #{t}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col justify-end">
+              <label
+                htmlFor="f-note"
+                className="flex items-center gap-2 cursor-pointer py-1.5"
+              >
+                <input
+                  id="f-note"
+                  type="checkbox"
+                  checked={hasNoteOnly}
+                  onChange={(e) => {
+                    setHasNoteOnly(e.target.checked);
+                    setCurrentPage(1);
+                  }}
+                  className="rounded border-[var(--line)] accent-[var(--primary)] h-4 w-4 cursor-pointer"
+                />
+                <span className="text-xs font-semibold text-[var(--ink)]">
+                  Has note only
+                </span>
+              </label>
+            </div>
             {dateFilter === "custom" && (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="sm:col-span-2 md:col-span-4 grid grid-cols-2 gap-2 pt-1 border-t border-[var(--line)]">
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] block mb-1">
                     From
@@ -1424,14 +1600,26 @@ export function TransactionsIndex() {
               <h2 className="font-display font-semibold text-base text-[var(--ink)]">
                 Transactions
               </h2>
-              {isFilterActive && (
-                <div className="text-xs text-[var(--muted)] font-semibold">
-                  {filtered.length} {filtered.length === 1 ? "result" : "results"}
-                  {isRevealed &&
-                    ` · Out ${renderAmount(filteredTotals.expense, userCurrency)} · In ${renderAmount(filteredTotals.income, userCurrency)}`}
-                </div>
-              )}
             </div>
+
+            {isFilterActive && (
+              <div className="resbar">
+                <span>
+                  {filtered.length} {filtered.length === 1 ? "result" : "results"}
+                </span>
+                <span>
+                  {isRevealed &&
+                    `Out ${renderAmount(filteredTotals.expense, userCurrency)} · In ${renderAmount(filteredTotals.income, userCurrency)}`}
+                </span>
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="text-xs font-bold text-[var(--accent)] hover:underline cursor-pointer bg-none border-none p-0"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
 
             {/* Table Column Headers (desktop) */}
             <div className="hidden sm:grid grid-cols-[32px_90px_1fr_140px_130px_110px_32px] gap-2 py-2 text-[10px] uppercase font-bold tracking-wider text-[var(--muted)] border-b border-[var(--line)] items-center">
@@ -1477,24 +1665,32 @@ export function TransactionsIndex() {
                   <p>
                     {isFilterActive
                       ? "Try a different word or clear the filters."
-                      : "Add one by hand, paste a bank alert or import a statement."}
+                      : "Add one by hand, paste a bank alert or import a statement. Nothing is saved until you check it."}
                   </p>
                   <div className="eact">
                     {isFilterActive ? (
                       <button
                         type="button"
                         onClick={resetFilters}
-                        className="px-3 py-1.5 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] text-xs font-bold cursor-pointer hover:bg-[var(--chip)]"
+                        className="px-3.5 py-2 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] text-xs font-bold text-[var(--ink)] cursor-pointer hover:bg-[var(--chip)] transition-colors"
                       >
                         Clear filters
                       </button>
                     ) : (
-                      <Link
-                        to="/transactions/add"
-                        className="px-3.5 py-2 rounded-[var(--r-sm)] bg-[var(--primary)] text-white text-xs font-bold hover:brightness-105"
-                      >
-                        Add transaction
-                      </Link>
+                      <>
+                        <Link
+                          to="/transactions/add"
+                          className="px-3.5 py-2 rounded-[var(--r-sm)] bg-[var(--primary)] text-white text-xs font-bold hover:brightness-105 transition-all"
+                        >
+                          Add transaction
+                        </Link>
+                        <Link
+                          to="/transactions/add?tab=alert"
+                          className="px-3.5 py-2 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] text-xs font-bold text-[var(--ink)] hover:bg-[var(--chip)] transition-colors"
+                        >
+                          Paste an alert
+                        </Link>
+                      </>
                     )}
                   </div>
                 </div>
@@ -1513,9 +1709,7 @@ export function TransactionsIndex() {
                   <div key={day} className="mb-2">
                     {/* Day separator header (.day) */}
                     <div className="day flex items-center justify-between text-xs py-2 px-1 font-bold border-b border-[var(--line)] text-[var(--muted)]">
-                      <div className="flex items-center gap-2">
-                        <span>{formatDateHeader(day)}</span>
-                      </div>
+                      <span>{formatDateHeader(day)}</span>
                       <span
                         className={cn(
                           "font-mono text-[11px]",
@@ -1526,7 +1720,7 @@ export function TransactionsIndex() {
                             : "text-[var(--muted)]"
                         )}
                       >
-                        Total: {dayNet > 0 ? "+" : dayNet < 0 ? "−" : ""}
+                        {dayNet > 0 ? "+" : dayNet < 0 ? "−" : ""}
                         {renderAmount(Math.abs(dayNet), userCurrency)}
                       </span>
                     </div>
