@@ -8,6 +8,9 @@ export * as categories from "./categories";
 export * as summary from "./summary";
 export * as push from "./push";
 export * as notifications from "./notifications";
+export * as budgets from "./budgets";
+export * as goals from "./goals";
+export * as recurringBills from "./recurring-bills";
 export {
   checkImportExisting,
   storeImportTransactions,
@@ -44,4 +47,10 @@ export type {
   AccountType,
   CategoryType,
   TransactionType,
+  BudgetCategoryItemDto,
+  BudgetMonthResponseDto,
+  GoalDto,
+  GoalsResponseDto,
+  RecurringBillDto,
+  RecurringBillsResponseDto,
 } from "./types";

@@ -57,7 +57,7 @@ export function ComingUpCard({ bills = [], currency, className = "" }: ComingUpC
           Coming up
         </h3>
         <Link
-          to="/categories"
+          to="/budgets?tab=recurring"
           className="text-xs font-bold text-[var(--primary)] hover:underline"
         >
           All recurring →
@@ -118,7 +118,7 @@ export function ComingUpCard({ bills = [], currency, className = "" }: ComingUpC
       {totalCount > 3 && (
         <div className="pt-1 border-t border-[var(--line)]/40">
           <Link
-            to="/categories"
+            to="/budgets?tab=recurring"
             className="text-xs font-bold text-[var(--primary)] hover:underline inline-block"
           >
             See all {totalCount} bills →

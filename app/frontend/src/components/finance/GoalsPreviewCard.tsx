@@ -93,7 +93,7 @@ export function GoalsPreviewCard({
       {/* Footer Link */}
       <div className="pt-2 border-t border-[var(--line)]/60">
         <Link
-          to="/categories"
+          to="/budgets?tab=goals"
           className="text-xs font-bold text-[var(--primary)] hover:underline inline-block"
         >
           All goals →

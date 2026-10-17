@@ -268,12 +268,18 @@ export function Categories() {
 
           {/* Budgets notice per Addendum A / IA design */}
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/15 flex items-center justify-between text-xs text-white/90">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--primary)] text-white uppercase tracking-wider">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--primary)] text-white uppercase tracking-wider shrink-0">
                 Budgets
               </span>
-              <span className="text-white/80">Monthly budget limits coming soon — organize your spending categories below.</span>
+              <span className="text-white/80 truncate">Manage your monthly spending plans, goals, and recurring bills.</span>
             </div>
+            <Link
+              to="/budgets"
+              className="text-xs font-bold text-white hover:underline shrink-0 pl-2"
+            >
+              Open Budgets →
+            </Link>
           </div>
         </div>
       </motion.section>

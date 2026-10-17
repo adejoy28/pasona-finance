@@ -131,7 +131,7 @@ export function WhereItWentDonut({
         </div>
 
         <Link
-          to="/categories"
+          to="/budgets"
           className="text-xs font-bold text-[var(--primary)] hover:underline shrink-0 pt-0.5"
         >
           Budgets
