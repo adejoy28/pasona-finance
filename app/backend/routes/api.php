@@ -10,6 +10,9 @@ use App\Http\Controllers\API\Import\ImportController;
 use App\Http\Controllers\API\Import\KudaImportController;
 use App\Http\Controllers\API\Import\OpayImportController;
 use App\Http\Controllers\API\NotificationController;
+use App\Http\Controllers\API\BudgetController;
+use App\Http\Controllers\API\GoalController;
+use App\Http\Controllers\API\RecurringBillController;
 use App\Http\Controllers\API\ResetPasswordController;
 use App\Http\Controllers\API\SocialAuthController;
 use App\Http\Controllers\API\PushSubscriptionController;
@@ -152,6 +155,25 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     // Dashboard Summary
     Route::get('summary', [SummaryController::class, 'index']);
+
+    // Budgets (Phase 7)
+    Route::get('budgets', [BudgetController::class, 'index']);
+    Route::post('budgets', [BudgetController::class, 'store']);
+    Route::post('budgets/copy-previous', [BudgetController::class, 'copyPrevious']);
+
+    // Goals (Phase 7)
+    Route::get('goals', [GoalController::class, 'index']);
+    Route::post('goals', [GoalController::class, 'store']);
+    Route::put('goals/{goal}', [GoalController::class, 'update']);
+    Route::delete('goals/{goal}', [GoalController::class, 'destroy']);
+    Route::post('goals/{goal}/contribute', [GoalController::class, 'contribute']);
+
+    // Recurring Bills (Phase 7)
+    Route::get('recurring-bills', [RecurringBillController::class, 'index']);
+    Route::post('recurring-bills', [RecurringBillController::class, 'store']);
+    Route::put('recurring-bills/{recurringBill}', [RecurringBillController::class, 'update']);
+    Route::delete('recurring-bills/{recurringBill}', [RecurringBillController::class, 'destroy']);
+    Route::post('recurring-bills/{recurringBill}/mark-paid', [RecurringBillController::class, 'markPaid']);
 
     // AI Assistant
     Route::post('ai/chat', [AiController::class, 'chat'])

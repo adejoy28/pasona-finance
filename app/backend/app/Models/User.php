@@ -166,6 +166,36 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get all budgets set by the user.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function budgets()
+    {
+        return $this->hasMany(Budget::class);
+    }
+
+    /**
+     * Get all financial goals created by the user.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function goals()
+    {
+        return $this->hasMany(Goal::class);
+    }
+
+    /**
+     * Get all recurring bills set by the user.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function recurringBills()
+    {
+        return $this->hasMany(RecurringBill::class);
+    }
+
+    /**
      * Send the password reset notification using our app's notification
      * (which builds a frontend URL rather than the default web route).
      *
