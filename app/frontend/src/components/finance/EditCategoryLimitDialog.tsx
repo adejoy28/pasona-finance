@@ -75,7 +75,7 @@ export function EditCategoryLimitDialog({
               <input
                 type="number"
                 min="0"
-                step="500"
+                step="any"
                 placeholder="No limit"
                 value={limit}
                 onChange={(e) => setLimit(e.target.value)}

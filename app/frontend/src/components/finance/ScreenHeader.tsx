@@ -52,7 +52,8 @@ export function MonthDropdown({
 }: MonthDropdownProps) {
   const months = useMemo(() => {
     const items = [];
-    for (let i = 0; i < 12; i++) {
+    // Include next month (+1, e.g. November) so users can plan and view next month
+    for (let i = -1; i < 12; i++) {
       const d = new Date();
       d.setDate(1);
       d.setMonth(d.getMonth() - i);

@@ -175,9 +175,18 @@ class BudgetController extends Controller
     public function copyPrevious(Request $request)
     {
         $user = $request->user();
+        
+
+        if (!$request->has('target_month') && $request->has('month')) {
+            $request->merge(['target_month' => $request->input('month')]);
+        }
+
         $validated = $request->validate([
             'target_month' => 'required|date_format:Y-m',
             'source_month' => 'nullable|date_format:Y-m',
+        ], [
+            'target_month.required' => 'The target month is required (format YYYY-MM).',
+            'target_month.date_format' => 'The target month must be in YYYY-MM format.',
         ]);
 
         $targetMonth = $validated['target_month'];

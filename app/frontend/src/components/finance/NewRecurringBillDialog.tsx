@@ -128,7 +128,7 @@ export function NewRecurringBillDialog({
               <input
                 type="number"
                 min="0.01"
-                step="100"
+                step="any"
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}

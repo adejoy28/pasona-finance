@@ -378,16 +378,25 @@ export function BudgetsIndex() {
                     Start from this month's limits and adjust.
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsNextMonthPlan(true);
-                    setEditPlanOpen(true);
-                  }}
-                  className="shrink-0 px-3 py-1.5 rounded-[4px] bg-[var(--primary)] text-white text-xs font-bold hover:opacity-90 transition-opacity"
-                >
-                  Copy plan
-                </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => copyPreviousMonth(nextMonthKey, budgetData?.month || monthKey)}
+                    className="px-2.5 py-1.5 rounded-[4px] border border-[var(--line)] text-xs font-bold text-[var(--ink)] hover:bg-[var(--chip)] transition-colors"
+                  >
+                    Copy plan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsNextMonthPlan(true);
+                      setEditPlanOpen(true);
+                    }}
+                    className="px-3 py-1.5 rounded-[4px] bg-[var(--primary)] text-white text-xs font-bold hover:opacity-90 transition-opacity"
+                  >
+                    Edit
+                  </button>
+                </div>
               </section>
             </div>
 
@@ -650,9 +659,9 @@ export function BudgetsIndex() {
         currency={userCurrency}
         onSave={async (limits) => {
           if (isNextMonthPlan) {
-            await copyPreviousMonth(nextMonthKey, budgetData?.month);
+            await saveBulkLimits(limits, nextMonthKey);
           } else {
-            await saveBulkLimits(limits);
+            await saveBulkLimits(limits, budgetData?.month || monthKey);
           }
         }}
       />

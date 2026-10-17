@@ -200,13 +200,17 @@ export function useBudgets(initialDate?: Date) {
   );
 
   const saveBulkLimits = useCallback(
-    async (limits: Array<{ category_id: number; limit_amount: number | null }>) => {
+    async (
+      limits: Array<{ category_id: number; limit_amount: number | null }>,
+      targetMonth?: string
+    ) => {
+      const target = targetMonth || monthKey;
       try {
         await budgetsApi.bulkSetBudgetLimits({
-          month: monthKey,
+          month: target,
           budgets: limits,
         });
-        notify.success("Plan saved");
+        notify.success(`Plan saved for ${target}`);
         await loadAll();
       } catch (err: any) {
         notify.error(err?.message || "Could not save plan");
@@ -217,13 +221,15 @@ export function useBudgets(initialDate?: Date) {
   );
 
   const copyPreviousMonth = useCallback(
-    async (targetMonth: string, sourceMonth?: string) => {
+    async (targetMonth?: string, sourceMonth?: string) => {
+      const target = targetMonth || nextMonthKey;
+      const source = sourceMonth || monthKey;
       try {
         const res = await budgetsApi.copyPreviousMonthBudgets({
-          target_month: targetMonth,
-          source_month: sourceMonth,
+          target_month: target,
+          source_month: source,
         });
-        notify.success(`Plan copied to ${targetMonth}`);
+        notify.success(`Plan copied to ${target}`);
         await loadAll();
         return res;
       } catch (err: any) {
@@ -231,7 +237,7 @@ export function useBudgets(initialDate?: Date) {
         throw err;
       }
     },
-    [loadAll]
+    [nextMonthKey, monthKey, loadAll]
   );
 
   const createGoal = useCallback(
