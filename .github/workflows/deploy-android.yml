@@ -33,7 +33,7 @@ jobs:
           VITE_APP_NAME: ${{ secrets.VITE_APP_NAME }}
           VITE_GOOGLE_WEB_CLIENT_ID: ${{ secrets.VITE_GOOGLE_WEB_CLIENT_ID }}
         run: |
-          cd frontend
+          cd app/frontend
           pnpm install --frozen-lockfile
           # Write .env.android from secrets so vite build --mode android picks them up
           cat > .env.android <<EOF
@@ -46,7 +46,7 @@ jobs:
 
       - name: Build Android Release APK
         run: |
-          cd frontend/android
+          cd app/frontend/android
           chmod +x ./gradlew
           ./gradlew assembleRelease
 
@@ -65,9 +65,9 @@ jobs:
           APKSIGNER=$(find $ANDROID_SDK_ROOT/build-tools -name apksigner | sort -r | head -n 1)
           ZIPALIGN=$(find $ANDROID_SDK_ROOT/build-tools -name zipalign | sort -r | head -n 1)
           
-          APK_PATH="frontend/android/app/build/outputs/apk/release/app-release-unsigned.apk"
-          ALIGNED_APK="frontend/android/app/build/outputs/apk/release/app-release-aligned.apk"
-          SIGNED_APK="frontend/android/app/build/outputs/apk/release/app-release-signed.apk"
+          APK_PATH="app/frontend/android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          ALIGNED_APK="app/frontend/android/app/build/outputs/apk/release/app-release-aligned.apk"
+          SIGNED_APK="app/frontend/android/app/build/outputs/apk/release/app-release-signed.apk"
           
           # Align
           $ZIPALIGN -v -p 4 $APK_PATH $ALIGNED_APK

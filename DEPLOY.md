@@ -6,7 +6,7 @@ This document provides instructions for deploying the Pasona Finance Tracker to 
 
 ### 1. Preparation
 
-- Zip the `backend` folder (excluding `node_modules`, `vendor`, and `storage/framework/cache`).
+- Zip the `app/backend` folder (excluding `node_modules`, `vendor`, and `storage/framework/cache`).
 - Upload to cPanel File Manager.
 - Recommended subdomain: `pasona-api.adebayosystems.com.ng`.
 
@@ -29,34 +29,31 @@ This document provides instructions for deploying the Pasona Finance Tracker to 
   php artisan storage:link
   ```
 
-## Frontend (Next.js PWA)
+## Frontend (React + Vite PWA)
 
-### 1. Static Export (Recommended for cPanel)
+### 1. Vercel Deployment (Recommended for Web)
 
-Next.js can be exported as a static site if you don't use dynamic server-side features.
+- If linking GitHub to Vercel:
+  - Set **Root Directory** in Vercel Project Settings to `app/frontend` (or leave as root `/` with the provided root `vercel.json`).
+  - Output directory: `dist`
+  - Build command: `pnpm build`
+  - Add environment variables (`VITE_API_BASE_URL`, `VITE_BACKEND_ORIGIN`).
 
-- Update `next.config.ts`:
-  ```typescript
-  const nextConfig = {
-    output: "export",
-  };
-  ```
-- Run Build:
+### 2. Static Hosting / cPanel
+
+- Navigate to `app/frontend`:
   ```bash
-  npm run build
+  cd app/frontend
+  pnpm install
+  pnpm build
   ```
-- Upload the contents of the `out` directory to your primary domain's `public_html`.
+- Upload the contents of the `app/frontend/dist` directory to your primary domain's `public_html`.
+- Ensure your `.htaccess` or server redirects all non-file requests to `index.html` for SPA routing.
 
-### 2. Node.js App (Alternative)
+## Android APK Deployment (GitHub Actions to Cloudflare R2)
 
-If you prefer a Node server:
-
-- Use cPanel "Setup Node.js App".
-- Select Application root and URL.
-- Upload the `frontend` directory.
-- Run `npm install` and `npm run build`.
-
-## PWA & SSL
+- Tag and publish a new Release on GitHub.
+- The `.github/workflows/deploy-android.yml` workflow automatically builds, signs, and deploys the APK to Cloudflare R2.
 
 - **SSL is Mandatory:** PWA features (Service Workers) and Push Notifications only work over HTTPS. Ensure AutoSSL is active in cPanel.
 - **Manifest:** Verify `/manifest.json` is accessible via browser.
