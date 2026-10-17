@@ -27,7 +27,7 @@ import { getUserInitials } from "@/components/finance/ScreenHeader";
 const navItems = [
   { label: "Home", short: "Home", href: "/dashboard", icon: LayoutDashboard, tour: undefined },
   { label: "History", short: "History", href: "/transactions", icon: ReceiptText, tour: "history-nav" },
-  { label: "Budgets", short: "Budgets", href: "/categories", icon: Target, tour: "categories-nav" },
+  { label: "Budgets", short: "Budgets", href: "/budgets", icon: Target, tour: "budgets-nav" },
   { label: "Accounts", short: "Accounts", href: "/accounts", icon: CreditCard, tour: "accounts-nav" },
   { label: "Settings", short: "Settings", href: "/settings", icon: SettingsIcon, tour: "settings-nav" },
 ] as const;

@@ -178,3 +178,82 @@ export type UpdateProfileInput = {
   timezone?: string;
   currency?: string;
 };
+
+export type BudgetCategoryItemDto = {
+  id: number | null;
+  category_id: number;
+  category_name: string;
+  category_type: string;
+  is_goal: boolean;
+  limit_amount: number | null;
+  spent: number;
+  state: "ok" | "near" | "over" | "goal" | "way" | "none";
+  left: number | null;
+};
+
+export type BudgetMonthResponseDto = {
+  month: string;
+  summary: {
+    planned: number;
+    spent: number;
+    left: number;
+    pct_used: number;
+    over_count: number;
+    near_count: number;
+  };
+  categories: BudgetCategoryItemDto[];
+};
+
+export type GoalDto = {
+  id: number;
+  name: string;
+  target_amount: number;
+  saved_amount: number;
+  target_date: string;
+  account_id?: number | null;
+  account_name?: string | null;
+  color?: string | null;
+  months_remaining?: number;
+  days_remaining?: number;
+  monthly_needed?: number;
+  percent?: number;
+  is_completed?: boolean;
+};
+
+export type GoalsResponseDto = {
+  summary: {
+    total_saved: number;
+    total_target: number;
+    count: number;
+    percent: number;
+  };
+  goals: GoalDto[];
+};
+
+export type RecurringBillDto = {
+  id: number;
+  name: string;
+  amount: number;
+  type: "expense" | "income";
+  account_id: number;
+  account_name?: string | null;
+  category_id?: number | null;
+  category_name?: string | null;
+  frequency: "weekly" | "monthly" | "yearly";
+  next_due: string;
+  days_until_due: number;
+  is_overdue: boolean;
+  is_due_today: boolean;
+  is_due_soon: boolean;
+};
+
+export type RecurringBillsResponseDto = {
+  summary: {
+    next_30_days_net: number;
+    next_30_days_outgoing: number;
+    next_30_days_incoming: number;
+    next_30_days_count: number;
+    total_count: number;
+  };
+  bills: RecurringBillDto[];
+};

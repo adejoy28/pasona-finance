@@ -23,6 +23,7 @@ import { TransactionsIndex } from "@/pages/TransactionsIndex";
 import { TransactionsAdd } from "@/pages/TransactionsAdd";
 import { TransactionDetail } from "@/pages/TransactionDetail";
 import { Categories } from "@/pages/Categories";
+import { BudgetsIndex } from "@/pages/BudgetsIndex";
 import { Settings } from "@/pages/Settings";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { ImportPage } from "@/pages/ImportPage";
@@ -146,6 +147,15 @@ export function App() {
             <Route path="add" element={<TransactionsAdd />} />
             <Route path=":transactionId" element={<TransactionDetail />} />
           </Route>
+
+          <Route
+            path="/budgets"
+            element={
+              <ProtectedRoute>
+                <BudgetsIndex />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/categories"

@@ -35,7 +35,7 @@ export function MonthlyBudgetSnap({
 
   return (
     <Link
-      to="/categories"
+      to="/budgets"
       className={cn(
         "rounded-[6px] p-3.5 sm:p-4 transition-all duration-200 block shadow-[var(--lift)] group",
         "bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)] hover:border-[var(--line)]/80",

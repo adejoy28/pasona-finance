@@ -238,8 +238,8 @@ export const APP_CAPABILITIES_CATALOG: AppCapabilityItem[] = [
     id: "feature-category-budgets",
     title: "Category Budgets",
     summary: "Set monthly spending limits on groceries, dining, or shopping to stay on track.",
-    description: "Navigate to Categories to set spending thresholds. Pasona highlights when categories approach their limit.",
-    route: "/categories",
+    description: "Navigate to Budgets to set spending thresholds. Pasona highlights when categories approach their limit.",
+    route: "/budgets",
     category: "feature",
   },
   {

@@ -20,7 +20,7 @@
 | 6 | Categories & savings fix (backend first) | `phase-6-categories` | ⚪ Queued — **recommend before 5** | Adds `kind` (`expense`, `saving`) to categories API. |
 | 4 | Home (capture-first) | `phase-4-dashboard` | ✅ Done | Quick log card, cash-flow hero, budget card, donut, insights, trend, test. |
 | 5 | Transactions | `phase-5-transactions` | ⚪ Queued | + Save-and-add-another, source badges incl. `mary`. |
-| 7 | Budgets, goals, recurring bills | `phase-7-budgets` | ⚪ Queued | Budgets becomes a real tab (currently points to `/categories`). |
+| 7 | Budgets, goals, recurring bills | `phase-7-budgets` | ✅ Done | Full /budgets page with Budget, Goals, Recurring tabs, modals, pace chart, API, migrations & tests. |
 | 8 | Accounts, balance check, bulk import | `phase-8-accounts` | ⚪ Queued | Balance check UI partly exists (localStorage); adjustment must use Undo toast. |
 | 9 | Profile, Settings, Help & legal, auth restyle, onboarding | `phase-9-settings` | ⚪ Queued | Expanded by Addendum A + G3 + G4.5/6. |
 | **9b** | **Mary (AI assistant)** | `phase-9b-mary` | ⚪ Queued (new) | Addendum F. Backend endpoint + drawer UI. |
@@ -92,6 +92,33 @@
 8. **Responsive fluid layout (Phase 4.6 & Addendum E):** 2-column container query layout on wide screens (`.home-right-grid` with `.colA` and `.colB`), single stacked column on phones.
 9. **Acceptance Test:** Added `test_income_minus_spent_minus_saved_equals_change_in_total_balance` in `backend/tests/Feature/FinanceIsolationTest.php`. Confirmed passing.
 10. **Build & Typecheck:** Clean `npm run build` with 0 errors across 2,669 modules.
+
+## Phase 7 — Budgets, goals, recurring bills — COMPLETED
+
+1. **Database Schema & Migrations:**
+   - Created migration `2026_10_17_000001_create_budgets_goals_and_recurring_bills_tables.php` defining `budgets`, `goals`, and `recurring_bills` tables with user FK, indices, currency/color fields, and soft deletes.
+2. **Backend Models, Policies & Controllers:**
+   - `Budget`, `Goal`, `RecurringBill` models with decimal casting, relations to user, accounts, and categories.
+   - User model updated with `budgets()`, `goals()`, and `recurringBills()` relationships.
+   - Strict ownership authorization via `BudgetPolicy`, `GoalPolicy`, and `RecurringBillPolicy`.
+   - `BudgetController`: `GET /api/budgets` with spending calculations, state tags (`ok`, `near`, `over`, `goal`, `way`), `POST /api/budgets` for single & bulk upsert, and `POST /api/budgets/copy-previous`.
+   - `GoalController`: `GET /api/goals` with monthly amount needed and progress calculations, `POST /api/goals`, `PUT /api/goals/{id}`, `DELETE /api/goals/{id}`, and `POST /api/goals/{id}/contribute` (records saving transaction and increments `saved_amount`).
+   - `RecurringBillController`: `GET /api/recurring-bills` with 30-day projection net/in/out, `POST /api/recurring-bills`, `PUT /api/recurring-bills/{id}`, `DELETE /api/recurring-bills/{id}`, and `POST /api/recurring-bills/{id}/mark-paid` (records transaction and advances next due date by weekly/monthly/yearly frequency).
+3. **Frontend API Clients & Types:**
+   - Added DTO definitions to `types.ts` and modules `budgets.ts`, `goals.ts`, and `recurring-bills.ts` exported via `lib/api/index.ts`.
+4. **Hooks & State Management:**
+   - Built `useBudgets` hook with month offset navigation, pace point calculations, URL tab query sync (`?tab=goals`, `?tab=recurring`), and mutation handlers with notifications and Undo where appropriate.
+5. **UI Components & Visual Fidelity:**
+   - `SpendingAgainstPlanChart.tsx`: Cumulative spending pace vs linear plan pace line chart with table view toggle and legend keys matching redesign mock up.
+   - `GoalCard.tsx`: Visual card with circular SVG progress ring (`ring(p, c, 56)`), month countdown, and "Add" contribution modal trigger.
+   - `RecurringBillRow.tsx`: Bill row with due badge (`Overdue`, `Due today`, `Tomorrow`, `In n days`), frequency/account, amount, and "Paid"/"Received" action.
+   - Dialogs: `EditPlanDialog.tsx`, `NewGoalDialog.tsx`, `AddToGoalDialog.tsx`, `NewRecurringBillDialog.tsx`, and `EditCategoryLimitDialog.tsx`.
+6. **Screen & Navigation:**
+   - Created `BudgetsIndex.tsx` with 3 tabs (`Budget`, `Goals`, `Recurring`), urgent-first category sorting, summary cards, KPIs, next month copy card, and link to `/categories`.
+   - Registered `/budgets` in `App.tsx` and updated Navbar, Dashboard cards (`MonthlyBudgetSnap`, `WhereItWentDonut`, `ComingUpCard`, `GoalsPreviewCard`, `SavingsRateSnap`), `useDashboardData`, `notifications-catalog`, and `Categories` banner.
+7. **Testing & Verification:**
+   - Created `BudgetPhase7Test.php` passing all 4 tests (18 assertions) alongside `FinanceIsolationTest`.
+   - Executed `npm run build` with 0 errors across 2,684 modules.
 
 ## Phase 5 additions
 - **Save and add another** (clears amount + description, refocus amount, toast "Added. Log the next one." + Undo; Save first/full width on phones).

@@ -471,7 +471,7 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
           overBudgetCategoriesCount === 1 ? "category" : "categories"
         }`,
         detail: "Open budgets to see which.",
-        linkTo: "/categories",
+        linkTo: "/budgets",
       });
     }
 
@@ -487,7 +487,7 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
         type: "near_budget",
         title: "You are close to your budget limit",
         detail: `${budget.pctUsed}% of your monthly budget is used.`,
-        linkTo: "/categories",
+        linkTo: "/budgets",
       });
     }
 
@@ -528,7 +528,7 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
       todos.push({
         id: "todo-budget",
         label: "Set a monthly budget",
-        linkTo: "/categories",
+        linkTo: "/budgets",
         completed: false,
       });
     }
@@ -538,7 +538,7 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
       todos.push({
         id: "todo-recurring",
         label: "Add a recurring bill or salary",
-        linkTo: "/settings",
+        linkTo: "/budgets?tab=recurring",
         completed: false,
       });
     }
@@ -548,7 +548,7 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
       todos.push({
         id: "todo-goal",
         label: "Create a savings goal",
-        linkTo: "/categories",
+        linkTo: "/budgets?tab=goals",
         completed: false,
       });
     }
