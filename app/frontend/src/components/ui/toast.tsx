@@ -51,8 +51,8 @@ export function ToastCard({ item, onDismiss }: ToastCardProps) {
       className={cn(
         "pointer-events-auto w-full max-w-sm rounded-2xl p-3.5 shadow-xl border flex items-start gap-3 backdrop-blur-md select-none transition-colors",
         "bg-[var(--surface)] text-[var(--ink)] border-[var(--line)]",
-        item.type === "error" && "border-rose-500/30",
-        item.type === "warn" && "border-amber-500/30",
+        item.type === "error" && "border-l-4 border-l-[var(--neg)] border-[var(--neg-border)]",
+        item.type === "warn" && "border-l-4 border-l-[var(--warn)] border-[var(--line)]",
       )}
     >
       {ICONS[item.type]}
