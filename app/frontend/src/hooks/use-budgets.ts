@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import {
   budgets as budgetsApi,
@@ -15,12 +15,63 @@ import {
 } from "@/lib/api";
 import { notify } from "@/hooks/use-toast";
 
+import {
+  invalidateDashboardDataCache,
+  getDashboardCacheEntry,
+} from "@/hooks/use-dashboard-data";
+
 export interface DailyPacePoint {
   day: number;
   dateStr: string;
   spent: number;
   cumSpent: number;
   planPace: number;
+}
+
+// In-memory module cache for SWR instant page loads (matching useDashboardData)
+export interface BudgetCacheEntry {
+  budgetData: BudgetMonthResponseDto | null;
+  nextBudgetData: BudgetMonthResponseDto | null;
+  goalsData: GoalsResponseDto | null;
+  billsData: RecurringBillsResponseDto | null;
+  accounts: AccountDto[];
+  categories: CategoryDto[];
+  dailyData: Array<{ date: string; income: number; expense: number }>;
+  timestamp: number;
+}
+
+const budgetCache = new Map<string, BudgetCacheEntry>();
+
+export function invalidateBudgetsCache(): void {
+  budgetCache.clear();
+}
+
+function getInitialBudgetCache(monthKey: string): BudgetCacheEntry | null {
+  const fromBudget = budgetCache.get(monthKey);
+  if (fromBudget) return fromBudget;
+
+  const dash = getDashboardCacheEntry(monthKey);
+  if (dash && (dash.budgetData || dash.goalsData || dash.billsData)) {
+    const parsedDaily = (dash.summary?.daily_breakdown ?? []).map((d: any) => ({
+      date: d.date,
+      income: Number(d.income || 0),
+      expense: Number(d.expense || 0),
+    }));
+
+    const entry: BudgetCacheEntry = {
+      budgetData: dash.budgetData ?? null,
+      nextBudgetData: null,
+      goalsData: dash.goalsData ?? null,
+      billsData: dash.billsData ?? null,
+      accounts: dash.accounts ?? [],
+      categories: dash.categories ?? [],
+      dailyData: parsedDaily,
+      timestamp: dash.timestamp,
+    };
+    budgetCache.set(monthKey, entry);
+    return entry;
+  }
+  return null;
 }
 
 export function useBudgets(initialDate?: Date) {
@@ -64,15 +115,6 @@ export function useBudgets(initialDate?: Date) {
     },
     [setSearchParams]
   );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const [budgetData, setBudgetData] = useState<BudgetMonthResponseDto | null>(null);
-  const [goalsData, setGoalsData] = useState<GoalsResponseDto | null>(null);
-  const [billsData, setBillsData] = useState<RecurringBillsResponseDto | null>(null);
-  const [accounts, setAccounts] = useState<AccountDto[]>([]);
-  const [categories, setCategories] = useState<CategoryDto[]>([]);
-  const [dailyData, setDailyData] = useState<Array<{ date: string; income: number; expense: number }>>([]);
 
   const monthDate = useMemo(() => {
     const d = initialDate ? new Date(initialDate) : new Date();
@@ -85,10 +127,6 @@ export function useBudgets(initialDate?: Date) {
     const y = monthDate.getFullYear();
     const m = String(monthDate.getMonth() + 1).padStart(2, "0");
     return `${y}-${m}`;
-  }, [monthDate]);
-
-  const monthLabel = useMemo(() => {
-    return monthDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   }, [monthDate]);
 
   const nextMonthLabel = useMemo(() => {
@@ -105,43 +143,127 @@ export function useBudgets(initialDate?: Date) {
     return `${y}-${m}`;
   }, [monthDate]);
 
-  const loadAll = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [bRes, gRes, rRes, accs, cats, sumRes] = await Promise.all([
-        budgetsApi.getBudgets(monthKey).catch(() => null),
-        goalsApi.listGoals().catch(() => null),
-        recurringBillsApi.listRecurringBills().catch(() => null),
-        accountsApi.listAccounts().catch(() => []),
-        categoriesApi.listCategories().catch(() => []),
-        summaryApi.getSummary({ month: monthKey }).catch(() => null),
-      ]);
+  const monthLabel = useMemo(() => {
+    return monthDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  }, [monthDate]);
 
-      if (bRes) setBudgetData(bRes);
-      if (gRes) setGoalsData(gRes);
-      if (rRes) setBillsData(rRes);
-      setAccounts(accs);
-      setCategories(cats);
+  const cached = getInitialBudgetCache(monthKey);
 
-      if (sumRes && sumRes.daily_breakdown) {
-        setDailyData(
-          sumRes.daily_breakdown.map((d: any) => ({
+  const [loading, setLoading] = useState(!cached);
+  const [error, setError] = useState<string | null>(null);
+
+  const [budgetData, setBudgetData] = useState<BudgetMonthResponseDto | null>(cached?.budgetData ?? null);
+  const [nextBudgetData, setNextBudgetData] = useState<BudgetMonthResponseDto | null>(cached?.nextBudgetData ?? null);
+  const [goalsData, setGoalsData] = useState<GoalsResponseDto | null>(cached?.goalsData ?? null);
+  const [billsData, setBillsData] = useState<RecurringBillsResponseDto | null>(cached?.billsData ?? null);
+  const [accounts, setAccounts] = useState<AccountDto[]>(cached?.accounts ?? []);
+  const [categories, setCategories] = useState<CategoryDto[]>(cached?.categories ?? []);
+  const [dailyData, setDailyData] = useState<Array<{ date: string; income: number; expense: number }>>(
+    cached?.dailyData ?? []
+  );
+
+  const accountsRef = useRef(accounts);
+  accountsRef.current = accounts;
+  const categoriesRef = useRef(categories);
+  categoriesRef.current = categories;
+  const goalsRef = useRef(goalsData);
+  goalsRef.current = goalsData;
+  const billsRef = useRef(billsData);
+  billsRef.current = billsData;
+
+  const loadAll = useCallback(
+    async (options?: { forceFull?: boolean }) => {
+      setError(null);
+      try {
+        const curAccs = accountsRef.current;
+        const curCats = categoriesRef.current;
+        const curGoals = goalsRef.current;
+        const curBills = billsRef.current;
+
+        const needAccs = options?.forceFull || curAccs.length === 0;
+        const needCats = options?.forceFull || curCats.length === 0;
+        const needGoals = options?.forceFull || !curGoals;
+        const needBills = options?.forceFull || !curBills;
+
+        const [bRes, nextBRes, sumRes, gRes, rRes, accs, cats] = await Promise.all([
+          budgetsApi.getBudgets(monthKey).catch(() => null),
+          budgetsApi.getBudgets(nextMonthKey).catch(() => null),
+          summaryApi.getSummary({ month: monthKey }).catch(() => null),
+          needGoals ? goalsApi.listGoals().catch(() => null) : Promise.resolve(curGoals),
+          needBills ? recurringBillsApi.listRecurringBills().catch(() => null) : Promise.resolve(curBills),
+          needAccs ? accountsApi.listAccounts().catch(() => curAccs) : Promise.resolve(curAccs),
+          needCats ? categoriesApi.listCategories().catch(() => curCats) : Promise.resolve(curCats),
+        ]);
+
+        if (bRes) setBudgetData(bRes);
+        if (nextBRes) setNextBudgetData(nextBRes);
+        if (gRes) setGoalsData(gRes);
+        if (rRes) setBillsData(rRes);
+        if (accs) setAccounts(accs);
+        if (cats) setCategories(cats);
+
+        let parsedDaily: Array<{ date: string; income: number; expense: number }> = [];
+        if (sumRes && sumRes.daily_breakdown) {
+          parsedDaily = sumRes.daily_breakdown.map((d: any) => ({
             date: d.date,
             income: Number(d.income || 0),
             expense: Number(d.expense || 0),
-          }))
-        );
+          }));
+          setDailyData(parsedDaily);
+        }
+
+        budgetCache.set(monthKey, {
+          budgetData: bRes,
+          nextBudgetData: nextBRes,
+          goalsData: gRes ?? curGoals,
+          billsData: rRes ?? curBills,
+          accounts: accs ?? curAccs,
+          categories: cats ?? curCats,
+          dailyData: parsedDaily,
+          timestamp: Date.now(),
+        });
+      } catch (err: any) {
+        setError(err?.message || "Failed to load budget data");
+      } finally {
+        setLoading(false);
       }
-    } catch (err: any) {
-      setError(err?.message || "Failed to load budget data");
-    } finally {
-      setLoading(false);
-    }
-  }, [monthKey]);
+    },
+    [monthKey, nextMonthKey]
+  );
 
   useEffect(() => {
+    const entry = getInitialBudgetCache(monthKey);
+    if (entry) {
+      setBudgetData(entry.budgetData);
+      setNextBudgetData(entry.nextBudgetData);
+      setGoalsData(entry.goalsData);
+      setBillsData(entry.billsData);
+      setAccounts(entry.accounts);
+      setCategories(entry.categories);
+      setDailyData(entry.dailyData);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     void loadAll();
+  }, [monthKey, loadAll]);
+
+  useEffect(() => {
+    const handleMutation = () => {
+      invalidateBudgetsCache();
+      void loadAll({ forceFull: true });
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void loadAll();
+      }
+    };
+    window.addEventListener("pasona:data-mutated", handleMutation);
+    window.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("pasona:data-mutated", handleMutation);
+      window.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [loadAll]);
 
   // Pace line points calculation
@@ -189,6 +311,7 @@ export function useBudgets(initialDate?: Date) {
           category_id: categoryId,
           limit_amount: limitAmount,
         });
+        invalidateDashboardDataCache();
         notify.success("Limit updated");
         await loadAll();
       } catch (err: any) {
@@ -210,6 +333,7 @@ export function useBudgets(initialDate?: Date) {
           month: target,
           budgets: limits,
         });
+        invalidateDashboardDataCache();
         notify.success(`Plan saved for ${target}`);
         await loadAll();
       } catch (err: any) {
@@ -229,6 +353,7 @@ export function useBudgets(initialDate?: Date) {
           target_month: target,
           source_month: source,
         });
+        invalidateDashboardDataCache();
         notify.success(`Plan copied to ${target}`);
         await loadAll();
         return res;
@@ -250,8 +375,9 @@ export function useBudgets(initialDate?: Date) {
     }) => {
       try {
         await goalsApi.createGoal(input);
+        invalidateDashboardDataCache();
         notify.success("Goal created");
-        await loadAll();
+        await loadAll({ forceFull: true });
       } catch (err: any) {
         notify.error(err?.message || "Could not create goal");
         throw err;
@@ -264,8 +390,9 @@ export function useBudgets(initialDate?: Date) {
     async (goalId: number, amount: number, accountId: number, date?: string) => {
       try {
         await goalsApi.contributeToGoal(goalId, { amount, account_id: accountId, date });
+        invalidateDashboardDataCache();
         notify.success("Money added to goal");
-        await loadAll();
+        await loadAll({ forceFull: true });
       } catch (err: any) {
         notify.error(err?.message || "Could not record contribution");
         throw err;
@@ -278,8 +405,9 @@ export function useBudgets(initialDate?: Date) {
     async (goalId: number) => {
       try {
         await goalsApi.deleteGoal(goalId);
+        invalidateDashboardDataCache();
         notify.info("Goal deleted");
-        await loadAll();
+        await loadAll({ forceFull: true });
       } catch (err: any) {
         notify.error(err?.message || "Could not delete goal");
         throw err;
@@ -300,8 +428,9 @@ export function useBudgets(initialDate?: Date) {
     }) => {
       try {
         await recurringBillsApi.createRecurringBill(input);
+        invalidateDashboardDataCache();
         notify.success("Recurring item saved");
-        await loadAll();
+        await loadAll({ forceFull: true });
       } catch (err: any) {
         notify.error(err?.message || "Could not save recurring item");
         throw err;
@@ -314,8 +443,9 @@ export function useBudgets(initialDate?: Date) {
     async (billId: number) => {
       try {
         const res = await recurringBillsApi.markRecurringBillPaid(billId);
+        invalidateDashboardDataCache();
         notify.success(res.message || "Marked paid");
-        await loadAll();
+        await loadAll({ forceFull: true });
       } catch (err: any) {
         notify.error(err?.message || "Could not update recurring item");
         throw err;
@@ -328,8 +458,9 @@ export function useBudgets(initialDate?: Date) {
     async (billId: number) => {
       try {
         await recurringBillsApi.deleteRecurringBill(billId);
+        invalidateDashboardDataCache();
         notify.info("Recurring item deleted");
-        await loadAll();
+        await loadAll({ forceFull: true });
       } catch (err: any) {
         notify.error(err?.message || "Could not delete recurring item");
         throw err;
@@ -352,6 +483,8 @@ export function useBudgets(initialDate?: Date) {
     error,
     refresh: loadAll,
     budgetData,
+    nextBudgetData,
+    isNextMonthPlanned: (nextBudgetData?.summary.planned ?? 0) > 0,
     goalsData,
     billsData,
     accounts,

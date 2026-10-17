@@ -1,5 +1,5 @@
 import React from "react";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { usePrivacyMode } from "@/hooks/use-privacy-mode";
 import type { GoalDto } from "@/lib/api";
 
@@ -23,7 +23,16 @@ export function GoalCard({ goal, currency, onAddMoney, onDelete }: GoalCardProps
   const targetDateObj = new Date(goal.target_date + "T00:00:00");
   const targetFormatted = targetDateObj.toLocaleDateString("en-US", { month: "short", year: "numeric" });
 
-  let note = `Needs ${renderAmount(goal.monthly_needed || 0, currency)} a month to reach ${targetFormatted}`;
+  const remaining = Math.max(0, goal.target_amount - goal.saved_amount);
+  const now = new Date();
+  const monthsDiff = Math.max(
+    1,
+    (targetDateObj.getFullYear() - now.getFullYear()) * 12 +
+      (targetDateObj.getMonth() - now.getMonth())
+  );
+  const monthlyNeed = goal.monthly_needed ?? Math.ceil(remaining / monthsDiff);
+
+  let note = `Needs ${renderAmount(monthlyNeed, currency)} a month to reach ${targetFormatted}`;
   if (isDone) note = "Goal met";
   else if ((goal.days_remaining ?? 0) < 0) note = "Past the target date";
 
@@ -69,17 +78,33 @@ export function GoalCard({ goal, currency, onAddMoney, onDelete }: GoalCardProps
         </span>
       </div>
 
-      {/* Action: Add Money */}
-      {onAddMoney && !isDone && (
-        <button
-          type="button"
-          onClick={() => onAddMoney(goal)}
-          className="shrink-0 inline-flex items-center gap-1 text-xs font-bold text-[var(--primary)] px-2.5 py-1.5 rounded-[4px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--chip)] transition-colors active:scale-95"
-        >
-          <Plus size={13} strokeWidth={2.5} />
-          <span>Add</span>
-        </button>
-      )}
+      {/* Actions */}
+      <div className="shrink-0 flex items-center gap-1.5">
+        {onAddMoney && !isDone && (
+          <button
+            type="button"
+            onClick={() => onAddMoney(goal)}
+            className="inline-flex items-center gap-1 text-xs font-bold text-[var(--primary)] px-2.5 py-1.5 rounded-[4px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--chip)] transition-colors active:scale-95"
+          >
+            <Plus size={13} strokeWidth={2.5} />
+            <span>Add</span>
+          </button>
+        )}
+        {onDelete && (
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm(`Delete goal "${goal.name}"?`)) {
+                onDelete(goal.id);
+              }
+            }}
+            title="Delete goal"
+            className="p-1.5 rounded-[4px] text-[var(--muted)] hover:text-[var(--neg)] hover:bg-[var(--neg-soft)] transition-colors"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

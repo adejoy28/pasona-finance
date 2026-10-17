@@ -18,10 +18,16 @@ import {
   categories as categoriesApi,
   summary as summaryApi,
   transactions as transactionsApi,
+  budgets as budgetsApi,
+  goals as goalsApi,
+  recurringBills as recurringBillsApi,
   type AccountDto,
   type CategoryDto,
   type SummaryDto,
   type TransactionDto,
+  type BudgetMonthResponseDto,
+  type GoalsResponseDto,
+  type RecurringBillsResponseDto,
 } from "@/lib/api";
 import {
   calculateMonthlyTotals,
@@ -32,6 +38,7 @@ import {
 import { calculateStreak } from "@/lib/quick-log";
 import { countQueuedTransactions } from "@/lib/offline/queue";
 import { useMe } from "@/hooks/use-me";
+import { detectDuplicatePairs, getDismissedPairIds } from "@/lib/duplicate-detector";
 
 export interface RecurringBill {
   id: string | number;
@@ -112,21 +119,27 @@ export interface DashboardViewModel {
   refresh: () => Promise<void>;
 }
 
-// In-memory module cache for SWR instant page loads
-interface CacheEntry {
+export interface DashboardCacheEntry {
   summary: SummaryDto;
   accounts: AccountDto[];
   categories: CategoryDto[];
   monthTx: TransactionDto[];
   recentTx: TransactionDto[];
   prevMonthSpent: number | null;
+  budgetData?: BudgetMonthResponseDto | null;
+  goalsData?: GoalsResponseDto | null;
+  billsData?: RecurringBillsResponseDto | null;
   timestamp: number;
 }
 
-const dataCache = new Map<string, CacheEntry>();
+const dataCache = new Map<string, DashboardCacheEntry>();
 
 export function invalidateDashboardDataCache(): void {
   dataCache.clear();
+}
+
+export function getDashboardCacheEntry(monthKey: string): DashboardCacheEntry | undefined {
+  return dataCache.get(monthKey);
 }
 
 export function useDashboardData(monthDate: Date): DashboardViewModel {
@@ -154,6 +167,9 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
   const [monthTx, setMonthTx] = useState<TransactionDto[]>(cached?.monthTx ?? []);
   const [recentTx, setRecentTx] = useState<TransactionDto[]>(cached?.recentTx ?? []);
   const [prevMonthSpent, setPrevMonthSpent] = useState<number | null>(cached?.prevMonthSpent ?? null);
+  const [budgetData, setBudgetData] = useState<BudgetMonthResponseDto | null>(cached?.budgetData ?? null);
+  const [goalsData, setGoalsData] = useState<GoalsResponseDto | null>(cached?.goalsData ?? null);
+  const [billsData, setBillsData] = useState<RecurringBillsResponseDto | null>(cached?.billsData ?? null);
   const [pendingSyncCount, setPendingSyncCount] = useState<number>(0);
   const [loading, setLoading] = useState(!cached);
 
@@ -162,7 +178,7 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
 
   const load = useCallback(async () => {
     try {
-      const [sumRes, accRes, catRes, mTxRes, allTxRes, prevTxRes, offlineCount] =
+      const [sumRes, accRes, catRes, mTxRes, allTxRes, prevTxRes, offlineCount, bRes, gRes, rRes] =
         await Promise.all([
           summaryApi.getSummary({ from: monthFrom, to: monthTo, month: monthKey }),
           accountsApi.listAccounts(),
@@ -173,6 +189,9 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
             .listTransactions({ from: prevMonthFrom, to: prevMonthTo, per_page: 500 })
             .catch(() => ({ data: [] })),
           countQueuedTransactions().catch(() => 0),
+          budgetsApi.getBudgets(monthKey).catch(() => null),
+          goalsApi.listGoals().catch(() => null),
+          recurringBillsApi.listRecurringBills().catch(() => null),
         ]);
 
       // Calculate previous month spent (excluding savings categories and transfers)
@@ -185,6 +204,9 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
       setMonthTx(mTxRes.data ?? []);
       setRecentTx(allTxRes.data ?? []);
       setPrevMonthSpent(prevSpent > 0 ? prevSpent : null);
+      if (bRes) setBudgetData(bRes);
+      if (gRes) setGoalsData(gRes);
+      if (rRes) setBillsData(rRes);
       setPendingSyncCount(offlineCount);
 
       dataCache.set(monthKey, {
@@ -194,6 +216,9 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
         monthTx: mTxRes.data ?? [],
         recentTx: allTxRes.data ?? [],
         prevMonthSpent: prevSpent > 0 ? prevSpent : null,
+        budgetData: bRes,
+        goalsData: gRes,
+        billsData: rRes,
         timestamp: Date.now(),
       });
     } catch (err) {
@@ -212,12 +237,40 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
       setMonthTx(entry.monthTx);
       setRecentTx(entry.recentTx);
       setPrevMonthSpent(entry.prevMonthSpent);
+      setBudgetData(entry.budgetData ?? null);
+      setGoalsData(entry.goalsData ?? null);
+      setBillsData(entry.billsData ?? null);
       setLoading(false);
     } else {
       setLoading(true);
     }
     void load();
   }, [monthKey, load]);
+
+  const [duplicateVersion, setDuplicateVersion] = useState(0);
+
+  useEffect(() => {
+    const handleDuplicates = () => setDuplicateVersion((v) => v + 1);
+    const handleMutation = () => {
+      invalidateDashboardDataCache();
+      void load();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void load();
+      }
+    };
+
+    window.addEventListener("pasona:duplicates-changed", handleDuplicates);
+    window.addEventListener("pasona:data-mutated", handleMutation);
+    window.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.removeEventListener("pasona:duplicates-changed", handleDuplicates);
+      window.removeEventListener("pasona:data-mutated", handleMutation);
+      window.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [load]);
 
   // Saving category IDs set
   const savingsCategoryIds = useMemo(() => {
@@ -251,8 +304,16 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
     return Math.round((diff / prevMonthSpent) * 100);
   }, [spent, prevMonthSpent]);
 
-  // Monthly Budget (from localStorage or configured)
+  // Monthly Budget (from Phase 7 API or fallback to localStorage)
   const budget = useMemo(() => {
+    if (budgetData && budgetData.summary.planned > 0) {
+      const planned = budgetData.summary.planned;
+      const used = spent;
+      const left = Math.max(0, planned - used);
+      const over = Math.max(0, used - planned);
+      const pctUsed = Math.round((used / planned) * 100);
+      return { planned, used, left, over, pctUsed };
+    }
     if (typeof window === "undefined") return null;
     const rawBudget =
       localStorage.getItem(`pasona.budget.${monthKey}`) ||
@@ -268,7 +329,7 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
     const pctUsed = Math.round((used / planned) * 100);
 
     return { planned, used, left, over, pctUsed };
-  }, [monthKey, spent]);
+  }, [budgetData, monthKey, spent]);
 
   // Category Breakdown (spending kinds only, savings excluded)
   const categoryBreakdown = useMemo(() => {
@@ -349,8 +410,24 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
     return calculateStreak(list);
   }, [recentTx, monthTx]);
 
-  // Recurring Bills (persisted in localStorage or default sample)
+  // Recurring Bills (from Phase 7 API or fallback to localStorage)
   const bills: RecurringBill[] = useMemo(() => {
+    if (billsData?.bills && billsData.bills.length > 0) {
+      return billsData.bills
+        .map((b) => ({
+          id: b.id,
+          name: b.name,
+          amount: b.amount,
+          nextDue: b.next_due,
+          frequency: b.frequency,
+          accountName: b.account_name || undefined,
+          daysUntilDue: b.days_until_due,
+          isOverdue: b.is_overdue,
+        }))
+        .filter((b) => b.isOverdue || b.daysUntilDue <= 14)
+        .sort((a, b) => a.daysUntilDue - b.daysUntilDue)
+        .slice(0, 3);
+    }
     if (typeof window === "undefined") return [];
     try {
       const stored = localStorage.getItem("pasona.recurring_bills");
@@ -380,10 +457,20 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
       // ignore
     }
     return [];
-  }, []);
+  }, [billsData]);
 
-  // Goals (persisted in localStorage)
+  // Goals (from Phase 7 API or fallback to localStorage)
   const goals: GoalItem[] = useMemo(() => {
+    if (goalsData?.goals && goalsData.goals.length > 0) {
+      return goalsData.goals.slice(0, 2).map((g) => ({
+        id: g.id,
+        name: g.name,
+        targetAmount: g.target_amount,
+        savedAmount: g.saved_amount,
+        monthlyAmountNeeded: g.monthly_needed,
+        color: g.color || undefined,
+      }));
+    }
     if (typeof window === "undefined") return [];
     try {
       const stored = localStorage.getItem("pasona.goals");
@@ -395,44 +482,30 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
       // ignore
     }
     return [];
-  }, []);
+  }, [goalsData]);
 
-  // Potential duplicate transactions detection
+  // Potential duplicate transactions detection matching duplicate-detector.ts
   const duplicateCount = useMemo(() => {
-    const list = recentTx.length ? recentTx : monthTx;
-    let count = 0;
-    const seen = new Set<number>();
-
-    for (let i = 0; i < list.length; i++) {
-      const a = list[i];
-      if (seen.has(a.id)) continue;
-      for (let j = i + 1; j < list.length; j++) {
-        const b = list[j];
-        if (seen.has(b.id)) continue;
-
-        const sameAmount = Math.abs(toNumber(a.amount) - toNumber(b.amount)) < 0.01;
-        const sameType = a.type === b.type;
-        const sameAccount = a.account_id && b.account_id && a.account_id === b.account_id;
-        const dateA = a.transaction_date ? new Date(a.transaction_date).getTime() : 0;
-        const dateB = b.transaction_date ? new Date(b.transaction_date).getTime() : 0;
-        const within48h = Math.abs(dateA - dateB) <= 48 * 60 * 60 * 1000;
-
-        if (sameAmount && sameType && within48h && sameAccount) {
-          count++;
-          seen.add(a.id);
-          seen.add(b.id);
-          break;
-        }
-      }
+    void duplicateVersion;
+    const combinedTx = [...monthTx, ...recentTx];
+    const txMap = new Map<number, TransactionDto>();
+    for (const t of combinedTx) {
+      if (t.id) txMap.set(t.id, t);
     }
-    return count;
-  }, [recentTx, monthTx]);
+    const list = Array.from(txMap.values());
+    const dismissed = getDismissedPairIds();
+    const pairs = detectDuplicatePairs(list, dismissed);
+    return pairs.filter((p) => p.kind === "dup").length;
+  }, [recentTx, monthTx, duplicateVersion]);
 
   // Over budget categories count
   const overBudgetCategoriesCount = useMemo(() => {
+    if (budgetData?.summary?.over_count !== undefined && budgetData.summary.over_count > 0) {
+      return budgetData.summary.over_count;
+    }
     if (!budget) return 0;
     return budget.over > 0 ? 1 : 0;
-  }, [budget]);
+  }, [budgetData, budget]);
 
   // Needs Attention items per Specification Section 5.3 (Ranked, Max 3 rows)
   const attention: AttentionItem[] = useMemo(() => {
@@ -447,7 +520,7 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
         type: "overdue",
         title: `${overdueBill.name} is ${days} ${days === 1 ? "day" : "days"} overdue`,
         detail: `${toNumber(overdueBill.amount).toLocaleString()} was due.`,
-        linkTo: "/settings",
+        linkTo: "/budgets?tab=recurring",
       });
     }
 
@@ -458,7 +531,7 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
         type: "duplicate",
         title: `${duplicateCount} possible ${duplicateCount === 1 ? "duplicate" : "duplicates"}`,
         detail: "Review so nothing is counted twice.",
-        linkTo: "/transactions",
+        linkTo: "/transactions/duplicates",
       });
     }
 

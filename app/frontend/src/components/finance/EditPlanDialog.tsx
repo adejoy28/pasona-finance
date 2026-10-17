@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { X } from "lucide-react";
 import { usePrivacyMode } from "@/hooks/use-privacy-mode";
+import { getCategoryColor } from "@/lib/category-colors";
 import type { BudgetCategoryItemDto } from "@/lib/api";
 
 interface EditPlanDialogProps {
@@ -107,7 +108,10 @@ export function EditPlanDialog({
           <div className="space-y-2 border-t border-[var(--line)] pt-2">
             {categories.map((c) => (
               <div key={c.category_id} className="flex items-center gap-3 py-1.5 border-b border-[var(--line)]/60">
-                <i className="w-2.5 h-2.5 rounded-[2px] shrink-0 bg-[var(--primary)]" />
+                <i
+                  className="w-2.5 h-2.5 rounded-[2px] shrink-0"
+                  style={{ backgroundColor: getCategoryColor(c.category_name, c.category_id) }}
+                />
                 <label htmlFor={`limit-${c.category_id}`} className="flex-1 text-xs font-bold text-[var(--ink)] truncate">
                   {c.category_name} {c.is_goal && <span className="text-[10px] text-[var(--muted)]">(goal)</span>}
                 </label>

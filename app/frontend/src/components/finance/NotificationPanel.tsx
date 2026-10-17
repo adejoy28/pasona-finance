@@ -29,6 +29,7 @@ import { ConfirmDestructiveDialog } from "@/components/ui/confirm-destructive-di
 import { getDailyMoneyFact } from "@/lib/facts";
 import type { NotificationDto } from "@/lib/api/notifications";
 import { accounts as accountsApi, transactions as transactionsApi } from "@/lib/api";
+import { detectDuplicatePairs } from "@/lib/duplicate-detector";
 
 type ActionItem = {
   id: string;
@@ -255,19 +256,12 @@ export function NotificationPanel({
 
       // 2. Duplicates check
       const txRes = await transactionsApi
-        .listTransactions({ per_page: 100 })
+        .listTransactions({ per_page: 500 })
         .catch(() => ({ data: [] }));
-      const txs = txRes.data || [];
-      const seen = new Set<string>();
-      let dupCount = 0;
-      for (const t of txs) {
-        const key = `${t.amount}_${t.date}_${t.account_id ?? ""}`;
-        if (seen.has(key)) {
-          dupCount++;
-        } else {
-          seen.add(key);
-        }
-      }
+      const txs = Array.isArray(txRes) ? txRes : txRes.data || [];
+      const openPairs = detectDuplicatePairs(txs);
+      const dupCount = openPairs.length;
+
       if (dupCount > 0) {
         const actionId = "tx-duplicates";
         if (!dismissed.has(actionId)) {
@@ -278,7 +272,7 @@ export function NotificationPanel({
             badge: "Review",
             icon: <ShieldAlert size={18} className="text-purple-600" />,
             iconBg: "bg-purple-50",
-            href: "/transactions?flag=duplicates",
+            href: "/transactions/duplicates",
           });
         }
       }
@@ -298,6 +292,18 @@ export function NotificationPanel({
       void loadActionItems();
     }
   }, [open, notifications.length, refresh, loadActionItems]);
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      void loadActionItems();
+    };
+    window.addEventListener("pasona:duplicates-changed", handleRefresh);
+    window.addEventListener("pasona:data-mutated", handleRefresh);
+    return () => {
+      window.removeEventListener("pasona:duplicates-changed", handleRefresh);
+      window.removeEventListener("pasona:data-mutated", handleRefresh);
+    };
+  }, [loadActionItems]);
 
   // Reset selected notification when closing panel
   useEffect(() => {
