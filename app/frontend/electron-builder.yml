@@ -11,7 +11,7 @@ files:
   - package.json
 
 extraResources:
-  - from: ../pasona-finance/backend
+  - from: ../backend
     to: backend
     filter:
       - "**/*"

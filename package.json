@@ -1,10 +1,12 @@
 {
-  "name": "pasona-finance",
+  "name": "pasona-finance-workspace",
   "version": "1.0.0",
-  "description": "This is going to be a finance app for my personal use. It will be built for easy use and will be able to track my expenses and income. It will also be able to generate reports and charts to help me understand my financial situation better.",
-  "main": "index.js",
+  "private": true,
+  "description": "Fast, Offline-First, Multi-Wallet Personal Finance Tracker",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "pnpm --filter ./app/frontend build",
+    "dev": "pnpm --filter ./app/frontend dev",
+    "preview": "pnpm --filter ./app/frontend preview"
   },
   "keywords": [
     "finance",
@@ -22,13 +24,5 @@
   "website": "https://pasona.adebayosystems.com.ng",
   "parent website": "https://adebayosystems.com.ng",
   "license": "ISC",
-  "packageManager": "pnpm@10.34.1",
-  "dependencies": {
-    "@google/gemini-cli": "^0.44.1",
-    "next.js": "^1.0.3",
-    "opencode-ai": "^1.15.13"
-  },
-  "devDependencies": {
-    "hyperframes": "^0.8.46"
-  }
+  "packageManager": "pnpm@10.34.1"
 }
