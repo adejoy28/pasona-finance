@@ -16,7 +16,7 @@ export async function createRecurringBill(input: {
 }): Promise<RecurringBillDto> {
   return request<RecurringBillDto>("/recurring-bills", {
     method: "POST",
-    body: JSON.stringify(input),
+    body: input,
   });
 }
 
@@ -34,7 +34,7 @@ export async function updateRecurringBill(
 ): Promise<RecurringBillDto> {
   return request<RecurringBillDto>(`/recurring-bills/${id}`, {
     method: "PUT",
-    body: JSON.stringify(input),
+    body: input,
   });
 }
 

@@ -14,7 +14,7 @@ export async function createGoal(input: {
 }): Promise<GoalDto> {
   return request<GoalDto>("/goals", {
     method: "POST",
-    body: JSON.stringify(input),
+    body: input,
   });
 }
 
@@ -30,7 +30,7 @@ export async function updateGoal(
 ): Promise<GoalDto> {
   return request<GoalDto>(`/goals/${id}`, {
     method: "PUT",
-    body: JSON.stringify(input),
+    body: input,
   });
 }
 
@@ -50,6 +50,6 @@ export async function contributeToGoal(
 ): Promise<{ message: string; goal: GoalDto; transaction: any }> {
   return request(`/goals/${id}/contribute`, {
     method: "POST",
-    body: JSON.stringify(input),
+    body: input,
   });
 }

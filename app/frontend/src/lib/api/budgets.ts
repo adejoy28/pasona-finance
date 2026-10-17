@@ -13,7 +13,7 @@ export async function setBudgetLimit(input: {
 }): Promise<any> {
   return request(`/budgets`, {
     method: "POST",
-    body: JSON.stringify(input),
+    body: input,
   });
 }
 
@@ -23,7 +23,7 @@ export async function bulkSetBudgetLimits(input: {
 }): Promise<{ message: string; count: number }> {
   return request(`/budgets`, {
     method: "POST",
-    body: JSON.stringify(input),
+    body: input,
   });
 }
 
@@ -33,6 +33,6 @@ export async function copyPreviousMonthBudgets(input: {
 }): Promise<{ message: string; count: number }> {
   return request(`/budgets/copy-previous`, {
     method: "POST",
-    body: JSON.stringify(input),
+    body: input,
   });
 }

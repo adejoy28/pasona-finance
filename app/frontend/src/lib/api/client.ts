@@ -218,6 +218,8 @@ export async function request<T = unknown>(path: string, options: RequestOptions
     if (hasBody) {
       if (typeof FormData !== "undefined" && body instanceof FormData) {
         serializedBody = body;
+      } else if (typeof body === "string") {
+        serializedBody = body;
       } else {
         serializedBody = JSON.stringify(body);
       }

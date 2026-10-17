@@ -346,3 +346,123 @@ export function HistorySkeleton() {
     </div>
   );
 }
+
+export function BudgetsSkeleton() {
+  return (
+    <div className="min-h-screen bg-[var(--bg)] pb-32">
+      {/* Sticky Fixed Top Header Bar */}
+      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-3 sm:px-5 lg:px-6 border-b border-white/5 text-white">
+        <div className="w-full flex flex-col gap-2">
+          <div className="flex justify-between items-center gap-3">
+            <div className="space-y-1.5 min-w-0">
+              <Skeleton className="h-5 w-28 bg-white/20 rounded-[4px]" />
+              <Skeleton className="h-3 w-48 bg-white/10 rounded-[4px]" />
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Skeleton className="h-8 w-28 bg-white/10 rounded-[4px] hidden sm:block" />
+              <Skeleton className="h-8 w-24 bg-white/15 rounded-[4px]" />
+              <Skeleton className="w-9 h-9 rounded-full bg-white/15" />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="w-full px-3 sm:px-5 lg:px-6 pt-3 sm:pt-4 max-w-[1560px] mx-auto">
+        {/* Tab Bar Skeleton */}
+        <div className="flex bg-[var(--chip)] p-1 rounded-[6px] gap-1 max-w-md mb-4 border border-[var(--line)]/50">
+          <Skeleton className="h-7 flex-1 rounded-[4px] bg-[var(--surface)]" />
+          <Skeleton className="h-7 flex-1 rounded-[4px] bg-[var(--chip)]" />
+          <Skeleton className="h-7 flex-1 rounded-[4px] bg-[var(--chip)]" />
+        </div>
+
+        {/* 2-Column Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] gap-4 sm:gap-5 items-start">
+          {/* Column A (Left): Summary Card, Pace Chart, Next Month Plan */}
+          <div className="flex flex-col gap-4 min-w-0">
+            {/* Left to spend summary card */}
+            <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[6px] p-4 sm:p-5 shadow-[var(--lift)] space-y-3">
+              <Skeleton className="h-3 w-28 bg-[var(--chip)] rounded-[4px]" />
+              <Skeleton className="h-8 w-44 bg-[var(--chip)] rounded-[4px]" />
+              <Skeleton className="h-3.5 w-36 bg-[var(--chip)] rounded-[4px]" />
+              <Skeleton className="h-2 w-full bg-[var(--chip)] rounded-full" />
+              <div className="grid grid-cols-3 gap-2 pt-3 border-t border-[var(--line)]">
+                <div className="space-y-1">
+                  <Skeleton className="h-2.5 w-12 bg-[var(--chip)] rounded-[4px]" />
+                  <Skeleton className="h-4 w-16 bg-[var(--chip)] rounded-[4px]" />
+                </div>
+                <div className="space-y-1">
+                  <Skeleton className="h-2.5 w-16 bg-[var(--chip)] rounded-[4px]" />
+                  <Skeleton className="h-4 w-20 bg-[var(--chip)] rounded-[4px]" />
+                </div>
+                <div className="space-y-1">
+                  <Skeleton className="h-2.5 w-12 bg-[var(--chip)] rounded-[4px]" />
+                  <Skeleton className="h-4 w-16 bg-[var(--chip)] rounded-[4px]" />
+                </div>
+              </div>
+            </div>
+
+            {/* Pace Chart Card */}
+            <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[6px] p-4 shadow-[var(--lift)] space-y-3">
+              <div className="flex justify-between items-center">
+                <Skeleton className="h-4 w-36 bg-[var(--chip)] rounded-[4px]" />
+                <Skeleton className="h-6 w-16 bg-[var(--chip)] rounded-[4px]" />
+              </div>
+              <Skeleton className="h-44 w-full bg-[var(--chip)] rounded-[4px]" />
+            </div>
+
+            {/* Next Month Plan Card */}
+            <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[6px] p-3.5 sm:p-4 shadow-[var(--lift)] flex items-center gap-3">
+              <Skeleton className="w-9 h-9 rounded-[6px] bg-[var(--chip)] shrink-0" />
+              <div className="min-w-0 flex-1 space-y-1">
+                <Skeleton className="h-4 w-32 bg-[var(--chip)] rounded-[4px]" />
+                <Skeleton className="h-3 w-48 bg-[var(--chip)] rounded-[4px]" />
+              </div>
+              <Skeleton className="h-7 w-20 bg-[var(--chip)] rounded-[4px] shrink-0" />
+            </div>
+          </div>
+
+          {/* Column B (Right): By Category Card */}
+          <div className="flex flex-col gap-4 min-w-0">
+            <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[6px] p-3.5 sm:p-4 shadow-[var(--lift)] space-y-3">
+              <div>
+                <Skeleton className="h-4 w-28 bg-[var(--chip)] rounded-[4px]" />
+                <Skeleton className="h-3 w-48 bg-[var(--chip)] rounded-[4px] mt-1" />
+              </div>
+
+              <div className="divide-y divide-[var(--line)] pt-1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="py-3 flex flex-col gap-2 px-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="w-2.5 h-2.5 rounded-[2px] bg-[var(--chip)]" />
+                        <Skeleton className="h-4 w-28 bg-[var(--chip)] rounded-[4px]" />
+                      </div>
+                      <Skeleton className="h-4 w-20 bg-[var(--chip)] rounded-[4px]" />
+                    </div>
+                    <Skeleton className="h-1.5 w-full bg-[var(--chip)] rounded-full" />
+                    <div className="flex justify-between items-center">
+                      <Skeleton className="h-3 w-16 bg-[var(--chip)] rounded-[4px]" />
+                      <Skeleton className="h-3 w-14 bg-[var(--chip)] rounded-[4px]" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-[6px] border border-[var(--line)] bg-[var(--surface)] shadow-xs flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Skeleton className="w-8 h-8 rounded-[6px] bg-[var(--chip)]" />
+                <div className="space-y-1">
+                  <Skeleton className="h-4 w-32 bg-[var(--chip)] rounded-[4px]" />
+                  <Skeleton className="h-3 w-40 bg-[var(--chip)] rounded-[4px]" />
+                </div>
+              </div>
+              <Skeleton className="w-4 h-4 bg-[var(--chip)] rounded-full" />
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

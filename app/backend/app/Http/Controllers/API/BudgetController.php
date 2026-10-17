@@ -110,6 +110,10 @@ class BudgetController extends Controller
                 'budgets' => 'required|array',
                 'budgets.*.category_id' => 'required|integer',
                 'budgets.*.limit_amount' => 'nullable|numeric|min:0',
+            ], [
+                'month.required' => 'The month is required (format YYYY-MM).',
+                'month.date_format' => 'The month must match format YYYY-MM.',
+                'budgets.required' => 'At least one budget limit is required.',
             ]);
 
             $month = $validated['month'];
@@ -145,6 +149,10 @@ class BudgetController extends Controller
             'month' => 'required|date_format:Y-m',
             'category_id' => 'required|integer',
             'limit_amount' => 'nullable|numeric|min:0',
+        ], [
+            'month.required' => 'The month is required (format YYYY-MM).',
+            'month.date_format' => 'The month must match format YYYY-MM.',
+            'category_id.required' => 'The category is required.',
         ]);
 
         $category = $user->categories()->findOrFail($validated['category_id']);

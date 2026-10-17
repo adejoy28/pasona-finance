@@ -18,6 +18,8 @@ import { FinanceNavbar } from "@/components/finance/Navbar";
 import { NotificationBell } from "@/components/finance/NotificationBell";
 import { MonthDropdown, getUserInitials } from "@/components/finance/ScreenHeader";
 import { SpendingAgainstPlanChart } from "@/components/finance/SpendingAgainstPlanChart";
+import { BudgetsSkeleton } from "@/components/finance/Skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import { GoalCard } from "@/components/finance/GoalCard";
 import { RecurringBillRow } from "@/components/finance/RecurringBillRow";
 import { EditPlanDialog } from "@/components/finance/EditPlanDialog";
@@ -122,6 +124,15 @@ export function BudgetsIndex() {
     : (bSummary?.pct_used ?? 0) >= 85
     ? "bg-[var(--warn)]"
     : "bg-[var(--primary)]";
+
+  if (loading && !budgetData) {
+    return (
+      <>
+        <BudgetsSkeleton />
+        <FinanceNavbar />
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--bg)] pb-32">
@@ -416,8 +427,33 @@ export function BudgetsIndex() {
 
                 {/* Categories List */}
                 <div className="divide-y divide-[var(--line)]">
-                  {sortedCategories.map((c) => {
-                    const isLimitSet = c.limit_amount !== null && c.limit_amount > 0;
+                  {loading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="py-3 flex flex-col gap-2 px-1 animate-pulse">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Skeleton className="w-2.5 h-2.5 rounded-[2px] bg-[var(--chip)]" />
+                            <Skeleton className="h-4 w-28 bg-[var(--chip)] rounded-[4px]" />
+                          </div>
+                          <Skeleton className="h-4 w-20 bg-[var(--chip)] rounded-[4px]" />
+                        </div>
+                        <Skeleton className="h-1.5 w-full bg-[var(--chip)] rounded-full" />
+                        <div className="flex justify-between items-center">
+                          <Skeleton className="h-3 w-16 bg-[var(--chip)] rounded-[4px]" />
+                          <Skeleton className="h-3 w-14 bg-[var(--chip)] rounded-[4px]" />
+                        </div>
+                      </div>
+                    ))
+                  ) : sortedCategories.length === 0 ? (
+                    <div className="py-6 text-center text-xs text-[var(--muted)]">
+                      No expense categories found.{" "}
+                      <Link to="/categories" className="font-bold text-[var(--primary)] hover:underline">
+                        Create one in Categories →
+                      </Link>
+                    </div>
+                  ) : (
+                    sortedCategories.map((c) => {
+                      const isLimitSet = c.limit_amount !== null && c.limit_amount > 0;
                     const percent = isLimitSet ? Math.min(100, Math.round((c.spent / c.limit_amount!) * 100)) : 0;
                     const isOver = c.state === "over";
                     const isNear = c.state === "near";
@@ -500,7 +536,7 @@ export function BudgetsIndex() {
                         </div>
                       </button>
                     );
-                  })}
+                  }))}
                 </div>
               </section>
 
