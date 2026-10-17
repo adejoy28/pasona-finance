@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { usePrivacyMode } from "@/hooks/use-privacy-mode";
+import { getCurrencySymbol } from "@/lib/currencies";
 import type { BudgetCategoryItemDto } from "@/lib/api";
 
 interface EditCategoryLimitDialogProps {
@@ -71,7 +72,7 @@ export function EditCategoryLimitDialog({
               Monthly {category.is_goal ? "goal" : "limit"}
             </label>
             <div className="flex items-center gap-2 px-3 py-2 bg-[var(--bg)] border border-[var(--line)] rounded-[4px] text-lg font-bold text-[var(--ink)]">
-              <span className="text-[var(--muted)] font-display">₦</span>
+              <span className="text-[var(--muted)] font-display">{getCurrencySymbol(currency)}</span>
               <input
                 type="number"
                 min="0"

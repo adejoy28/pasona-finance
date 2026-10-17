@@ -33,6 +33,7 @@ import { useMe } from "@/hooks/use-me";
 import { DEFAULT_CURRENCY } from "@/lib/currencies";
 import { fadeSlideUp } from "@/lib/animations";
 import { cn } from "@/lib/utils";
+import { getCategoryColor } from "@/lib/category-colors";
 import type { BudgetCategoryItemDto, GoalDto } from "@/lib/api";
 
 export function BudgetsIndex() {
@@ -51,6 +52,8 @@ export function BudgetsIndex() {
     loading,
     error,
     budgetData,
+    nextBudgetData,
+    isNextMonthPlanned,
     goalsData,
     billsData,
     accounts,
@@ -342,10 +345,30 @@ export function BudgetsIndex() {
                       Savings goal
                     </span>
                     <span className="block text-xs sm:text-sm font-extrabold text-[var(--ink)] tabular-nums mt-0.5">
-                      {renderAmount(
-                        budgetData?.categories.find((c) => c.is_goal)?.spent ?? 0,
-                        userCurrency
-                      )}
+                      {(() => {
+                        const savingsCat = budgetData?.categories.find((c) => c.is_goal);
+                        if (savingsCat && savingsCat.limit_amount && savingsCat.limit_amount > 0) {
+                          return (
+                            <>
+                              {renderAmount(savingsCat.spent, userCurrency)}{" "}
+                              <span className="font-normal text-[var(--muted)] text-[10px] sm:text-[11px] not-italic">
+                                of {renderAmount(savingsCat.limit_amount, userCurrency)}
+                              </span>
+                            </>
+                          );
+                        }
+                        if ((goalsData?.goals.length ?? 0) > 0) {
+                          return (
+                            <>
+                              {renderAmount(goalsData?.summary.total_saved ?? 0, userCurrency)}{" "}
+                              <span className="font-normal text-[var(--muted)] text-[10px] sm:text-[11px] not-italic">
+                                of {renderAmount(goalsData?.summary.total_target ?? 0, userCurrency)}
+                              </span>
+                            </>
+                          );
+                        }
+                        return renderAmount(0, userCurrency);
+                      })()}
                     </span>
                   </div>
                   <div>
@@ -383,20 +406,26 @@ export function BudgetsIndex() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <b className="block text-xs sm:text-sm font-bold text-[var(--ink)]">
-                    Plan {nextMonthLabel}
+                    {isNextMonthPlanned ? `${nextMonthLabel} is planned` : `Plan ${nextMonthLabel}`}
                   </b>
-                  <span className="block text-xs text-[var(--muted)] mt-0.5">
-                    Start from this month's limits and adjust.
+                  <span className="block text-xs text-[var(--muted)] mt-0.5 truncate">
+                    {isNextMonthPlanned
+                      ? `${renderAmount(nextBudgetData?.summary.planned ?? 0, userCurrency)} across ${
+                          nextBudgetData?.categories.filter((c) => c.limit_amount && c.limit_amount > 0).length ?? 0
+                        } categories`
+                      : "Start from this month's limits and adjust."}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => copyPreviousMonth(nextMonthKey, budgetData?.month || monthKey)}
-                    className="px-2.5 py-1.5 rounded-[4px] border border-[var(--line)] text-xs font-bold text-[var(--ink)] hover:bg-[var(--chip)] transition-colors"
-                  >
-                    Copy plan
-                  </button>
+                  {!isNextMonthPlanned && (
+                    <button
+                      type="button"
+                      onClick={() => copyPreviousMonth(nextMonthKey, budgetData?.month || monthKey)}
+                      className="px-2.5 py-1.5 rounded-[4px] border border-[var(--line)] text-xs font-bold text-[var(--ink)] hover:bg-[var(--chip)] transition-colors"
+                    >
+                      Copy plan
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
@@ -500,7 +529,10 @@ export function BudgetsIndex() {
                         {/* Row 1: Dot, Name, Spent of Limit */}
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
-                            <i className="w-2.5 h-2.5 rounded-[2px] shrink-0 bg-[var(--primary)]" />
+                            <i
+                              className="w-2.5 h-2.5 rounded-[2px] shrink-0"
+                              style={{ backgroundColor: getCategoryColor(c.category_name, c.category_id) }}
+                            />
                             <b className="text-xs sm:text-sm font-bold text-[var(--ink)] truncate group-hover:text-[var(--primary)] transition-colors">
                               {c.category_name} {c.is_goal && <span className="text-[10px] text-[var(--muted)]">(goal)</span>}
                             </b>
@@ -530,7 +562,11 @@ export function BudgetsIndex() {
                           <div>{statusLabel}</div>
                           {isLimitSet && !isOver && (
                             <span className="tabular-nums">
-                              {renderAmount(Math.max(0, c.left || 0), userCurrency)} left
+                              {c.is_goal
+                                ? c.left && c.left > 0
+                                  ? `${renderAmount(c.left, userCurrency)} to go`
+                                  : "Goal met"
+                                : `${renderAmount(Math.max(0, c.left || 0), userCurrency)} left`}
                             </span>
                           )}
                         </div>

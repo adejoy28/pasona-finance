@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDownLeft, Repeat, Check } from "lucide-react";
+import { ArrowDownLeft, Repeat, Check, Trash2 } from "lucide-react";
 import { usePrivacyMode } from "@/hooks/use-privacy-mode";
 import type { RecurringBillDto } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -11,7 +11,7 @@ interface RecurringBillRowProps {
   onDelete?: (billId: number) => void;
 }
 
-export function RecurringBillRow({ bill, currency, onMarkPaid }: RecurringBillRowProps) {
+export function RecurringBillRow({ bill, currency, onMarkPaid, onDelete }: RecurringBillRowProps) {
   const { renderAmount } = usePrivacyMode();
   const isIncome = bill.type === "income";
 
@@ -77,17 +77,33 @@ export function RecurringBillRow({ bill, currency, onMarkPaid }: RecurringBillRo
         {renderAmount(bill.amount, currency)}
       </span>
 
-      {/* Action: Mark Paid */}
-      {onMarkPaid && (
-        <button
-          type="button"
-          onClick={() => onMarkPaid(bill.id)}
-          className="shrink-0 inline-flex items-center gap-1 text-xs font-bold text-[var(--primary)] px-2.5 py-1.5 rounded-[4px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--chip)] transition-colors active:scale-95"
-        >
-          <Check size={12} strokeWidth={2.5} />
-          <span>{isIncome ? "Received" : "Paid"}</span>
-        </button>
-      )}
+      {/* Actions */}
+      <div className="shrink-0 flex items-center gap-1.5">
+        {onMarkPaid && (
+          <button
+            type="button"
+            onClick={() => onMarkPaid(bill.id)}
+            className="inline-flex items-center gap-1 text-xs font-bold text-[var(--primary)] px-2.5 py-1.5 rounded-[4px] border border-[var(--line)] bg-[var(--surface)] hover:bg-[var(--chip)] transition-colors active:scale-95"
+          >
+            <Check size={12} strokeWidth={2.5} />
+            <span>{isIncome ? "Received" : "Paid"}</span>
+          </button>
+        )}
+        {onDelete && (
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm(`Delete recurring item "${bill.name}"?`)) {
+                onDelete(bill.id);
+              }
+            }}
+            title="Delete recurring item"
+            className="p-1.5 rounded-[4px] text-[var(--muted)] hover:text-[var(--neg)] hover:bg-[var(--neg-soft)] transition-colors"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

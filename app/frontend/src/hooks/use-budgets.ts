@@ -68,6 +68,7 @@ export function useBudgets(initialDate?: Date) {
   const [error, setError] = useState<string | null>(null);
 
   const [budgetData, setBudgetData] = useState<BudgetMonthResponseDto | null>(null);
+  const [nextBudgetData, setNextBudgetData] = useState<BudgetMonthResponseDto | null>(null);
   const [goalsData, setGoalsData] = useState<GoalsResponseDto | null>(null);
   const [billsData, setBillsData] = useState<RecurringBillsResponseDto | null>(null);
   const [accounts, setAccounts] = useState<AccountDto[]>([]);
@@ -109,8 +110,9 @@ export function useBudgets(initialDate?: Date) {
     setLoading(true);
     setError(null);
     try {
-      const [bRes, gRes, rRes, accs, cats, sumRes] = await Promise.all([
+      const [bRes, nextBRes, gRes, rRes, accs, cats, sumRes] = await Promise.all([
         budgetsApi.getBudgets(monthKey).catch(() => null),
+        budgetsApi.getBudgets(nextMonthKey).catch(() => null),
         goalsApi.listGoals().catch(() => null),
         recurringBillsApi.listRecurringBills().catch(() => null),
         accountsApi.listAccounts().catch(() => []),
@@ -119,6 +121,7 @@ export function useBudgets(initialDate?: Date) {
       ]);
 
       if (bRes) setBudgetData(bRes);
+      if (nextBRes) setNextBudgetData(nextBRes);
       if (gRes) setGoalsData(gRes);
       if (rRes) setBillsData(rRes);
       setAccounts(accs);
@@ -138,7 +141,7 @@ export function useBudgets(initialDate?: Date) {
     } finally {
       setLoading(false);
     }
-  }, [monthKey]);
+  }, [monthKey, nextMonthKey]);
 
   useEffect(() => {
     void loadAll();
@@ -352,6 +355,8 @@ export function useBudgets(initialDate?: Date) {
     error,
     refresh: loadAll,
     budgetData,
+    nextBudgetData,
+    isNextMonthPlanned: (nextBudgetData?.summary.planned ?? 0) > 0,
     goalsData,
     billsData,
     accounts,

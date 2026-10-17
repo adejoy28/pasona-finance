@@ -43,3 +43,7 @@ export function resolveCurrency(input: string): Currency | undefined {
 export function getIntlCode(symbol: string): string {
   return resolveCurrency(symbol)?.intlCode ?? "NGN";
 }
+
+export function getCurrencySymbol(codeOrSymbol: string): string {
+  return resolveCurrency(codeOrSymbol)?.symbol ?? codeOrSymbol ?? "₦";
+}
