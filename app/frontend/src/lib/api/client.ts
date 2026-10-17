@@ -315,6 +315,14 @@ export async function request<T = unknown>(path: string, options: RequestOptions
   // Cache successful GETs
   if (method === "GET") {
     await setCachedData(url, payload);
+  } else {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("pasona:data-mutated", {
+          detail: { path, method, payload },
+        })
+      );
+    }
   }
 
   return payload as T;

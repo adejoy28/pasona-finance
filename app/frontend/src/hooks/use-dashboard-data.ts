@@ -38,6 +38,7 @@ import {
 import { calculateStreak } from "@/lib/quick-log";
 import { countQueuedTransactions } from "@/lib/offline/queue";
 import { useMe } from "@/hooks/use-me";
+import { detectDuplicatePairs, getDismissedPairIds } from "@/lib/duplicate-detector";
 
 export interface RecurringBill {
   id: string | number;
@@ -245,6 +246,31 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
     }
     void load();
   }, [monthKey, load]);
+
+  const [duplicateVersion, setDuplicateVersion] = useState(0);
+
+  useEffect(() => {
+    const handleDuplicates = () => setDuplicateVersion((v) => v + 1);
+    const handleMutation = () => {
+      invalidateDashboardDataCache();
+      void load();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void load();
+      }
+    };
+
+    window.addEventListener("pasona:duplicates-changed", handleDuplicates);
+    window.addEventListener("pasona:data-mutated", handleMutation);
+    window.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.removeEventListener("pasona:duplicates-changed", handleDuplicates);
+      window.removeEventListener("pasona:data-mutated", handleMutation);
+      window.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [load]);
 
   // Saving category IDs set
   const savingsCategoryIds = useMemo(() => {
@@ -458,36 +484,19 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
     return [];
   }, [goalsData]);
 
-  // Potential duplicate transactions detection
+  // Potential duplicate transactions detection matching duplicate-detector.ts
   const duplicateCount = useMemo(() => {
-    const list = recentTx.length ? recentTx : monthTx;
-    let count = 0;
-    const seen = new Set<number>();
-
-    for (let i = 0; i < list.length; i++) {
-      const a = list[i];
-      if (seen.has(a.id)) continue;
-      for (let j = i + 1; j < list.length; j++) {
-        const b = list[j];
-        if (seen.has(b.id)) continue;
-
-        const sameAmount = Math.abs(toNumber(a.amount) - toNumber(b.amount)) < 0.01;
-        const sameType = a.type === b.type;
-        const sameAccount = a.account_id && b.account_id && a.account_id === b.account_id;
-        const dateA = a.transaction_date ? new Date(a.transaction_date).getTime() : 0;
-        const dateB = b.transaction_date ? new Date(b.transaction_date).getTime() : 0;
-        const within48h = Math.abs(dateA - dateB) <= 48 * 60 * 60 * 1000;
-
-        if (sameAmount && sameType && within48h && sameAccount) {
-          count++;
-          seen.add(a.id);
-          seen.add(b.id);
-          break;
-        }
-      }
+    void duplicateVersion;
+    const combinedTx = [...monthTx, ...recentTx];
+    const txMap = new Map<number, TransactionDto>();
+    for (const t of combinedTx) {
+      if (t.id) txMap.set(t.id, t);
     }
-    return count;
-  }, [recentTx, monthTx]);
+    const list = Array.from(txMap.values());
+    const dismissed = getDismissedPairIds();
+    const pairs = detectDuplicatePairs(list, dismissed);
+    return pairs.filter((p) => p.kind === "dup").length;
+  }, [recentTx, monthTx, duplicateVersion]);
 
   // Over budget categories count
   const overBudgetCategoriesCount = useMemo(() => {
@@ -522,7 +531,7 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
         type: "duplicate",
         title: `${duplicateCount} possible ${duplicateCount === 1 ? "duplicate" : "duplicates"}`,
         detail: "Review so nothing is counted twice.",
-        linkTo: "/transactions",
+        linkTo: "/transactions/duplicates",
       });
     }
 
