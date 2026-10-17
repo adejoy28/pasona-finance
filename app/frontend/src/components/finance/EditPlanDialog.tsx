@@ -92,6 +92,11 @@ export function EditPlanDialog({
 
         {/* Body */}
         <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex items-center justify-between p-2.5 rounded-[4px] bg-[var(--chip)] border border-[var(--line)] text-xs">
+            <span className="text-[var(--muted)] font-medium">Target month:</span>
+            <span className="font-bold text-[var(--ink)]">{monthLabel}</span>
+          </div>
+
           <p className="text-xs text-[var(--muted)]">
             {isNextMonth
               ? "Started from your previous limits. Change anything you need."
@@ -111,7 +116,7 @@ export function EditPlanDialog({
                     id={`limit-${c.category_id}`}
                     type="number"
                     min="0"
-                    step="100"
+                    step="any"
                     placeholder="No limit"
                     value={limits[c.category_id] ?? ""}
                     onChange={(e) => handleInputChange(c.category_id, e.target.value)}

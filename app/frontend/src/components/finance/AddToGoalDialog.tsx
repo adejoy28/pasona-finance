@@ -84,8 +84,8 @@ export function AddToGoalDialog({ goal, accounts, currency, onClose, onSubmit }:
               <span className="text-[var(--muted)] font-display">₦</span>
               <input
                 type="number"
-                min="1"
-                step="500"
+                min="0.01"
+                step="any"
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}

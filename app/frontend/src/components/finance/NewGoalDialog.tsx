@@ -116,8 +116,8 @@ export function NewGoalDialog({ open, onClose, accounts, onSubmit }: NewGoalDial
               </label>
               <input
                 type="number"
-                min="1"
-                step="500"
+                min="0.01"
+                step="any"
                 placeholder="0"
                 value={targetAmount}
                 onChange={(e) => setTargetAmount(e.target.value)}
