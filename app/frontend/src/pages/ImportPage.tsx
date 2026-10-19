@@ -31,6 +31,9 @@ import { DEFAULT_CURRENCY } from "@/lib/currencies";
 import { usePrivacyMode } from "@/hooks/use-privacy-mode";
 import { useMe } from "@/hooks/use-me";
 
+// phonedebug usinf const ccepted files 
+const ACCEPTED_FILES = ".csv,.xlsx,.xls,.pdf";
+
 type EditableRow = ImportPreviewRow & {
   userType: "income" | "expense" | "transfer";
   suggestionDismissed: boolean;
