@@ -70,14 +70,14 @@ export function AiChat() {
       {/* Overlay backdrop */}
       {open && (
         <div
-          className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-xs"
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs"
           onClick={() => setOpen(false)}
         />
       )}
 
       {/* Chat panel / drawer */}
       <div
-        className={`fixed bottom-0 sm:bottom-6 right-0 sm:right-6 z-[70] w-full sm:w-[400px] max-w-full transition-all duration-200 ${
+        className={`fixed bottom-0 sm:bottom-6 right-0 sm:right-6 z-[55] w-full sm:w-[400px] max-w-full transition-all duration-200 ${
           open ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
         }`}
       >

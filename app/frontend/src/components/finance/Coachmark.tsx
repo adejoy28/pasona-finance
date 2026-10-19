@@ -260,7 +260,7 @@ export function Coachmark({
 
   return (
     <div
-      className="fixed inset-0 z-[100]"
+      className="fixed inset-0 z-[80]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="coachmark-title"

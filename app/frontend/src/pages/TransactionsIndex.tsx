@@ -1144,7 +1144,7 @@ export function TransactionsIndex() {
       {/* ===================================================================
           Header Bar: Clean, institutional layout
           =================================================================== */}
-      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-3 sm:px-5 lg:px-6 shadow-sm border-b border-white/5 text-white">
+      <header className="sticky top-0 z-30 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-3 sm:px-5 lg:px-6 shadow-sm border-b border-white/5 text-white">
         <div className="w-full flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="font-display font-semibold text-xl sm:text-2xl text-white tracking-tight leading-tight truncate">

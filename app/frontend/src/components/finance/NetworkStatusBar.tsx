@@ -1,23 +1,31 @@
 import React, { useState, useEffect } from "react";
-import { CloudOff, RefreshCw, AlertCircle, LogIn, CheckCircle2 } from "lucide-react";
+import { CloudOff, RefreshCw, AlertCircle, LogIn } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOfflineSync } from "@/hooks/use-offline-sync";
+import { getCachedUser } from "@/hooks/use-me";
 import { notify } from "@/hooks/use-toast";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 
 export function NetworkStatusBar() {
   const { isOnline, isSyncing, pendingCount, flushQueue } = useOfflineSync();
   const [serverUnreachable, setServerUnreachable] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [reauthModalOpen, setReauthModalOpen] = useState(false);
   const [syncCount, setSyncCount] = useState(0);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Listen to network status events dispatched by the API interceptor
   useEffect(() => {
     const handleServerDown = () => setServerUnreachable(true);
     const handleServerUp = () => setServerUnreachable(false);
     const handleReauth = () => setSessionExpired(true);
-    const handleAuthRestored = () => setSessionExpired(false);
+    const handleModalOpened = () => setReauthModalOpen(true);
+    const handleModalDismissed = () => setReauthModalOpen(false);
+    const handleAuthRestored = () => {
+      setSessionExpired(false);
+      setReauthModalOpen(false);
+    };
     const handleSyncStart = (e: any) => {
       setSyncCount(e.detail?.count || pendingCount || 0);
     };
@@ -25,6 +33,8 @@ export function NetworkStatusBar() {
     window.addEventListener("pasona:server-unreachable", handleServerDown);
     window.addEventListener("pasona:server-restored", handleServerUp);
     window.addEventListener("pasona:reauth-required", handleReauth);
+    window.addEventListener("pasona:reauth-modal-opened", handleModalOpened);
+    window.addEventListener("pasona:reauth-modal-dismissed", handleModalDismissed);
     window.addEventListener("pasona:auth-restored", handleAuthRestored);
     window.addEventListener("pasona:sync-start", handleSyncStart);
 
@@ -32,10 +42,23 @@ export function NetworkStatusBar() {
       window.removeEventListener("pasona:server-unreachable", handleServerDown);
       window.removeEventListener("pasona:server-restored", handleServerUp);
       window.removeEventListener("pasona:reauth-required", handleReauth);
+      window.removeEventListener("pasona:reauth-modal-opened", handleModalOpened);
+      window.removeEventListener("pasona:reauth-modal-dismissed", handleModalDismissed);
       window.removeEventListener("pasona:auth-restored", handleAuthRestored);
       window.removeEventListener("pasona:sync-start", handleSyncStart);
     };
   }, [pendingCount]);
+
+  useEffect(() => {
+    if (
+      location.pathname.startsWith("/login") ||
+      location.pathname.startsWith("/register") ||
+      location.pathname === "/"
+    ) {
+      setSessionExpired(false);
+      setReauthModalOpen(false);
+    }
+  }, [location.pathname]);
 
   // When syncing completes, emit feedback
   useEffect(() => {
@@ -66,8 +89,12 @@ export function NetworkStatusBar() {
   };
 
   const handleSignIn = () => {
-    setSessionExpired(false);
-    void navigate("/login");
+    if (getCachedUser()?.email) {
+      window.dispatchEvent(new CustomEvent("pasona:reauth-required"));
+    } else {
+      setSessionExpired(false);
+      void navigate("/login");
+    }
   };
 
   return (
@@ -128,7 +155,7 @@ export function NetworkStatusBar() {
           </motion.div>
         )}
 
-        {sessionExpired && (
+        {sessionExpired && !reauthModalOpen && (
           <motion.div
             initial={{ opacity: 0, y: -24 }}
             animate={{ opacity: 1, y: 0 }}

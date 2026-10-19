@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router";
 import { LogIn, Loader2, Lock, Eye, EyeOff } from "lucide-react";
 import {
   Dialog,
@@ -8,7 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { auth as authApi } from "@/lib/api";
-import { useMe, invalidateMe } from "@/hooks/use-me";
+import { useMe, invalidateMe, getCachedUser } from "@/hooks/use-me";
 import { toast } from "@/hooks/use-toast";
 
 /**
@@ -24,12 +25,25 @@ export function SessionExpiredModal() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { data: user } = useMe();
+  const location = useLocation();
 
   useEffect(() => {
     const handleReauth = () => {
+      const path = window.location.pathname;
+      const isAuthRoute =
+        path === "/" ||
+        path.startsWith("/login") ||
+        path.startsWith("/register") ||
+        path.startsWith("/forgot-password") ||
+        path.startsWith("/reset-password");
+      const cachedEmail = user?.email || getCachedUser()?.email;
+      if (isAuthRoute || !cachedEmail) {
+        return;
+      }
       setOpen(true);
       setError(null);
       setPassword("");
+      window.dispatchEvent(new CustomEvent("pasona:reauth-modal-opened"));
     };
 
     const handleAuthRestored = () => {
@@ -43,7 +57,24 @@ export function SessionExpiredModal() {
       window.removeEventListener("pasona:reauth-required", handleReauth);
       window.removeEventListener("pasona:auth-restored", handleAuthRestored);
     };
-  }, []);
+  }, [user?.email]);
+
+  useEffect(() => {
+    if (
+      location.pathname.startsWith("/login") ||
+      location.pathname.startsWith("/register") ||
+      location.pathname === "/"
+    ) {
+      setOpen(false);
+    }
+  }, [location.pathname]);
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      window.dispatchEvent(new CustomEvent("pasona:reauth-modal-dismissed"));
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +82,7 @@ export function SessionExpiredModal() {
     setBusy(true);
     setError(null);
 
-    const email = user?.email;
+    const email = user?.email || getCachedUser()?.email;
     if (!email) {
       // If no email in cache, user must visit login
       window.location.href = "/login";
@@ -72,8 +103,11 @@ export function SessionExpiredModal() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-[380px] rounded-3xl p-6 bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] shadow-2xl">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent
+        overlayClassName="z-[70]"
+        className="z-[70] max-w-[380px] rounded-3xl p-6 bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] shadow-2xl"
+      >
         <DialogHeader className="space-y-2 text-center items-center">
           <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-[var(--accent,#1F5BFF)] flex items-center justify-center shrink-0 mb-1">
             <Lock size={24} />

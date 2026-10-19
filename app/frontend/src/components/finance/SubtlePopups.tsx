@@ -193,9 +193,17 @@ export function SubtlePopups() {
   const [biometricVisible, setBiometricVisible] = useState(false);
   const [biometryLabel, setBiometryLabel] = useState("Fingerprint");
 
+  const isAuthRoute =
+    location.pathname === "/" ||
+    location.pathname.startsWith("/login") ||
+    location.pathname.startsWith("/register") ||
+    location.pathname.startsWith("/forgot-password") ||
+    location.pathname.startsWith("/reset-password") ||
+    location.pathname.startsWith("/email/verify");
+
   useEffect(() => {
-    // Biometric prompt is only for native app users who are logged in
-    if (!isNative || !currentUser) {
+    // Biometric prompt is only for native app users who are logged in on protected routes
+    if (!isNative || !currentUser || isAuthRoute || location.pathname === "/settings") {
       setBiometricVisible(false);
       return;
     }
@@ -215,6 +223,7 @@ export function SubtlePopups() {
 
         const isConfigured = await hasBiometricCredentials();
         if (isConfigured) {
+          if (isMounted) setBiometricVisible(false);
           return;
         }
 
@@ -238,7 +247,7 @@ export function SubtlePopups() {
     return () => {
       isMounted = false;
     };
-  }, [isNative, currentUser]);
+  }, [isNative, currentUser, isAuthRoute, location.pathname]);
 
   const handleDismissBiometrics = () => {
     setBiometricVisible(false);
@@ -312,6 +321,9 @@ export function SubtlePopups() {
     currentPopup = "download";
   }
 
+  const popupContainerClass =
+    "fixed z-[45] top-[max(0.75rem,env(safe-area-inset-top))] left-3 right-3 sm:left-auto sm:right-6 sm:top-5 sm:max-w-[390px] pointer-events-none";
+
   return (
     <aside aria-label="Notifications and updates">
       <AnimatePresence mode="wait">
@@ -324,7 +336,7 @@ export function SubtlePopups() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -16, scale: 0.96 }}
             transition={{ type: "spring", stiffness: 420, damping: 28 }}
-            className="fixed z-40 top-[max(0.75rem,env(safe-area-inset-top))] left-3 right-3 sm:left-auto sm:right-6 sm:top-5 sm:max-w-[390px] pointer-events-none"
+            className={popupContainerClass}
           >
             <div className="pointer-events-auto relative overflow-hidden rounded-2xl border border-blue-500/25 bg-[#0b1434]/95 p-3.5 shadow-2xl backdrop-blur-xl text-white ring-1 ring-black/40">
               <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-blue-500/20 blur-2xl" />
@@ -492,7 +504,7 @@ export function SubtlePopups() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -16, scale: 0.96 }}
             transition={{ type: "spring", stiffness: 420, damping: 28 }}
-            className="fixed z-40 top-[max(0.75rem,env(safe-area-inset-top))] left-3 right-3 sm:left-auto sm:right-6 sm:top-5 sm:max-w-[380px] pointer-events-none"
+            className={popupContainerClass}
           >
             <div className="pointer-events-auto relative overflow-hidden rounded-2xl border border-indigo-500/25 bg-[#0b1434]/95 p-3.5 shadow-2xl backdrop-blur-xl text-white ring-1 ring-black/40">
               <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-indigo-500/15 blur-2xl" />
@@ -559,7 +571,7 @@ export function SubtlePopups() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -16, scale: 0.96 }}
             transition={{ type: "spring", stiffness: 420, damping: 28 }}
-            className="fixed z-40 top-[max(0.75rem,env(safe-area-inset-top))] left-3 right-3 sm:left-auto sm:right-6 sm:top-5 sm:max-w-[380px] pointer-events-none"
+            className={popupContainerClass}
           >
             <div className="pointer-events-auto relative overflow-hidden rounded-2xl border border-blue-500/25 bg-[#0b1434]/95 p-3.5 shadow-2xl backdrop-blur-xl text-white ring-1 ring-black/40">
               <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-blue-500/15 blur-2xl" />
