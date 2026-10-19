@@ -178,7 +178,7 @@ export function FinanceNavbar() {
       {/* ===== Mobile bottom tab bar (< 720px): 5-column grid (Addendum A) ===== */}
       <nav
         aria-label="Primary"
-        className="pf-bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-[var(--surface)] border-t border-[var(--line)] pb-[max(0.25rem,env(safe-area-inset-bottom))]"
+        className="pf-bottom-nav fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface)] border-t border-[var(--line)] pb-[max(0.25rem,env(safe-area-inset-bottom))]"
       >
         <div className="max-w-md mx-auto px-1.5 py-1 grid grid-cols-5 items-center">
           {/* 1. Home */}

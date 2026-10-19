@@ -334,7 +334,7 @@ export function AccountDetail() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-32">
-      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-4 px-6 shadow-sm border-b border-white/5 transition-all text-white">
+      <header className="sticky top-0 z-30 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-4 px-6 shadow-sm border-b border-white/5 transition-all text-white">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-3 mb-3">
             <Link

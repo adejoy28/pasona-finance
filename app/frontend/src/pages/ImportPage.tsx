@@ -613,7 +613,7 @@ export function ImportPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-32">
-      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3.5 px-6 shadow-sm border-b border-white/5 transition-all text-white">
+      <header className="sticky top-0 z-30 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3.5 px-6 shadow-sm border-b border-white/5 transition-all text-white">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <button
             type="button"

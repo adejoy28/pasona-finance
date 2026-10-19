@@ -37,13 +37,13 @@ export function ModalErrorBanner({
   return (
     <div
       role="alert"
-      className={`p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-[var(--ink)] flex items-center justify-between gap-3 animate-slide-up select-none ${className}`}
+      className={`p-3.5 rounded-2xl bg-[var(--neg-soft)] border border-[var(--neg-border)] text-[var(--ink)] flex items-center justify-between gap-3 animate-slide-up select-none ${className}`}
     >
       <div className="flex items-center gap-2.5 min-w-0">
-        <div className="w-7 h-7 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+        <div className="w-7 h-7 rounded-xl bg-[var(--neg)] text-white flex items-center justify-center shrink-0 shadow-xs">
           <AlertCircle size={15} />
         </div>
-        <p className="text-xs font-bold leading-snug truncate">
+        <p className="text-xs font-bold leading-snug truncate text-[var(--ink)]">
           {message}
         </p>
       </div>

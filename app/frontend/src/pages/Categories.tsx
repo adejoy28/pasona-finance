@@ -193,7 +193,7 @@ export function Categories() {
   return (
     <div className="min-h-screen bg-slate-50 pb-32">
       {/* Sticky Fixed Top Header Bar */}
-      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-6 shadow-sm border-b border-white/5 transition-all">
+      <header className="sticky top-0 z-30 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-6 shadow-sm border-b border-white/5 transition-all">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2.5">
             <h1 className="text-base font-bold tracking-tight text-white">Categories</h1>

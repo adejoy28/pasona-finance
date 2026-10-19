@@ -142,7 +142,7 @@ export function ProfilePage() {
   return (
     <div className="min-h-screen bg-[var(--bg)] pb-32 text-[var(--ink)]">
       {/* Top Header with Back Button */}
-      <header className="sticky top-0 z-40 bg-[var(--nav-bg,#0B1434)] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-6 shadow-sm border-b border-white/5 text-white">
+      <header className="sticky top-0 z-30 bg-[var(--nav-bg,#0B1434)] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-6 shadow-sm border-b border-white/5 text-white">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <button
             type="button"

@@ -195,6 +195,9 @@ export function Login() {
   };
 
   const skipBiometrics = () => {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("pasona-biometric-prompt-dismissed", "1");
+    }
     setShowEnableBiometric(false);
     void navigate("/dashboard");
   };

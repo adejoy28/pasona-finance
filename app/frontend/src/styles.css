@@ -70,6 +70,7 @@
   --color-pos-soft: var(--pos-soft);
   --color-neg: var(--neg);
   --color-neg-soft: var(--neg-soft);
+  --color-neg-border: var(--neg-border);
   --color-warn: var(--warn);
   --color-info-soft: var(--info-soft);
   --color-chip: var(--chip);
@@ -154,8 +155,9 @@
   --add-ink: #FFFFFF;
   --pos: #1B7A52;
   --pos-soft: #DDF0E6;
-  --neg: #B63F2E;
-  --neg-soft: #F6E1DB;
+  --neg: #A8281A;
+  --neg-soft: #FDF1EE;
+  --neg-border: #F5C2B8;
   --warn: #E8A317;
   --info-soft: #E3EAFB;
   --nav-bg: #0B1434;
@@ -228,8 +230,9 @@ html[data-skin="fresh"],
   --add-ink: #2B1D00;
   --pos: #1B7A52;
   --pos-soft: #DDF0E6;
-  --neg: #B63F2E;
-  --neg-soft: #F6E1DB;
+  --neg: #A8281A;
+  --neg-soft: #FDF1EE;
+  --neg-border: #F5C2B8;
   --warn: #E8A317;
   --info-soft: #E1E6F6;
   --nav-bg: #1B2D6B;
@@ -265,8 +268,9 @@ html:not([data-theme="light"]):not([data-mode="light"]) {
     --add-ink: #FFFFFF;
     --pos: #5CCB93;
     --pos-soft: #14382C;
-    --neg: #F28B79;
-    --neg-soft: #40201B;
+    --neg: #FFA292;
+    --neg-soft: #2D1416;
+    --neg-border: #5A2722;
     --warn: #F0B33A;
     --info-soft: #1F2A63;
     --nav-bg: #070B1E;
@@ -305,8 +309,9 @@ html[data-mode="dark"] {
   --add-ink: #FFFFFF;
   --pos: #5CCB93;
   --pos-soft: #14382C;
-  --neg: #F28B79;
-  --neg-soft: #40201B;
+  --neg: #FFA292;
+  --neg-soft: #2D1416;
+  --neg-border: #5A2722;
   --warn: #F0B33A;
   --info-soft: #1F2A63;
   --nav-bg: #070B1E;
@@ -512,6 +517,22 @@ html.dark .bg-red-50,
 html[data-mode="dark"] .bg-rose-50,
 html[data-mode="dark"] .bg-red-50 {
   background-color: var(--neg-soft);
+  color: var(--neg);
+  border-color: var(--neg-border);
+}
+
+html.dark .bg-rose-50 .text-rose-700,
+html.dark .bg-rose-50 .text-rose-600,
+html.dark .bg-red-50 .text-red-700,
+html.dark .bg-red-50 .text-red-600,
+html.dark .bg-rose-50 .text-rose-500,
+html.dark .bg-red-50 .text-red-500,
+html[data-mode="dark"] .bg-rose-50 .text-rose-700,
+html[data-mode="dark"] .bg-rose-50 .text-rose-600,
+html[data-mode="dark"] .bg-red-50 .text-red-700,
+html[data-mode="dark"] .bg-red-50 .text-red-600,
+html[data-mode="dark"] .bg-rose-50 .text-rose-500,
+html[data-mode="dark"] .bg-red-50 .text-red-500 {
   color: var(--neg);
 }
 

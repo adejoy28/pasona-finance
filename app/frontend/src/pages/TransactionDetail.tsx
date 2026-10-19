@@ -287,7 +287,7 @@ export function TransactionDetail() {
   return (
     <div className="min-h-screen bg-slate-50/60 pb-36">
       {/* Header Bar */}
-      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3.5 px-4 sm:px-6 border-b border-white/5 shadow-sm text-white transition-all">
+      <header className="sticky top-0 z-30 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3.5 px-4 sm:px-6 border-b border-white/5 shadow-sm text-white transition-all">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <button
             type="button"

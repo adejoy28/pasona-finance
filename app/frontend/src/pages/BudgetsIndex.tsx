@@ -140,7 +140,7 @@ export function BudgetsIndex() {
   return (
     <div className="min-h-screen bg-[var(--bg)] pb-32">
       {/* Sticky Top Header Bar matching App Shell */}
-      <header className="sticky top-0 z-40 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-3 sm:px-5 lg:px-6 shadow-sm border-b border-white/5 transition-all text-white">
+      <header className="sticky top-0 z-30 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-3 sm:px-5 lg:px-6 shadow-sm border-b border-white/5 transition-all text-white">
         <div className="w-full flex flex-col gap-2">
           <div className="flex justify-between items-center gap-3">
             <div className="min-w-0">
