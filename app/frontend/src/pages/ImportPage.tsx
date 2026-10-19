@@ -682,7 +682,7 @@ export function ImportPage() {
               >
                 <input
                   type="file"
-                  accept={bankConfig.accepts}
+                  accept={ACCEPTED_FILES}
                   onChange={(e) => handlePickFile(e.target.files?.[0] ?? null)}
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />
