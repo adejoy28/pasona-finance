@@ -6,6 +6,8 @@ import {
   Check,
   CornerDownLeft,
   Loader2,
+  Pencil,
+  RotateCw,
   Send,
   Sparkles,
   WifiOff,
@@ -36,6 +38,8 @@ export function AiChat() {
     categories,
     userCurrency,
     send,
+    editAndResend,
+    retryLast,
     confirmCard,
     cancelCard,
     updateCard,
@@ -204,6 +208,8 @@ export function AiChat() {
               onUpdateCard={updateCard}
               onActionClick={handleActionClick}
               onRetry={(text) => send(text)}
+              onEditAndResend={editAndResend}
+              onRetryLast={retryLast}
             />
           ))}
 
@@ -304,17 +310,18 @@ function MessageItem({
   onUpdateCard: (cardId: string, updates: Partial<MaryCard>) => void;
   onActionClick: (action: AssistantAction) => void;
   onRetry: (prompt: string) => void;
+  onEditAndResend: (messageId: string, newContent: string) => void;
+  onRetryLast?: () => void;
 }) {
   const isUser = message.role === "user";
   const isError = message.role === "error";
 
   if (isUser) {
     return (
-      <div className="flex justify-end">
-        <div className="max-w-[88%] rounded-2xl rounded-br-sm px-3.5 py-2.5 text-xs sm:text-sm leading-relaxed bg-[var(--primary)] text-[var(--primary-ink)] shadow-xs whitespace-pre-wrap break-words">
-          {message.content}
-        </div>
-      </div>
+      <UserBubbleItem
+        message={message}
+        onEditAndResend={onEditAndResend}
+      />
     );
   }
 
@@ -381,38 +388,145 @@ function MessageItem({
           />
         )}
 
-        {/* Action Buttons (Navigate, etc.) */}
-        {message.actions && message.actions.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            {message.actions.map((act, i) => {
-              if (act.type === "navigate") {
-                const label =
-                  act.to === "budgets"
-                    ? "Open budgets"
-                    : act.to === "bills"
-                      ? "View bills"
-                      : act.to === "goals"
-                        ? "View goals"
-                        : act.to === "duplicates"
-                          ? "Review duplicates"
-                          : `Go to ${act.to}`;
+        {/* Action Buttons & Quick Retry */}
+        <div className="flex items-center justify-between gap-2 pt-1 border-t border-[var(--line)]/50">
+          <div className="flex flex-wrap gap-1.5 flex-1">
+            {message.actions &&
+              message.actions.map((act, i) => {
+                if (act.type === "navigate") {
+                  const label =
+                    act.to === "budgets"
+                      ? "Open budgets"
+                      : act.to === "bills"
+                        ? "View bills"
+                        : act.to === "goals"
+                          ? "View goals"
+                          : act.to === "duplicates"
+                            ? "Review duplicates"
+                            : `Go to ${act.to}`;
 
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => onActionClick(act)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-[var(--chip)] text-[var(--primary)] hover:border-[var(--primary)] border border-transparent transition-all cursor-pointer"
-                  >
-                    <span>{label}</span>
-                    <ArrowRight size={12} />
-                  </button>
-                );
-              }
-              return null;
-            })}
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => onActionClick(act)}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-bold rounded-md bg-[var(--chip)] text-[var(--primary)] hover:border-[var(--primary)] border border-transparent transition-all cursor-pointer"
+                    >
+                      <span>{label}</span>
+                      <ArrowRight size={11} />
+                    </button>
+                  );
+                }
+                return null;
+              })}
           </div>
-        )}
+
+          {message.id !== "welcome" && onRetryLast && (
+            <button
+              type="button"
+              onClick={onRetryLast}
+              className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-[var(--muted)] hover:text-[var(--ink)] px-1.5 py-0.5 rounded hover:bg-[var(--chip)] transition-colors cursor-pointer shrink-0"
+              title="Regenerate reply"
+            >
+              <RotateCw size={11} />
+              <span>Retry</span>
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UserBubbleItem({
+  message,
+  onEditAndResend,
+}: {
+  message: MaryMessage;
+  onEditAndResend: (messageId: string, newContent: string) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(message.content);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      textareaRef.current?.focus();
+      textareaRef.current?.select();
+    }
+  }, [isEditing]);
+
+  const handleSave = () => {
+    const trimmed = editValue.trim();
+    if (!trimmed) return;
+    setIsEditing(false);
+    onEditAndResend(message.id, trimmed);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === "Escape") {
+      setIsEditing(false);
+      setEditValue(message.content);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex justify-end w-full">
+        <div className="w-full max-w-[90%] sm:max-w-[85%] rounded-2xl bg-[var(--surface)] text-[var(--ink)] border border-[var(--primary)] p-2.5 shadow-md space-y-2">
+          <textarea
+            ref={textareaRef}
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            rows={2}
+            className="w-full bg-[var(--bg)] border border-[var(--line)] rounded-xl p-2 text-xs sm:text-sm outline-none focus:border-[var(--primary)] resize-none"
+          />
+          <div className="flex items-center justify-end gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setIsEditing(false);
+                setEditValue(message.content);
+              }}
+              className="px-2.5 py-1 text-xs font-semibold rounded-lg text-[var(--muted)] hover:bg-[var(--chip)] transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!editValue.trim()}
+              className="px-3 py-1 text-xs font-bold rounded-lg bg-[var(--primary)] text-[var(--primary-ink)] hover:brightness-105 transition-all cursor-pointer disabled:opacity-50"
+            >
+              Save & Resend
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="group flex justify-end items-center gap-1.5">
+      <button
+        type="button"
+        onClick={() => {
+          setEditValue(message.content);
+          setIsEditing(true);
+        }}
+        className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1 text-[var(--muted)] hover:text-[var(--ink)] rounded-md hover:bg-[var(--chip)] cursor-pointer"
+        aria-label="Edit message"
+        title="Edit and resend"
+      >
+        <Pencil size={13} />
+      </button>
+
+      <div className="max-w-[88%] rounded-2xl rounded-br-sm px-3.5 py-2.5 text-xs sm:text-sm leading-relaxed bg-[var(--primary)] text-[var(--primary-ink)] shadow-xs whitespace-pre-wrap break-words">
+        {message.content}
       </div>
     </div>
   );

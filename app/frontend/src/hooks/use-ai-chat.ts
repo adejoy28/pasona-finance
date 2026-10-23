@@ -366,6 +366,35 @@ export function useAiChat() {
     setMessages([]);
   }, []);
 
+  const editAndResend = useCallback(
+    (messageId: string, newContent: string) => {
+      const trimmed = newContent.trim();
+      if (!trimmed || isSending) return;
+
+      // Find the index of the message being edited
+      const targetIndex = messages.findIndex((m) => m.id === messageId);
+      if (targetIndex === -1) {
+        send(trimmed);
+        return;
+      }
+
+      // Truncate message history up to the message being replaced
+      setMessages((prev) => prev.slice(0, targetIndex));
+
+      // Resend with new content
+      send(trimmed);
+    },
+    [isSending, messages, send],
+  );
+
+  const retryLast = useCallback(() => {
+    if (isSending) return;
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+    if (lastUserMsg) {
+      editAndResend(lastUserMsg.id, lastUserMsg.content);
+    }
+  }, [editAndResend, isSending, messages]);
+
   return {
     messages,
     isSending,
@@ -373,6 +402,8 @@ export function useAiChat() {
     categories,
     userCurrency,
     send,
+    editAndResend,
+    retryLast,
     confirmCard,
     cancelCard,
     updateCard,
