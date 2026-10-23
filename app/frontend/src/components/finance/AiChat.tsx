@@ -299,6 +299,8 @@ function MessageItem({
   onUpdateCard,
   onActionClick,
   onRetry,
+  onEditAndResend,
+  onRetryLast,
 }: {
   message: MaryMessage;
   userCurrency: string;
