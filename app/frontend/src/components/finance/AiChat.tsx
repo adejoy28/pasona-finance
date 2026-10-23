@@ -15,6 +15,24 @@ import {
 import { useAiChat, type MaryCard, type MaryMessage } from "@/hooks/use-ai-chat";
 import { usePrivacyMode } from "@/hooks/use-privacy-mode";
 import type { AssistantAction } from "@/lib/api/assistant";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useAiChat } from "@/hooks/use-ai-chat";
+import type { AiChatResult } from "@/lib/api/chat.stub";
+import { useOnline } from "@/hooks/use-online";
+import {
+  summary as summaryApi,
+  type SummaryDto,
+} from "@/lib/api";
+import { FormattedAiResponse } from "@/components/finance/FormattedAiResponse";
+
+const QUICK_PROMPTS = [
+  "Where can I cut down expenses?",
+  "Am I saving enough this month?",
+  "How am I doing overall?",
+] as const;
+
+const MAX_QUESTION_LENGTH = 500;
 
 const SUGGESTION_CHIPS = [
   "Where did my money go?",
@@ -478,65 +496,11 @@ function ConfirmCardView({
         <div className="text-xs font-semibold text-[var(--muted)] bg-[var(--chip)] px-2 py-1 rounded-md">
           Cancelled
         </div>
-      )}
-
-      {/* Active Form Controls */}
-      {!card.done && (
-        <>
-          {/* Account select (Binding rule: never defaulted) */}
-          <label className="block text-[11px] font-bold text-[var(--muted)] space-y-1">
-            <span>Account</span>
-            <select
-              value={card.account}
-              onChange={(e) => onUpdate({ account: e.target.value })}
-              className="w-full bg-[var(--bg)] border border-[var(--line)] text-[var(--ink)] rounded-lg p-1.5 text-xs outline-none focus:border-[var(--primary)]"
-            >
-              <option value="">Choose account</option>
-              {accounts.map((a) => (
-                <option key={a.id} value={a.name}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {/* Category select */}
-          <label className="block text-[11px] font-bold text-[var(--muted)] space-y-1">
-            <span>Category</span>
-            <select
-              value={card.category}
-              onChange={(e) => onUpdate({ category: e.target.value })}
-              className="w-full bg-[var(--bg)] border border-[var(--line)] text-[var(--ink)] rounded-lg p-1.5 text-xs outline-none focus:border-[var(--primary)]"
-            >
-              <option value="">Choose category</option>
-              {filteredCats.map((c) => (
-                <option key={c.id} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {/* Action buttons */}
-          <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="flex-1 py-1.5 px-3 text-xs font-bold rounded-lg border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] hover:bg-[var(--chip)] transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={onConfirm}
-              className="flex-1 py-1.5 px-3 text-xs font-bold rounded-lg bg-[var(--primary)] text-[var(--primary-ink)] hover:brightness-105 active:scale-95 transition-all cursor-pointer"
-            >
-              {card.force ? "Add anyway" : "Confirm"}
-            </button>
-          </div>
-        </>
-      )}
-    </div>
+        <p className="text-[10px] text-slate-400 text-center leading-relaxed pt-1">
+          For budgeting guidance only. Does not constitute certified financial advice.
+        </p>
+      </div>
+    </>
   );
 }
 
@@ -555,58 +519,16 @@ function FormattedMaryText({
   const lines = text.split("\n");
 
   return (
-    <div className="space-y-1.5 leading-relaxed">
-      {lines.map((line, lineIdx) => {
-        const trimmed = line.trim();
-        if (!trimmed) {
-          return <div key={lineIdx} className="h-1" />;
-        }
-
-        const isBullet = trimmed.startsWith("- ") || trimmed.startsWith("* ");
-        const lineContent = isBullet ? trimmed.slice(2) : line;
-
-        // Parse inline bold, italic, code
-        const parts = lineContent.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);
-
-        const renderedLine = parts.map((part, partIdx) => {
-          if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
-            return (
-              <strong key={partIdx} className="font-bold text-[var(--ink)]">
-                {part.slice(2, -2)}
-              </strong>
-            );
-          }
-          if (part.startsWith("*") && part.endsWith("*") && part.length >= 2) {
-            return (
-              <em key={partIdx} className="italic text-[var(--ink)]">
-                {part.slice(1, -1)}
-              </em>
-            );
-          }
-          if (part.startsWith("`") && part.endsWith("`") && part.length >= 2) {
-            return (
-              <code
-                key={partIdx}
-                className="px-1 py-0.5 rounded bg-[var(--chip)] text-[11px] font-mono text-[var(--ink)]"
-              >
-                {part.slice(1, -1)}
-              </code>
-            );
-          }
-          return part;
-        });
-
-        if (isBullet) {
-          return (
-            <div key={lineIdx} className="flex items-start gap-2 pl-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] shrink-0 mt-1.5" />
-              <div className="flex-1">{renderedLine}</div>
-            </div>
-          );
-        }
-
-        return <p key={lineIdx}>{renderedLine}</p>;
-      })}
+    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+      <div
+        className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+          isUser
+            ? "bg-blue-600 text-white rounded-br-md whitespace-pre-wrap"
+            : "bg-slate-50 text-slate-800 rounded-bl-md"
+        }`}
+      >
+        {isUser ? message.content : <FormattedAiResponse text={message.content} />}
+      </div>
     </div>
   );
 }
