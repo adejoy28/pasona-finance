@@ -142,6 +142,16 @@ export function useAiChat() {
             account: d.account || "",
             category: d.category || "",
           };
+        } else {
+          // Client-side safety parser: if Groq described the draft in text without the tool call,
+          // or user stated an expense, reliably construct the interactive confirm card!
+          const parsed = extractFallbackDraft(trimmed, reply, accounts, categories);
+          if (parsed) {
+            card = {
+              id: `card-${Date.now()}`,
+              ...parsed,
+            };
+          }
         }
 
         setMessages((prev) => [
@@ -368,5 +378,74 @@ export function useAiChat() {
     updateCard,
     reset,
     ensureWelcome,
+  };
+}
+
+function extractFallbackDraft(
+  userText: string,
+  botReply: string,
+  accounts: AccountDto[],
+  categories: CategoryDto[],
+): Omit<MaryCard, "id"> | null {
+  const combined = `${userText} ${botReply}`.toLowerCase();
+
+  const isDraftIntent =
+    /\b(spent|spend|paid|pay|bought|buy|log|record|got|received|earned|drafted a transaction|transaction draft)\b/i.test(
+      combined,
+    ) && /\d/.test(combined);
+
+  if (!isDraftIntent) return null;
+
+  // Extract amount
+  const match = combined.match(/(?:₦|ngn|\$)?\s*(\d[\d,]*(?:\.\d+)?)\s*(k\b)?/i);
+  if (!match) return null;
+
+  let amt = parseFloat(match[1].replace(/,/g, ""));
+  if (match[2]) amt *= 1000;
+  if (!(amt > 0)) return null;
+
+  const kind = /\b(received|got|earned|salary|income|paid me)\b/i.test(combined)
+    ? "income"
+    : "expense";
+
+  // Match account
+  let matchedAccount = "";
+  for (const a of accounts) {
+    if (combined.includes(a.name.toLowerCase())) {
+      matchedAccount = a.name;
+      break;
+    }
+  }
+
+  // Match category
+  let matchedCategory = "";
+  for (const c of categories) {
+    if (combined.includes(c.name.toLowerCase())) {
+      matchedCategory = c.name;
+      break;
+    }
+  }
+  if (!matchedCategory) {
+    matchedCategory = kind === "income" ? "Salary" : "General";
+  }
+
+  // Extract description
+  let desc = userText
+    .replace(/(?:₦|ngn|\$)?\s*\d[\d,]*(?:\.\d+)?\s*k?\b/gi, "")
+    .replace(
+      /\b(add|log|record|spent|spend|paid|pay|bought|buy|got|received|earned|on|for|from|in|to|naira|ngn)\b/gi,
+      " ",
+    );
+  if (matchedAccount) {
+    desc = desc.replace(new RegExp(matchedAccount, "gi"), " ");
+  }
+  desc = desc.replace(/[₦$]/g, "").replace(/\s+/g, " ").trim();
+
+  return {
+    amount: amt,
+    kind,
+    description: desc || "transaction",
+    account: matchedAccount,
+    category: matchedCategory,
   };
 }

@@ -361,8 +361,11 @@ function MessageItem({
   return (
     <div className="flex justify-start">
       <div className="max-w-[92%] rounded-2xl rounded-bl-sm p-3 text-xs sm:text-sm leading-relaxed bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] shadow-xs space-y-2.5 break-words">
-        {/* Reply Body */}
-        <p className="whitespace-pre-wrap">{message.content}</p>
+        {/* Reply Body with Markdown formatting */}
+        <FormattedMaryText
+          content={message.content}
+          isMasked={!renderAmount(100, userCurrency).includes("100")}
+        />
 
         {/* Interactive Confirm Card */}
         {message.card && (
@@ -533,6 +536,77 @@ function ConfirmCardView({
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+function FormattedMaryText({
+  content,
+  isMasked,
+}: {
+  content: string;
+  isMasked: boolean;
+}) {
+  let text = content;
+  if (isMasked) {
+    text = text.replace(/(?:₦|NGN|\$)\s*[\d,]+(?:\.\d+)?/gi, "****");
+  }
+
+  const lines = text.split("\n");
+
+  return (
+    <div className="space-y-1.5 leading-relaxed">
+      {lines.map((line, lineIdx) => {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          return <div key={lineIdx} className="h-1" />;
+        }
+
+        const isBullet = trimmed.startsWith("- ") || trimmed.startsWith("* ");
+        const lineContent = isBullet ? trimmed.slice(2) : line;
+
+        // Parse inline bold, italic, code
+        const parts = lineContent.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);
+
+        const renderedLine = parts.map((part, partIdx) => {
+          if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
+            return (
+              <strong key={partIdx} className="font-bold text-[var(--ink)]">
+                {part.slice(2, -2)}
+              </strong>
+            );
+          }
+          if (part.startsWith("*") && part.endsWith("*") && part.length >= 2) {
+            return (
+              <em key={partIdx} className="italic text-[var(--ink)]">
+                {part.slice(1, -1)}
+              </em>
+            );
+          }
+          if (part.startsWith("`") && part.endsWith("`") && part.length >= 2) {
+            return (
+              <code
+                key={partIdx}
+                className="px-1 py-0.5 rounded bg-[var(--chip)] text-[11px] font-mono text-[var(--ink)]"
+              >
+                {part.slice(1, -1)}
+              </code>
+            );
+          }
+          return part;
+        });
+
+        if (isBullet) {
+          return (
+            <div key={lineIdx} className="flex items-start gap-2 pl-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] shrink-0 mt-1.5" />
+              <div className="flex-1">{renderedLine}</div>
+            </div>
+          );
+        }
+
+        return <p key={lineIdx}>{renderedLine}</p>;
+      })}
     </div>
   );
 }
