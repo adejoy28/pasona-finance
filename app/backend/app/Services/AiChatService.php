@@ -168,12 +168,14 @@ class AiChatService
         // Recurring bills
         $bills = [];
         if (method_exists($user, 'recurringBills')) {
-            $userBills = $user->recurringBills()->where('is_active', true)->get();
+            $userBills = $user->recurringBills()->get();
             foreach ($userBills as $bill) {
+                $dueDate = $bill->next_due ?? ($bill->next_due_date ?? null);
+                $formattedDueDate = $dueDate ? Carbon::parse($dueDate)->format('Y-m-d') : '';
                 $bills[] = [
                     'name' => $bill->name,
                     'amount' => (float) $bill->amount,
-                    'next_due_date' => $bill->next_due_date?->format('Y-m-d'),
+                    'next_due_date' => $formattedDueDate,
                 ];
             }
         }
@@ -184,7 +186,8 @@ class AiChatService
             ->get(['id', 'transaction_date', 'amount', 'type', 'account_id', 'description']);
 
         $grouped = $recentTransactions->groupBy(function ($t) {
-            return $t->transaction_date->format('Y-m-d') . '|' . $t->account_id . '|' . (string) $t->amount . '|' . $t->type;
+            $dateStr = $t->transaction_date ? Carbon::parse($t->transaction_date)->format('Y-m-d') : '';
+            return $dateStr . '|' . $t->account_id . '|' . (string) $t->amount . '|' . $t->type;
         });
         $duplicatesCount = $grouped->filter(fn($group) => $group->count() > 1)->count();
 
