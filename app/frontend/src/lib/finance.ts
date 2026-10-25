@@ -220,6 +220,11 @@ export function formatCurrency(value: number, currencySymbol?: string): string {
   }).format(value || 0);
 }
 
+/**
+ * Formats large amounts into compact, readable notation (e.g. 1.39M, 393.44K)
+ * to prevent numerical overflow in compact mobile cards and tight UI elements.
+ * Preserves exact full formatting for numbers below 10,000.
+ */
 export function formatCompactCurrency(
   value: number,
   currencySymbol?: string,

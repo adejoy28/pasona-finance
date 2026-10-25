@@ -370,7 +370,9 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
     return uncatItem ? uncatItem.total / spent : 0;
   }, [categoryBreakdown, spent]);
 
-  // 6-Month Trend Data (savings excluded)
+  // 6-Month Trend Data: Prioritize real server-aggregated monthly data from /api/summary.
+  // Falls back to zeroed historical months if summary payload has not loaded yet,
+  // preventing synthetic multipliers from distorting user spending history.
   const trend6 = useMemo(() => {
     if (summary?.monthly_trend && summary.monthly_trend.length > 0) {
       return summary.monthly_trend.map((pt) => ({

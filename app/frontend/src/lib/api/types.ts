@@ -96,6 +96,7 @@ export type SummaryDto = {
   };
   category_breakdown: { category_id?: number | null; category_name: string; total: number | string }[];
   daily_breakdown?: { date: string; income: number | string; expense: number | string }[];
+  /** 6-month historical spending trend from backend, powering the Dashboard SpendingTrendCard */
   monthly_trend?: { month_key: string; month: string; spent: number | string }[];
 };
 
