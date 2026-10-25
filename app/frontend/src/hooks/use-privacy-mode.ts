@@ -59,6 +59,10 @@ export function usePrivacyMode() {
     [state.isRevealed]
   );
 
+  /**
+   * Compact currency renderer that respects privacy masking (**** when hidden),
+   * applying formatCompactCurrency (e.g. 1.39M, 393.44K) when revealed.
+   */
   const renderCompactAmount = useCallback(
     (amount: number | string | null | undefined, currency: string, maxDecimals: number = 2) => {
       if (!state.isRevealed) {
