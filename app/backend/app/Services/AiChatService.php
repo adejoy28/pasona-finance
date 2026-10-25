@@ -384,7 +384,7 @@ PROMPT;
         // 1. Transaction proposal (spent, paid, bought, received, earned, log, add)
         $isTxDraft = preg_match('/\b(add|log|record|spent|spend|paid|pay|bought|buy|got|received|earned)\b/i', $q)
             && preg_match('/\d/', $q)
-            && !preg_match('/^(how|what)\b/i', $q);
+            && !preg_match('/^(how|what|check|view|show|tell)\b/i', $q);
 
         if ($isTxDraft) {
             $amt = $this->parseFallbackAmount($q);
@@ -531,8 +531,12 @@ PROMPT;
      */
     private function parseFallbackAmount(string $text): float
     {
-        if (preg_match('/(\d[\d,]*(?:\.\d+)?)\s*(k\b)?/i', $text, $matches)) {
-            $raw = (float) str_replace(',', '', $matches[1]);
+        if (preg_match('/(?:₦|\$)?\s*(\d[\d,]*(?:\.\d+)?)\s*(k\b)?/i', $text, $matches)) {
+            $rawStr = str_replace(',', '', $matches[1]);
+            if (in_array($rawStr, ['2024', '2025', '2026', '2027'], true) && !str_contains($matches[0], '₦') && !str_contains($matches[0], '$') && empty($matches[2])) {
+                return 0.0;
+            }
+            $raw = (float) $rawStr;
             return !empty($matches[2]) ? $raw * 1000 : $raw;
         }
         return 0.0;
