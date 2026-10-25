@@ -207,7 +207,7 @@ export function AiChat() {
 
   return (
     <>
-      {/* Floating Action Button (Addendum F & redesign mockup #maryfab) */}
+      {/* Floating Action Button with Mary Avatar */}
       {!open && (
         <button
           type="button"
@@ -217,14 +217,18 @@ export function AiChat() {
             ensureWelcome();
             setTimeout(() => inputRef.current?.focus(), 50);
           }}
-          className="fixed right-4 sm:right-6 bottom-[74px] sm:bottom-6 z-40 inline-flex items-center gap-2 bg-[#0b1434] text-white border border-white/20 rounded-full py-2.5 px-4 font-extrabold text-xs sm:text-sm shadow-xl hover:bg-[#101b45] active:scale-95 transition-all cursor-pointer group"
+          className="fixed right-4 sm:right-6 bottom-[74px] sm:bottom-6 z-40 inline-flex items-center gap-2.5 bg-[#0b1434] text-white border border-white/20 rounded-full pl-1.5 pr-4 py-1.5 font-bold text-xs sm:text-sm shadow-xl hover:shadow-2xl hover:bg-[#101b45] active:scale-95 transition-all cursor-pointer group"
           aria-label="Ask Mary"
         >
-          <Sparkles
-            size={16}
-            className="text-amber-400 fill-amber-400 group-hover:rotate-12 transition-transform"
-          />
-          <span>Mary</span>
+          <div className="relative w-8 h-8 rounded-full overflow-hidden border border-emerald-400/60 shadow-xs shrink-0 bg-slate-900">
+            <img
+              src="/img/mary-avatar.jpg"
+              alt="Mary"
+              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform"
+            />
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#0b1434]" />
+          </div>
+          <span className="tracking-wide font-extrabold">Mary</span>
         </button>
       )}
 
@@ -249,9 +253,14 @@ export function AiChat() {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--line)] bg-[var(--surface)] shrink-0">
           <div className="flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-full bg-[var(--hero)] text-white flex items-center justify-center font-extrabold text-xs shrink-0 shadow-xs">
-              M
-            </span>
+            <div className="relative w-9 h-9 rounded-full overflow-hidden border border-[var(--primary)]/40 shadow-xs shrink-0 bg-slate-900">
+              <img
+                src="/img/mary-avatar.jpg"
+                alt="Mary"
+                className="w-full h-full object-cover object-center"
+              />
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-[var(--surface)]" />
+            </div>
             <div className="min-w-0">
               <h3 className="text-sm font-bold leading-tight flex items-center gap-1.5 text-[var(--ink)]">
                 <span>Mary</span>
@@ -484,10 +493,17 @@ function MessageItem({
   }
 
   return (
-    <div className="flex justify-start">
+    <div className="flex justify-start items-start gap-2">
+      <div className="w-6 h-6 rounded-full overflow-hidden border border-[var(--primary)]/30 shrink-0 mt-1 bg-slate-900 shadow-2xs">
+        <img
+          src="/img/mary-avatar.jpg"
+          alt="Mary"
+          className="w-full h-full object-cover object-center"
+        />
+      </div>
       <div
         onClick={handleSkipTyping}
-        className="max-w-[92%] rounded-2xl rounded-bl-sm p-3 text-xs sm:text-sm leading-relaxed bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] shadow-xs space-y-2.5 break-words select-text cursor-default"
+        className="max-w-[88%] sm:max-w-[85%] rounded-2xl rounded-tl-xs p-3 text-xs sm:text-sm leading-relaxed bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] shadow-xs space-y-2.5 break-words select-text cursor-default"
       >
         {/* Reply Body with Markdown formatting & typewriter streaming */}
         <div className="relative">
