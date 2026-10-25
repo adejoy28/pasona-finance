@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router";
 import {
   AlertCircle,
@@ -17,24 +17,6 @@ import {
 import { useAiChat, type MaryCard, type MaryMessage } from "@/hooks/use-ai-chat";
 import { usePrivacyMode } from "@/hooks/use-privacy-mode";
 import type { AssistantAction } from "@/lib/api/assistant";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { useAiChat } from "@/hooks/use-ai-chat";
-import type { AiChatResult } from "@/lib/api/chat.stub";
-import { useOnline } from "@/hooks/use-online";
-import {
-  summary as summaryApi,
-  type SummaryDto,
-} from "@/lib/api";
-import { FormattedAiResponse } from "@/components/finance/FormattedAiResponse";
-
-const QUICK_PROMPTS = [
-  "Where can I cut down expenses?",
-  "Am I saving enough this month?",
-  "How am I doing overall?",
-] as const;
-
-const MAX_QUESTION_LENGTH = 500;
 
 const SUGGESTION_CHIPS = [
   "Where did my money go?",
@@ -43,6 +25,53 @@ const SUGGESTION_CHIPS = [
   "Any bills coming up?",
   "Spent 2,500 on lunch from OPay",
 ] as const;
+
+function useTypewriter(
+  text: string,
+  active: boolean,
+  onComplete?: () => void
+): string {
+  const [displayed, setDisplayed] = useState(active ? "" : text);
+  const idxRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!active) {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      setDisplayed(text);
+      idxRef.current = text.length;
+      return;
+    }
+
+    setDisplayed("");
+    idxRef.current = 0;
+    let lastTime = performance.now();
+
+    const tick = (now: number) => {
+      // Step roughly every 18ms, adding 2 chars for a realistic, readable typing pace
+      const elapsed = now - lastTime;
+      if (elapsed >= 18) {
+        lastTime = now;
+        const step = Math.min(2, text.length - idxRef.current);
+        idxRef.current += step;
+        setDisplayed(text.slice(0, idxRef.current));
+      }
+
+      if (idxRef.current < text.length) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        if (onComplete) onComplete();
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [text, active, onComplete]);
+
+  return active ? displayed : text;
+}
 
 export function AiChat() {
   const [open, setOpen] = useState(false);
@@ -65,8 +94,24 @@ export function AiChat() {
   } = useAiChat();
 
   const [inputValue, setInputValue] = useState("");
+  const [completedTypingIds, setCompletedTypingIds] = useState<Set<string>>(
+    () => new Set(["welcome"])
+  );
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastMessageRef = useRef<HTMLDivElement>(null);
+  const prevMessagesCountRef = useRef(messages.length);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Mark message typing as completed
+  const markTypingComplete = useCallback((id: string) => {
+    setCompletedTypingIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }, []);
 
   // Listen for open events (from sidebar "Ask Mary" or keyboard shortcuts)
   useEffect(() => {
@@ -90,10 +135,30 @@ export function AiChat() {
     };
   }, [ensureWelcome, open]);
 
-  // Scroll to bottom on new messages
+  // Smart scrolling:
+  // - When sending: scroll to bottom to show prompt + typing indicator
+  // - When Mary replies: scroll to the TOP of Mary's response so reading begins from line 1
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+
+    if (isSending) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+
+    const isNewMessage = messages.length > prevMessagesCountRef.current;
+    prevMessagesCountRef.current = messages.length;
+
+    if (isNewMessage) {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg && lastMsg.role === "assistant") {
+        lastMessageRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      } else {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
     }
   }, [messages, isSending, open]);
 
@@ -213,22 +278,32 @@ export function AiChat() {
           aria-live="polite"
           className="flex-1 overflow-y-auto p-4 space-y-3 overscroll-contain"
         >
-          {messages.map((m) => (
-            <MessageItem
+          {messages.map((m, idx) => (
+            <div
               key={m.id}
-              message={m}
-              userCurrency={userCurrency}
-              accounts={accounts}
-              categories={categories}
-              renderAmount={renderAmount}
-              onConfirmCard={confirmCard}
-              onCancelCard={cancelCard}
-              onUpdateCard={updateCard}
-              onActionClick={handleActionClick}
-              onRetry={(text) => send(text)}
-              onEditAndResend={editAndResend}
-              onRetryLast={retryLast}
-            />
+              ref={idx === messages.length - 1 ? lastMessageRef : null}
+            >
+              <MessageItem
+                message={m}
+                userCurrency={userCurrency}
+                accounts={accounts}
+                categories={categories}
+                renderAmount={renderAmount}
+                onConfirmCard={confirmCard}
+                onCancelCard={cancelCard}
+                onUpdateCard={updateCard}
+                onActionClick={handleActionClick}
+                onRetry={(text) => send(text)}
+                onEditAndResend={editAndResend}
+                onRetryLast={retryLast}
+                shouldType={
+                  m.role === "assistant" &&
+                  m.id !== "welcome" &&
+                  !completedTypingIds.has(m.id)
+                }
+                onTypingComplete={() => markTypingComplete(m.id)}
+              />
+            </div>
           ))}
 
           {/* Typing Indicator */}
@@ -319,6 +394,8 @@ function MessageItem({
   onRetry,
   onEditAndResend,
   onRetryLast,
+  shouldType = false,
+  onTypingComplete,
 }: {
   message: MaryMessage;
   userCurrency: string;
@@ -332,9 +409,30 @@ function MessageItem({
   onRetry: (prompt: string) => void;
   onEditAndResend: (messageId: string, newContent: string) => void;
   onRetryLast?: () => void;
+  shouldType?: boolean;
+  onTypingComplete?: () => void;
 }) {
   const isUser = message.role === "user";
   const isError = message.role === "error";
+
+  const [activeTypewriter, setActiveTypewriter] = useState(shouldType);
+
+  const handleFinishTyping = useCallback(() => {
+    setActiveTypewriter(false);
+    if (onTypingComplete) onTypingComplete();
+  }, [onTypingComplete]);
+
+  const displayedContent = useTypewriter(
+    message.content,
+    activeTypewriter,
+    handleFinishTyping
+  );
+
+  const handleSkipTyping = () => {
+    if (activeTypewriter) {
+      handleFinishTyping();
+    }
+  };
 
   if (isUser) {
     return (
@@ -387,15 +485,25 @@ function MessageItem({
 
   return (
     <div className="flex justify-start">
-      <div className="max-w-[92%] rounded-2xl rounded-bl-sm p-3 text-xs sm:text-sm leading-relaxed bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] shadow-xs space-y-2.5 break-words">
-        {/* Reply Body with Markdown formatting */}
-        <FormattedMaryText
-          content={message.content}
-          isMasked={!renderAmount(100, userCurrency).includes("100")}
-        />
+      <div
+        onClick={handleSkipTyping}
+        className="max-w-[92%] rounded-2xl rounded-bl-sm p-3 text-xs sm:text-sm leading-relaxed bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] shadow-xs space-y-2.5 break-words select-text cursor-default"
+      >
+        {/* Reply Body with Markdown formatting & typewriter streaming */}
+        <div className="relative">
+          <FormattedMaryText
+            content={activeTypewriter ? displayedContent : message.content}
+            isMasked={!renderAmount(100, userCurrency).includes("100")}
+          />
+          {activeTypewriter && (
+            <span className="inline-block animate-pulse font-mono ml-0.5 text-[var(--primary)] font-bold">
+              ▌
+            </span>
+          )}
+        </div>
 
-        {/* Interactive Confirm Card */}
-        {message.card && (
+        {/* Interactive Confirm Card (appears once typing finishes or immediately if already typed) */}
+        {message.card && !activeTypewriter && (
           <ConfirmCardView
             card={message.card}
             userCurrency={userCurrency}
@@ -409,50 +517,52 @@ function MessageItem({
         )}
 
         {/* Action Buttons & Quick Retry */}
-        <div className="flex items-center justify-between gap-2 pt-1 border-t border-[var(--line)]/50">
-          <div className="flex flex-wrap gap-1.5 flex-1">
-            {message.actions &&
-              message.actions.map((act, i) => {
-                if (act.type === "navigate") {
-                  const label =
-                    act.to === "budgets"
-                      ? "Open budgets"
-                      : act.to === "bills"
-                        ? "View bills"
-                        : act.to === "goals"
-                          ? "View goals"
-                          : act.to === "duplicates"
-                            ? "Review duplicates"
-                            : `Go to ${act.to}`;
+        {!activeTypewriter && (
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-[var(--line)]/50">
+            <div className="flex flex-wrap gap-1.5 flex-1">
+              {message.actions &&
+                message.actions.map((act, i) => {
+                  if (act.type === "navigate") {
+                    const label =
+                      act.to === "budgets"
+                        ? "Open budgets"
+                        : act.to === "bills"
+                          ? "View bills"
+                          : act.to === "goals"
+                            ? "View goals"
+                            : act.to === "duplicates"
+                              ? "Review duplicates"
+                              : `Go to ${act.to}`;
 
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => onActionClick(act)}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-bold rounded-md bg-[var(--chip)] text-[var(--primary)] hover:border-[var(--primary)] border border-transparent transition-all cursor-pointer"
-                    >
-                      <span>{label}</span>
-                      <ArrowRight size={11} />
-                    </button>
-                  );
-                }
-                return null;
-              })}
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => onActionClick(act)}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-bold rounded-md bg-[var(--chip)] text-[var(--primary)] hover:border-[var(--primary)] border border-transparent transition-all cursor-pointer"
+                      >
+                        <span>{label}</span>
+                        <ArrowRight size={11} />
+                      </button>
+                    );
+                  }
+                  return null;
+                })}
+            </div>
+
+            {message.id !== "welcome" && onRetryLast && (
+              <button
+                type="button"
+                onClick={onRetryLast}
+                className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-[var(--muted)] hover:text-[var(--ink)] px-1.5 py-0.5 rounded hover:bg-[var(--chip)] transition-colors cursor-pointer shrink-0"
+                title="Regenerate reply"
+              >
+                <RotateCw size={11} />
+                <span>Retry</span>
+              </button>
+            )}
           </div>
-
-          {message.id !== "welcome" && onRetryLast && (
-            <button
-              type="button"
-              onClick={onRetryLast}
-              className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-[var(--muted)] hover:text-[var(--ink)] px-1.5 py-0.5 rounded hover:bg-[var(--chip)] transition-colors cursor-pointer shrink-0"
-              title="Regenerate reply"
-            >
-              <RotateCw size={11} />
-              <span>Retry</span>
-            </button>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );
@@ -612,11 +722,65 @@ function ConfirmCardView({
         <div className="text-xs font-semibold text-[var(--muted)] bg-[var(--chip)] px-2 py-1 rounded-md">
           Cancelled
         </div>
-        <p className="text-[10px] text-slate-400 text-center leading-relaxed pt-1">
-          For budgeting guidance only. Does not constitute certified financial advice.
-        </p>
-      </div>
-    </>
+      )}
+
+      {/* Active Form Controls */}
+      {!card.done && (
+        <>
+          {/* Account select (Binding rule: never defaulted) */}
+          <label className="block text-[11px] font-bold text-[var(--muted)] space-y-1">
+            <span>Account</span>
+            <select
+              value={card.account}
+              onChange={(e) => onUpdate({ account: e.target.value })}
+              className="w-full bg-[var(--bg)] border border-[var(--line)] text-[var(--ink)] rounded-lg p-1.5 text-xs outline-none focus:border-[var(--primary)]"
+            >
+              <option value="">Choose account</option>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.name}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {/* Category select */}
+          <label className="block text-[11px] font-bold text-[var(--muted)] space-y-1">
+            <span>Category</span>
+            <select
+              value={card.category}
+              onChange={(e) => onUpdate({ category: e.target.value })}
+              className="w-full bg-[var(--bg)] border border-[var(--line)] text-[var(--ink)] rounded-lg p-1.5 text-xs outline-none focus:border-[var(--primary)]"
+            >
+              <option value="">Choose category</option>
+              {filteredCats.map((c) => (
+                <option key={c.id} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {/* Action buttons */}
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex-1 py-1.5 px-3 text-xs font-bold rounded-lg border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] hover:bg-[var(--chip)] transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              className="flex-1 py-1.5 px-3 text-xs font-bold rounded-lg bg-[var(--primary)] text-[var(--primary-ink)] hover:brightness-105 active:scale-95 transition-all cursor-pointer"
+            >
+              {card.force ? "Add anyway" : "Confirm"}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -635,16 +799,58 @@ function FormattedMaryText({
   const lines = text.split("\n");
 
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-          isUser
-            ? "bg-blue-600 text-white rounded-br-md whitespace-pre-wrap"
-            : "bg-slate-50 text-slate-800 rounded-bl-md"
-        }`}
-      >
-        {isUser ? message.content : <FormattedAiResponse text={message.content} />}
-      </div>
+    <div className="space-y-1.5 leading-relaxed">
+      {lines.map((line, lineIdx) => {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          return <div key={lineIdx} className="h-1" />;
+        }
+
+        const isBullet = trimmed.startsWith("- ") || trimmed.startsWith("* ");
+        const lineContent = isBullet ? trimmed.slice(2) : line;
+
+        // Parse inline bold, italic, code
+        const parts = lineContent.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);
+
+        const renderedLine = parts.map((part, partIdx) => {
+          if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
+            return (
+              <strong key={partIdx} className="font-bold text-[var(--ink)]">
+                {part.slice(2, -2)}
+              </strong>
+            );
+          }
+          if (part.startsWith("*") && part.endsWith("*") && part.length >= 2) {
+            return (
+              <em key={partIdx} className="italic text-[var(--ink)]">
+                {part.slice(1, -1)}
+              </em>
+            );
+          }
+          if (part.startsWith("`") && part.endsWith("`") && part.length >= 2) {
+            return (
+              <code
+                key={partIdx}
+                className="px-1 py-0.5 rounded bg-[var(--chip)] text-[11px] font-mono text-[var(--ink)]"
+              >
+                {part.slice(1, -1)}
+              </code>
+            );
+          }
+          return part;
+        });
+
+        if (isBullet) {
+          return (
+            <div key={lineIdx} className="flex items-start gap-2 pl-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] shrink-0 mt-1.5" />
+              <div className="flex-1">{renderedLine}</div>
+            </div>
+          );
+        }
+
+        return <p key={lineIdx}>{renderedLine}</p>;
+      })}
     </div>
   );
 }
