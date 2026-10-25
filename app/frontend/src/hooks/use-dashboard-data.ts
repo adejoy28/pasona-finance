@@ -84,6 +84,8 @@ export interface DashboardViewModel {
   saved: number;
   net: number;
   spentChangeVsLastMonth: number | null; // e.g. -12 (12% lower) or 12 (12% higher)
+  incomeChangeVsLastMonth?: number | null;
+  netChangeVsLastMonth?: number | null;
   lastMonthName: string | null;
   budget: {
     planned: number;
@@ -126,6 +128,8 @@ export interface DashboardCacheEntry {
   monthTx: TransactionDto[];
   recentTx: TransactionDto[];
   prevMonthSpent: number | null;
+  prevMonthIncome?: number | null;
+  prevMonthNet?: number | null;
   budgetData?: BudgetMonthResponseDto | null;
   goalsData?: GoalsResponseDto | null;
   billsData?: RecurringBillsResponseDto | null;
@@ -167,6 +171,8 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
   const [monthTx, setMonthTx] = useState<TransactionDto[]>(cached?.monthTx ?? []);
   const [recentTx, setRecentTx] = useState<TransactionDto[]>(cached?.recentTx ?? []);
   const [prevMonthSpent, setPrevMonthSpent] = useState<number | null>(cached?.prevMonthSpent ?? null);
+  const [prevMonthIncome, setPrevMonthIncome] = useState<number | null>(cached?.prevMonthIncome ?? null);
+  const [prevMonthNet, setPrevMonthNet] = useState<number | null>(cached?.prevMonthNet ?? null);
   const [budgetData, setBudgetData] = useState<BudgetMonthResponseDto | null>(cached?.budgetData ?? null);
   const [goalsData, setGoalsData] = useState<GoalsResponseDto | null>(cached?.goalsData ?? null);
   const [billsData, setBillsData] = useState<RecurringBillsResponseDto | null>(cached?.billsData ?? null);
@@ -197,6 +203,8 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
       // Calculate previous month spent (excluding savings categories and transfers)
       const prevTotals = calculateMonthlyTotals(prevTxRes.data ?? []);
       const prevSpent = prevTotals.spent;
+      const prevIncome = prevTotals.income;
+      const prevNet = prevTotals.net;
 
       setSummary(sumRes);
       setAccountDtos(accRes);
@@ -204,6 +212,8 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
       setMonthTx(mTxRes.data ?? []);
       setRecentTx(allTxRes.data ?? []);
       setPrevMonthSpent(prevSpent > 0 ? prevSpent : null);
+      setPrevMonthIncome(prevIncome > 0 ? prevIncome : null);
+      setPrevMonthNet(prevNet !== 0 ? prevNet : null);
       if (bRes) setBudgetData(bRes);
       if (gRes) setGoalsData(gRes);
       if (rRes) setBillsData(rRes);
@@ -216,6 +226,8 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
         monthTx: mTxRes.data ?? [],
         recentTx: allTxRes.data ?? [],
         prevMonthSpent: prevSpent > 0 ? prevSpent : null,
+        prevMonthIncome: prevIncome > 0 ? prevIncome : null,
+        prevMonthNet: prevNet !== 0 ? prevNet : null,
         budgetData: bRes,
         goalsData: gRes,
         billsData: rRes,
@@ -237,6 +249,8 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
       setMonthTx(entry.monthTx);
       setRecentTx(entry.recentTx);
       setPrevMonthSpent(entry.prevMonthSpent);
+      setPrevMonthIncome(entry.prevMonthIncome ?? null);
+      setPrevMonthNet(entry.prevMonthNet ?? null);
       setBudgetData(entry.budgetData ?? null);
       setGoalsData(entry.goalsData ?? null);
       setBillsData(entry.billsData ?? null);
@@ -303,6 +317,21 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
     const diff = spent - prevMonthSpent;
     return Math.round((diff / prevMonthSpent) * 100);
   }, [spent, prevMonthSpent]);
+
+  // Income change vs last month (percent)
+  const incomeChangeVsLastMonth = useMemo(() => {
+    if (prevMonthIncome === null || prevMonthIncome === 0) return null;
+    if (income === 0 && prevMonthIncome > 0) return -100;
+    const diff = income - prevMonthIncome;
+    return Math.round((diff / prevMonthIncome) * 100);
+  }, [income, prevMonthIncome]);
+
+  // Net change vs last month (percent)
+  const netChangeVsLastMonth = useMemo(() => {
+    if (prevMonthNet === null || prevMonthNet === 0) return null;
+    const diff = net - prevMonthNet;
+    return Math.round((diff / Math.abs(prevMonthNet)) * 100);
+  }, [net, prevMonthNet]);
 
   // Monthly Budget (from Phase 7 API or fallback to localStorage)
   const budget = useMemo(() => {
@@ -658,6 +687,8 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
     saved,
     net,
     spentChangeVsLastMonth,
+    incomeChangeVsLastMonth,
+    netChangeVsLastMonth,
     lastMonthName: prevMonthName,
     budget,
     categoryBreakdown,

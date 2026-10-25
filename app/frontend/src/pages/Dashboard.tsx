@@ -148,15 +148,15 @@ export function Dashboard() {
         </div>
       </header>
 
-      {/* Main Content Area: 2-column layout on desktop, single-column responsive on mobile */}
+      {/* Main Content Area: Balanced 2-column layout on desktop, single-column responsive on mobile */}
       <motion.main
         variants={fadeSlideUp}
         initial="hidden"
         animate="visible"
         className="w-full px-3 sm:px-5 lg:px-6 pt-3 sm:pt-4 pb-32"
       >
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-4 sm:gap-5 items-start">
-          {/* Column A (Left): Balance, Tasks, Duplicates/Needs Attention, Donut, Line Chart, Recent Activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5 items-start max-w-7xl mx-auto">
+          {/* Column A (Left): Visual Analytics — Balance Hero, Donut Breakdown, 6-Month Spending Trend */}
           <div className="contents lg:flex lg:flex-col lg:gap-4 min-w-0">
             {/* 1. Cash Flow Balance Hero (Topmost on mobile) */}
             <CashFlowHeroCard
@@ -168,26 +168,14 @@ export function Dashboard() {
               monthName={monthNameOnly}
               accountsCount={data.accountCount}
               spentChangeVsLastMonth={data.spentChangeVsLastMonth}
+              incomeChangeVsLastMonth={data.incomeChangeVsLastMonth}
+              netChangeVsLastMonth={data.netChangeVsLastMonth}
               lastMonthName={data.lastMonthName}
               currency={userCurrency}
               className="order-1 lg:order-none"
             />
 
-            {/* 2. Tasks to be done */}
-            <FinishSettingUpCard
-              todos={data.setupTodos}
-              className="order-2 lg:order-none"
-            />
-
-            {/* 3. Duplicates & Needs Attention */}
-            {data.attention.length > 0 && (
-              <NeedsAttentionCard
-                items={data.attention}
-                className="order-2 lg:order-none"
-              />
-            )}
-
-            {/* 4. Where did it go? Donut */}
+            {/* 2. Where did it go? Donut */}
             <WhereItWentDonut
               monthLabel={monthLabel}
               categories={data.categoryBreakdown}
@@ -196,22 +184,15 @@ export function Dashboard() {
               className="order-4 lg:order-none"
             />
 
-            {/* 5. Spending Trend Line Chart */}
+            {/* 3. Spending Trend Line Chart */}
             <SpendingTrendCard
               trendData={data.trend6}
               currency={userCurrency}
               className="order-8 lg:order-none"
             />
-
-            {/* 6. Recent Activity / Stats */}
-            <RecentTransactionsCard
-              transactions={data.recent}
-              currency={userCurrency}
-              className="order-6 lg:order-none"
-            />
           </div>
 
-          {/* Column B (Right): Quick Log, Budget, Coming Up, Goals, Accounts */}
+          {/* Column B (Right): Actions & Operational — Quick Log, Tasks/Alerts, Budget, Activity, Accounts, Bills, Goals */}
           <div className="contents lg:flex lg:flex-col lg:gap-4 min-w-0">
             {/* Quick Log Card (Hidden on mobile) */}
             <QuickLogCard
@@ -227,6 +208,20 @@ export function Dashboard() {
               className="hidden lg:flex lg:order-none"
             />
 
+            {/* Tasks to be done */}
+            <FinishSettingUpCard
+              todos={data.setupTodos}
+              className="order-2 lg:order-none"
+            />
+
+            {/* Duplicates & Needs Attention */}
+            {data.attention.length > 0 && (
+              <NeedsAttentionCard
+                items={data.attention}
+                className="order-2 lg:order-none"
+              />
+            )}
+
             {/* Monthly Budget Snap */}
             <MonthlyBudgetSnap
               monthLabel={monthNameOnly}
@@ -234,6 +229,21 @@ export function Dashboard() {
               budgetLimit={data.budget?.planned ?? 0}
               currency={userCurrency}
               className="order-5 lg:order-none"
+            />
+
+            {/* Recent Activity / Stats */}
+            <RecentTransactionsCard
+              transactions={data.recent}
+              currency={userCurrency}
+              className="order-6 lg:order-none"
+            />
+
+            {/* Accounts */}
+            <AccountsCard
+              accounts={accountList}
+              totalBalance={data.balanceTotal}
+              currency={userCurrency}
+              className="order-3 lg:order-none"
             />
 
             {/* Coming Up (Recurring bills) */}
@@ -250,14 +260,6 @@ export function Dashboard() {
               savingsRate={data.income > 0 ? (data.saved / data.income) * 100 : 0}
               income={data.income}
               className="order-9 lg:order-none"
-            />
-
-            {/* Accounts */}
-            <AccountsCard
-              accounts={accountList}
-              totalBalance={data.balanceTotal}
-              currency={userCurrency}
-              className="order-3 lg:order-none"
             />
           </div>
         </div>

@@ -12,6 +12,8 @@ interface CashFlowHeroCardProps {
   monthlySavings: number;
   net: number;
   spentChangeVsLastMonth: number | null; // e.g. -12 or 12
+  incomeChangeVsLastMonth?: number | null;
+  netChangeVsLastMonth?: number | null;
   lastMonthName: string | null;
   accountsCount: number;
   currency: string;
@@ -26,6 +28,8 @@ export function CashFlowHeroCard({
   monthlySavings,
   net,
   spentChangeVsLastMonth,
+  incomeChangeVsLastMonth,
+  netChangeVsLastMonth,
   lastMonthName,
   accountsCount,
   currency,
@@ -92,9 +96,26 @@ export function CashFlowHeroCard({
       <div className="pt-2.5 border-t border-white/15 grid grid-cols-3 gap-2">
         {/* Stat 1: Income */}
         <div className="flex flex-col min-w-0">
-          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider truncate">
-            Income
-          </span>
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider truncate">
+              Income
+            </span>
+            {incomeChangeVsLastMonth !== null && incomeChangeVsLastMonth !== undefined && lastMonthName && (
+              <span
+                className={cn(
+                  "text-[9px] font-extrabold px-1 py-0.5 rounded-[3px] leading-none shrink-0 inline-flex items-center gap-0.5",
+                  incomeChangeVsLastMonth >= 0
+                    ? "bg-emerald-500/20 text-[#8CE6B8]"
+                    : "bg-amber-500/20 text-amber-300"
+                )}
+                title={`${Math.abs(incomeChangeVsLastMonth)}% ${
+                  incomeChangeVsLastMonth >= 0 ? "higher" : "lower"
+                } than ${lastMonthName}`}
+              >
+                {incomeChangeVsLastMonth >= 0 ? "↑" : "↓"}{Math.abs(incomeChangeVsLastMonth)}%
+              </span>
+            )}
+          </div>
           <span className="font-extrabold text-[13px] text-[#8CE6B8] tabular-nums truncate mt-0.5">
             {renderCompactAmount(monthlyIncome, currency)}
           </span>
@@ -102,12 +123,9 @@ export function CashFlowHeroCard({
 
         {/* Stat 2: Spent + optional change chip */}
         <div className="flex flex-col min-w-0 border-l border-white/10 pl-2">
-          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider truncate">
-            Spent
-          </span>
-          <div className="flex items-center gap-1 mt-0.5 min-w-0">
-            <span className="font-extrabold text-[13px] text-white tabular-nums truncate">
-              {renderCompactAmount(monthlySpent, currency)}
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider truncate">
+              Spent
             </span>
             {spentChangeVsLastMonth !== null && lastMonthName && (
               <span
@@ -122,17 +140,37 @@ export function CashFlowHeroCard({
                 } than ${lastMonthName}`}
               >
                 {spentChangeVsLastMonth <= 0 ? "↓" : "↑"}{Math.abs(spentChangeVsLastMonth)}%
-
               </span>
             )}
           </div>
+          <span className="font-extrabold text-[13px] text-white tabular-nums truncate mt-0.5">
+            {renderCompactAmount(monthlySpent, currency)}
+          </span>
         </div>
 
         {/* Stat 3: Net cash flow */}
         <div className="flex flex-col min-w-0 border-l border-white/10 pl-2">
-          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider truncate">
-            Net<span className="hidden sm:inline"> cash flow</span>
-          </span>
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider truncate">
+              Net<span className="hidden sm:inline"> cash flow</span>
+            </span>
+            {netChangeVsLastMonth !== null && netChangeVsLastMonth !== undefined && lastMonthName && (
+              <span
+                className={cn(
+                  "text-[9px] font-extrabold px-1 py-0.5 rounded-[3px] leading-none shrink-0 inline-flex items-center gap-0.5",
+                  netChangeVsLastMonth >= 0
+                    ? "bg-emerald-500/20 text-[#8CE6B8]"
+                    : "bg-rose-500/20 text-rose-300"
+                )}
+                title={`${Math.abs(netChangeVsLastMonth)}% ${
+                  netChangeVsLastMonth >= 0 ? "higher" : "lower"
+                } than ${lastMonthName}`}
+              >
+                {netChangeVsLastMonth >= 0 ? "↑" : "↓"}
+                {Math.abs(netChangeVsLastMonth)}%
+              </span>
+            )}
+          </div>
           <span
             className={cn(
               "font-extrabold text-[13px] tabular-nums truncate mt-0.5",
