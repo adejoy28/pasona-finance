@@ -315,13 +315,21 @@ export function AiChat() {
             </div>
           ))}
 
-          {/* Typing Indicator */}
+          {/* Typing Indicator (Mary is thinking with animated avatar) */}
           {isSending && (
-            <div className="flex justify-start">
-              <div className="bg-[var(--chip)] text-[var(--muted)] rounded-2xl rounded-bl-sm px-4 py-3 text-xs flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--muted)] animate-bounce" />
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--muted)] animate-bounce [animation-delay:0.15s]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--muted)] animate-bounce [animation-delay:0.3s]" />
+            <div className="flex justify-start items-start gap-2">
+              <div className="relative w-6 h-6 rounded-full overflow-hidden border border-[var(--primary)]/50 shrink-0 mt-1 bg-slate-900 shadow-2xs">
+                <img
+                  src="/img/mary-avatar.jpg"
+                  alt="Mary is thinking"
+                  className="w-full h-full object-cover object-center animate-pulse"
+                />
+                <span className="absolute inset-0 rounded-full bg-[var(--primary)]/20 animate-ping pointer-events-none" />
+              </div>
+              <div className="bg-[var(--surface)] border border-[var(--line)] text-[var(--muted)] rounded-2xl rounded-tl-xs px-3.5 py-2.5 text-xs flex items-center gap-1.5 shadow-xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] animate-bounce" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] animate-bounce [animation-delay:0.15s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] animate-bounce [animation-delay:0.3s]" />
               </div>
             </div>
           )}
