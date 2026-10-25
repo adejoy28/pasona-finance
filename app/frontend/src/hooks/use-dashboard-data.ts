@@ -372,17 +372,24 @@ export function useDashboardData(monthDate: Date): DashboardViewModel {
 
   // 6-Month Trend Data (savings excluded)
   const trend6 = useMemo(() => {
+    if (summary?.monthly_trend && summary.monthly_trend.length > 0) {
+      return summary.monthly_trend.map((pt) => ({
+        month: pt.month,
+        spent: toNumber(pt.spent),
+        isCurrent: pt.month_key === monthKey,
+      }));
+    }
     const pts: { month: string; spent: number; isCurrent?: boolean }[] = [];
     const curDate = new Date();
     for (let i = 5; i >= 0; i--) {
       const d = new Date(curDate.getFullYear(), curDate.getMonth() - i, 1);
       const name = d.toLocaleDateString("en-US", { month: "short" });
       const isCur = i === 0;
-      const ptSpent = isCur ? spent : Math.round(spent * (0.8 + 0.3 * (i % 3)));
+      const ptSpent = isCur ? spent : 0;
       pts.push({ month: name, spent: ptSpent, isCurrent: isCur });
     }
     return pts;
-  }, [spent]);
+  }, [summary?.monthly_trend, monthKey, spent]);
 
   // Recent transactions (last 5 of any type, newest first)
   const recent = useMemo(() => {

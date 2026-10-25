@@ -96,6 +96,7 @@ export type SummaryDto = {
   };
   category_breakdown: { category_id?: number | null; category_name: string; total: number | string }[];
   daily_breakdown?: { date: string; income: number | string; expense: number | string }[];
+  monthly_trend?: { month_key: string; month: string; spent: number | string }[];
 };
 
 export type ImportPreviewRow = {
