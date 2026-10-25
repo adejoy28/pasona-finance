@@ -366,6 +366,35 @@ export function useAiChat() {
     setMessages([]);
   }, []);
 
+  const editAndResend = useCallback(
+    (messageId: string, newContent: string) => {
+      const trimmed = newContent.trim();
+      if (!trimmed || isSending) return;
+
+      // Find the index of the message being edited
+      const targetIndex = messages.findIndex((m) => m.id === messageId);
+      if (targetIndex === -1) {
+        send(trimmed);
+        return;
+      }
+
+      // Truncate message history up to the message being replaced
+      setMessages((prev) => prev.slice(0, targetIndex));
+
+      // Resend with new content
+      send(trimmed);
+    },
+    [isSending, messages, send],
+  );
+
+  const retryLast = useCallback(() => {
+    if (isSending) return;
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+    if (lastUserMsg) {
+      editAndResend(lastUserMsg.id, lastUserMsg.content);
+    }
+  }, [editAndResend, isSending, messages]);
+
   return {
     messages,
     isSending,
@@ -373,6 +402,8 @@ export function useAiChat() {
     categories,
     userCurrency,
     send,
+    editAndResend,
+    retryLast,
     confirmCard,
     cancelCard,
     updateCard,
@@ -387,31 +418,60 @@ function extractFallbackDraft(
   accounts: AccountDto[],
   categories: CategoryDto[],
 ): Omit<MaryCard, "id"> | null {
-  const combined = `${userText} ${botReply}`.toLowerCase();
+  const q = userText.trim().toLowerCase();
 
-  const isDraftIntent =
-    /\b(spent|spend|paid|pay|bought|buy|log|record|got|received|earned|drafted a transaction|transaction draft)\b/i.test(
-      combined,
-    ) && /\d/.test(combined);
+  // 1. Check if user explicitly asked to add/log a transaction:
+  // e.g. "spent 2,500 on lunch from OPay", "log 10,000 salary", "paid 1500 for coffee"
+  // Must NOT be an inquiry/question like "check it for me", "how much did I spend", "what is my budget"
+  const isQuestion = /^(how|what|check|view|show|tell|why|can you)\b/i.test(q);
+  const userWantsAdd =
+    !isQuestion &&
+    /\d/.test(q) &&
+    (/^(add|log|record|spent|spend|paid|pay|bought|buy|got|received|earned)\b/i.test(q) ||
+      /\b(spent|spend|paid|pay|bought|buy|received|earned)\s+(?:₦|ngn|\$)?\s*\d/i.test(q));
 
-  if (!isDraftIntent) return null;
+  // 2. Or if bot explicitly confirmed creating a draft: e.g. "drafted a transaction for ₦2,500"
+  const botDraftMatch = botReply.match(
+    /drafted a transaction for\s*(?:₦|ngn|\$)?\s*([\d,]+(?:\.\d+)?)/i,
+  );
+
+  if (!userWantsAdd && !botDraftMatch) {
+    return null;
+  }
 
   // Extract amount
-  const match = combined.match(/(?:₦|ngn|\$)?\s*(\d[\d,]*(?:\.\d+)?)\s*(k\b)?/i);
-  if (!match) return null;
+  let amt = 0;
+  if (userWantsAdd) {
+    const match = q.match(/(?:₦|ngn|\$)?\s*(\d[\d,]*(?:\.\d+)?)\s*(k\b)?/i);
+    if (match) {
+      const rawNum = match[1].replace(/,/g, "");
+      // Guard: ignore standalone 4-digit years like 2024..2027 if without currency symbol
+      const isYear =
+        (rawNum === "2024" || rawNum === "2025" || rawNum === "2026" || rawNum === "2027") &&
+        !match[0].includes("₦") &&
+        !match[0].includes("$") &&
+        !match[2];
 
-  let amt = parseFloat(match[1].replace(/,/g, ""));
-  if (match[2]) amt *= 1000;
+      if (!isYear) {
+        amt = parseFloat(rawNum);
+        if (match[2]) amt *= 1000;
+      }
+    }
+  } else if (botDraftMatch) {
+    amt = parseFloat(botDraftMatch[1].replace(/,/g, ""));
+  }
+
   if (!(amt > 0)) return null;
 
-  const kind = /\b(received|got|earned|salary|income|paid me)\b/i.test(combined)
+  const sourceText = userWantsAdd ? q : `${q} ${botReply.toLowerCase()}`;
+  const kind = /\b(received|got|earned|salary|income|paid me)\b/i.test(sourceText)
     ? "income"
     : "expense";
 
   // Match account
   let matchedAccount = "";
   for (const a of accounts) {
-    if (combined.includes(a.name.toLowerCase())) {
+    if (sourceText.includes(a.name.toLowerCase())) {
       matchedAccount = a.name;
       break;
     }
@@ -420,7 +480,7 @@ function extractFallbackDraft(
   // Match category
   let matchedCategory = "";
   for (const c of categories) {
-    if (combined.includes(c.name.toLowerCase())) {
+    if (sourceText.includes(c.name.toLowerCase())) {
       matchedCategory = c.name;
       break;
     }
