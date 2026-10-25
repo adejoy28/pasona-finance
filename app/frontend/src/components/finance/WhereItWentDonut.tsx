@@ -34,7 +34,7 @@ export function WhereItWentDonut({
   className = "",
 }: WhereItWentDonutProps) {
   const navigate = useNavigate();
-  const { renderAmount } = usePrivacyMode();
+  const { renderAmount, renderCompactAmount } = usePrivacyMode();
 
   // Exclude savings per spec
   const nonSavingsCategories = useMemo(
@@ -176,7 +176,7 @@ export function WhereItWentDonut({
           {/* Center Label */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-2">
             <span className="font-display font-bold text-xs sm:text-sm text-[var(--ink)] tabular-nums truncate max-w-[80px] text-center">
-              {renderAmount(total, currency)}
+              {renderCompactAmount(total, currency)}
             </span>
             <span className="text-[9px] font-extrabold uppercase tracking-wider text-[var(--muted)]">
               spent

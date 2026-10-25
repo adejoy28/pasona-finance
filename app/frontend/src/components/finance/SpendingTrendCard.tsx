@@ -40,7 +40,7 @@ export function SpendingTrendCard({
   currency,
   className = "",
 }: SpendingTrendCardProps) {
-  const { isRevealed, renderAmount } = usePrivacyMode();
+  const { isRevealed, renderAmount, renderCompactAmount } = usePrivacyMode();
   const [viewMode, setViewMode] = useState<"chart" | "table">("chart");
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
 
@@ -98,7 +98,7 @@ export function SpendingTrendCard({
           <p className="text-[11px] font-semibold text-[var(--muted)] mt-0.5">
             {activePoint ? (
               <span className="text-[var(--primary)] font-bold">
-                {activePoint.month}: {renderAmount(activePoint.spent, currency)}
+                {activePoint.month}: {renderCompactAmount(activePoint.spent, currency)}
               </span>
             ) : (
               "Last 6 months, savings not included"

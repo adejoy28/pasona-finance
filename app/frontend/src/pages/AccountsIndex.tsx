@@ -73,7 +73,7 @@ function markCashAtHandSeeded(): void {
 export function AccountsIndex() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
-  const { renderAmount } = usePrivacyMode();
+  const { renderAmount, renderCompactAmount } = usePrivacyMode();
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -236,7 +236,7 @@ export function AccountsIndex() {
 
             <div className="flex justify-between items-center gap-3">
               <h2 className="text-[22px] sm:text-2xl font-bold tracking-tight leading-none text-white truncate min-w-0">
-                {renderAmount(totalBalance, userCurrency)}
+                {renderCompactAmount(totalBalance, userCurrency)}
               </h2>
               <button
                 type="button"

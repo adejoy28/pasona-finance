@@ -11,7 +11,7 @@ interface GoalCardProps {
 }
 
 export function GoalCard({ goal, currency, onAddMoney, onDelete }: GoalCardProps) {
-  const { renderAmount } = usePrivacyMode();
+  const { renderAmount, renderCompactAmount } = usePrivacyMode();
 
   const radius = 24;
   const circumference = 2 * Math.PI * radius;
@@ -32,7 +32,7 @@ export function GoalCard({ goal, currency, onAddMoney, onDelete }: GoalCardProps
   );
   const monthlyNeed = goal.monthly_needed ?? Math.ceil(remaining / monthsDiff);
 
-  let note = `Needs ${renderAmount(monthlyNeed, currency)} a month to reach ${targetFormatted}`;
+  let note = `Needs ${renderCompactAmount(monthlyNeed, currency)} a month to reach ${targetFormatted}`;
   if (isDone) note = "Goal met";
   else if ((goal.days_remaining ?? 0) < 0) note = "Past the target date";
 
@@ -71,7 +71,7 @@ export function GoalCard({ goal, currency, onAddMoney, onDelete }: GoalCardProps
       <div className="min-w-0 flex-1">
         <b className="block text-sm font-bold text-[var(--ink)] truncate">{goal.name}</b>
         <span className="block text-xs font-bold text-[var(--muted)] tabular-nums mt-0.5">
-          {renderAmount(goal.saved_amount, currency)} of {renderAmount(goal.target_amount, currency)}
+          {renderCompactAmount(goal.saved_amount, currency)} of {renderCompactAmount(goal.target_amount, currency)}
         </span>
         <span className="block text-[11px] font-semibold text-[var(--muted)] mt-0.5 truncate">
           {note}

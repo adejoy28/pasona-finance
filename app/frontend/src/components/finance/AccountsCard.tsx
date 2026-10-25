@@ -18,7 +18,7 @@ export function AccountsCard({
   currency,
   className = "",
 }: AccountsCardProps) {
-  const { renderAmount } = usePrivacyMode();
+  const { renderAmount, renderCompactAmount } = usePrivacyMode();
 
   return (
     <div
@@ -91,7 +91,7 @@ export function AccountsCard({
                     {account.name}
                   </p>
                   <p className="text-xs sm:text-sm font-bold text-[var(--ink)] truncate tabular-nums">
-                    {renderAmount(account.balance, currency)}
+                    {renderCompactAmount(account.balance, currency)}
                   </p>
                 </div>
 

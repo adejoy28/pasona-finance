@@ -18,7 +18,7 @@ export function MonthlyBudgetSnap({
   currency,
   className = "",
 }: MonthlyBudgetSnapProps) {
-  const { renderAmount } = usePrivacyMode();
+  const { renderAmount, renderCompactAmount } = usePrivacyMode();
 
   const effectiveBudget = budgetLimit > 0 ? budgetLimit : Math.max(spent, 1);
   const isOver = spent > effectiveBudget && budgetLimit > 0;
@@ -56,15 +56,15 @@ export function MonthlyBudgetSnap({
       <div className="flex justify-between items-baseline gap-2 mb-2.5">
         {isOver ? (
           <b className="font-display text-lg sm:text-xl font-semibold text-[var(--neg)] tracking-tight">
-            {renderAmount(overAmount, currency)} over
+            {renderCompactAmount(overAmount, currency)} over
           </b>
         ) : (
           <b className="font-display text-lg sm:text-xl font-semibold text-[var(--ink)] tracking-tight">
-            {renderAmount(left, currency)} left
+            {renderCompactAmount(left, currency)} left
           </b>
         )}
         <span className="text-xs font-semibold text-[var(--muted)] tabular-nums">
-          of {renderAmount(effectiveBudget, currency)}
+          of {renderCompactAmount(effectiveBudget, currency)}
         </span>
       </div>
 

@@ -39,7 +39,7 @@ import type { BudgetCategoryItemDto, GoalDto } from "@/lib/api";
 export function BudgetsIndex() {
   const { data: user } = useMe();
   const userCurrency = user?.currency || DEFAULT_CURRENCY;
-  const { renderAmount } = usePrivacyMode();
+  const { renderAmount, renderCompactAmount } = usePrivacyMode();
 
   const {
     monthOffset,
@@ -315,10 +315,10 @@ export function BudgetsIndex() {
                     isOverallOver ? "text-[var(--neg)]" : "text-[var(--ink)]"
                   )}
                 >
-                  {renderAmount(Math.abs(bSummary?.left ?? 0), userCurrency)}
+                  {renderCompactAmount(Math.abs(bSummary?.left ?? 0), userCurrency)}
                 </div>
                 <div className="text-xs text-[var(--muted)] font-semibold">
-                  of {renderAmount(bSummary?.planned ?? 0, userCurrency)} planned ·{" "}
+                  of {renderCompactAmount(bSummary?.planned ?? 0, userCurrency)} planned ·{" "}
                   {bSummary?.pct_used ?? 0}% used
                 </div>
 
@@ -337,7 +337,7 @@ export function BudgetsIndex() {
                       Spent
                     </span>
                     <span className="block text-xs sm:text-sm font-extrabold text-[var(--ink)] tabular-nums mt-0.5">
-                      {renderAmount(bSummary?.spent ?? 0, userCurrency)}
+                      {renderCompactAmount(bSummary?.spent ?? 0, userCurrency)}
                     </span>
                   </div>
                   <div>
@@ -350,9 +350,9 @@ export function BudgetsIndex() {
                         if (savingsCat && savingsCat.limit_amount && savingsCat.limit_amount > 0) {
                           return (
                             <>
-                              {renderAmount(savingsCat.spent, userCurrency)}{" "}
+                              {renderCompactAmount(savingsCat.spent, userCurrency)}{" "}
                               <span className="font-normal text-[var(--muted)] text-[10px] sm:text-[11px] not-italic">
-                                of {renderAmount(savingsCat.limit_amount, userCurrency)}
+                                of {renderCompactAmount(savingsCat.limit_amount, userCurrency)}
                               </span>
                             </>
                           );
@@ -360,14 +360,14 @@ export function BudgetsIndex() {
                         if ((goalsData?.goals.length ?? 0) > 0) {
                           return (
                             <>
-                              {renderAmount(goalsData?.summary.total_saved ?? 0, userCurrency)}{" "}
+                              {renderCompactAmount(goalsData?.summary.total_saved ?? 0, userCurrency)}{" "}
                               <span className="font-normal text-[var(--muted)] text-[10px] sm:text-[11px] not-italic">
-                                of {renderAmount(goalsData?.summary.total_target ?? 0, userCurrency)}
+                                of {renderCompactAmount(goalsData?.summary.total_target ?? 0, userCurrency)}
                               </span>
                             </>
                           );
                         }
-                        return renderAmount(0, userCurrency);
+                        return renderCompactAmount(0, userCurrency);
                       })()}
                     </span>
                   </div>
@@ -538,10 +538,10 @@ export function BudgetsIndex() {
                             </b>
                           </div>
                           <span className="text-xs font-extrabold text-[var(--ink)] tabular-nums shrink-0">
-                            {renderAmount(c.spent, userCurrency)}{" "}
+                            {renderCompactAmount(c.spent, userCurrency)}{" "}
                             {isLimitSet && (
                               <em className="font-normal text-[var(--muted)] not-italic">
-                                of {renderAmount(c.limit_amount!, userCurrency)}
+                                of {renderCompactAmount(c.limit_amount!, userCurrency)}
                               </em>
                             )}
                           </span>
@@ -564,9 +564,9 @@ export function BudgetsIndex() {
                             <span className="tabular-nums">
                               {c.is_goal
                                 ? c.left && c.left > 0
-                                  ? `${renderAmount(c.left, userCurrency)} to go`
+                                  ? `${renderCompactAmount(c.left, userCurrency)} to go`
                                   : "Goal met"
-                                : `${renderAmount(Math.max(0, c.left || 0), userCurrency)} left`}
+                                : `${renderCompactAmount(Math.max(0, c.left || 0), userCurrency)} left`}
                             </span>
                           )}
                         </div>
@@ -608,10 +608,10 @@ export function BudgetsIndex() {
                   Saved toward goals
                 </div>
                 <div className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--ink)]">
-                  {renderAmount(goalsData?.summary.total_saved ?? 0, userCurrency)}
+                  {renderCompactAmount(goalsData?.summary.total_saved ?? 0, userCurrency)}
                 </div>
                 <div className="text-xs text-[var(--muted)] font-semibold">
-                  of {renderAmount(goalsData?.summary.total_target ?? 0, userCurrency)} across{" "}
+                  of {renderCompactAmount(goalsData?.summary.total_target ?? 0, userCurrency)} across{" "}
                   {goalsData?.goals.length} goals
                 </div>
                 <div className="h-2 w-full rounded-full bg-[var(--chip)] overflow-hidden">
@@ -674,12 +674,12 @@ export function BudgetsIndex() {
                     (billsData?.summary.next_30_days_net ?? 0) >= 0 ? "text-[var(--pos)]" : "text-[var(--ink)]"
                   )}
                 >
-                  {renderAmount(billsData?.summary.next_30_days_net ?? 0, userCurrency)}
+                  {renderCompactAmount(billsData?.summary.next_30_days_net ?? 0, userCurrency)}
                 </div>
                 <div className="text-xs text-[var(--muted)] font-semibold">
                   {billsData?.summary.next_30_days_count} items ·{" "}
-                  {renderAmount(billsData?.summary.next_30_days_outgoing ?? 0, userCurrency)} going out ·{" "}
-                  {renderAmount(billsData?.summary.next_30_days_incoming ?? 0, userCurrency)} coming in
+                  {renderCompactAmount(billsData?.summary.next_30_days_outgoing ?? 0, userCurrency)} going out ·{" "}
+                  {renderCompactAmount(billsData?.summary.next_30_days_incoming ?? 0, userCurrency)} coming in
                 </div>
               </section>
             )}

@@ -16,7 +16,7 @@ export function SavingsRateSnap({
   currency,
   className = "",
 }: SavingsRateSnapProps) {
-  const { renderAmount } = usePrivacyMode();
+  const { renderCompactAmount } = usePrivacyMode();
 
   const rate = monthlyIncome > 0 ? (savingsAmount / monthlyIncome) * 100 : 0;
   const barWidth = Math.min(100, Math.max(rate, savingsAmount > 0 ? 3 : 0));
@@ -44,7 +44,7 @@ export function SavingsRateSnap({
           {rate.toFixed(1)}%
         </b>
         <span className="text-xs font-semibold text-[var(--muted)] tabular-nums">
-          {renderAmount(savingsAmount, currency)} saved · of monthly income
+          {renderCompactAmount(savingsAmount, currency)} saved · of monthly income
         </span>
       </div>
 

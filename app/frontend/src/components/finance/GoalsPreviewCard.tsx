@@ -27,7 +27,7 @@ export function GoalsPreviewCard({
   income = 0,
   className = "",
 }: GoalsPreviewCardProps) {
-  const { renderAmount } = usePrivacyMode();
+  const { renderAmount, renderCompactAmount } = usePrivacyMode();
 
   // Spec 5.10: Only render if user has goals. If 0 goals, do not render this card
   if (goals.length === 0) {
@@ -81,9 +81,9 @@ export function GoalsPreviewCard({
 
               <div className="flex justify-between items-baseline text-[11px] text-[var(--muted)] tabular-nums">
                 <span className="font-semibold text-[var(--ink)]">
-                  {renderAmount(g.savedAmount, currency)}
+                  {renderCompactAmount(g.savedAmount, currency)}
                 </span>
-                <span>of {renderAmount(g.targetAmount, currency)}</span>
+                <span>of {renderCompactAmount(g.targetAmount, currency)}</span>
               </div>
             </div>
           );

@@ -17,7 +17,7 @@ export function ThisWeekCard({
   streak,
   className = "",
 }: ThisWeekCardProps) {
-  const { renderAmount } = usePrivacyMode();
+  const { renderAmount, renderCompactAmount } = usePrivacyMode();
 
   // Filter transactions in the last 7 days
   const weekData = useMemo(() => {
@@ -84,7 +84,7 @@ export function ThisWeekCard({
           </div>
           <div className="flex-1 min-w-0">
             <b className="font-bold text-[var(--ink)] tabular-nums">
-              {renderAmount(weekData.totalWeekSpent, currency)} spent
+              {renderCompactAmount(weekData.totalWeekSpent, currency)} spent
             </b>{" "}
             <span className="text-[var(--muted)]">
               across {weekData.count} {weekData.count === 1 ? "expense" : "expenses"}
@@ -100,7 +100,7 @@ export function ThisWeekCard({
             </div>
             <div className="flex-1 min-w-0 text-[var(--ink)]">
               <span className="font-bold">{weekData.topCategory}</span> led the week at{" "}
-              <b className="tabular-nums">{renderAmount(weekData.topCategoryAmt, currency)}</b>
+              <b className="tabular-nums">{renderCompactAmount(weekData.topCategoryAmt, currency)}</b>
             </div>
           </div>
         )}

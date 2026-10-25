@@ -32,7 +32,7 @@ export function CashFlowHeroCard({
   monthName,
   className = "",
 }: CashFlowHeroCardProps) {
-  const { isRevealed, toggleReveal, renderAmount } = usePrivacyMode();
+  const { isRevealed, toggleReveal, renderAmount, renderCompactAmount } = usePrivacyMode();
   const animatedBalance = useCountUp(totalBalance, 600, isRevealed);
 
   const isNetPositive = net >= 0;
@@ -96,7 +96,7 @@ export function CashFlowHeroCard({
             Income
           </span>
           <span className="font-extrabold text-[13px] text-[#8CE6B8] tabular-nums truncate mt-0.5">
-            {renderAmount(monthlyIncome, currency)}
+            {renderCompactAmount(monthlyIncome, currency)}
           </span>
         </div>
 
@@ -107,7 +107,7 @@ export function CashFlowHeroCard({
           </span>
           <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
             <span className="font-extrabold text-[13px] text-white tabular-nums truncate">
-              {renderAmount(monthlySpent, currency)}
+              {renderCompactAmount(monthlySpent, currency)}
             </span>
             {spentChangeVsLastMonth !== null && lastMonthName && (
               <span
@@ -140,7 +140,7 @@ export function CashFlowHeroCard({
             )}
           >
             {isNetPositive ? "+" : "−"}
-            {renderAmount(Math.abs(net), currency)}
+            {renderCompactAmount(Math.abs(net), currency)}
           </span>
         </div>
       </div>
@@ -157,7 +157,7 @@ export function CashFlowHeroCard({
           <div className="flex justify-between items-center mt-1.5 text-[10px] font-medium text-white/75">
             <span>{expenseRatio}% of income spent</span>
             {monthlySavings > 0 && (
-              <span>{renderAmount(monthlySavings, currency)} moved to savings</span>
+              <span>{renderCompactAmount(monthlySavings, currency)} moved to savings</span>
             )}
           </div>
         </div>
