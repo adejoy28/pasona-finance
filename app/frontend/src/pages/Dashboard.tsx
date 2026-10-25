@@ -157,53 +157,63 @@ export function Dashboard() {
       >
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-4 sm:gap-5 items-start">
           {/* Column A (Left): Balance, Tasks, Duplicates/Needs Attention, Donut, Line Chart, Recent Activity */}
-          <div className="flex flex-col gap-4 min-w-0 order-2 lg:order-1">
-            {/* 1. Cash Flow Balance Hero */}
+          <div className="contents lg:flex lg:flex-col lg:gap-4 min-w-0">
+            {/* 1. Cash Flow Balance Hero (Topmost on mobile) */}
             <CashFlowHeroCard
               totalBalance={data.balanceTotal}
               monthlyIncome={data.income}
               monthlySpent={data.spent}
               monthlySavings={data.saved}
+              net={data.net}
+              monthName={monthNameOnly}
               accountsCount={data.accountCount}
               spentChangeVsLastMonth={data.spentChangeVsLastMonth}
               lastMonthName={data.lastMonthName}
               currency={userCurrency}
+              className="order-1 lg:order-none"
             />
 
             {/* 2. Tasks to be done */}
             <FinishSettingUpCard
               todos={data.setupTodos}
+              className="order-2 lg:order-none"
             />
 
-            {/* 3. Duplicates & Needs Attention: Compact, bright, kept to the left under tasks */}
+            {/* 3. Duplicates & Needs Attention */}
             {data.attention.length > 0 && (
-              <NeedsAttentionCard items={data.attention} />
+              <NeedsAttentionCard
+                items={data.attention}
+                className="order-2 lg:order-none"
+              />
             )}
 
-            {/* 4. Where did it go? Donut (Above recent stats) */}
+            {/* 4. Where did it go? Donut */}
             <WhereItWentDonut
               monthLabel={monthLabel}
               categories={data.categoryBreakdown}
               spentTotal={data.spent}
               currency={userCurrency}
+              className="order-4 lg:order-none"
             />
 
-            {/* 5. Spending Trend Line Chart (Above recent stats) */}
+            {/* 5. Spending Trend Line Chart */}
             <SpendingTrendCard
               trendData={data.trend6}
               currency={userCurrency}
+              className="order-8 lg:order-none"
             />
 
-            {/* 6. Recent Activity / Stats (Below Donut and Line Chart) */}
+            {/* 6. Recent Activity / Stats */}
             <RecentTransactionsCard
               transactions={data.recent}
               currency={userCurrency}
+              className="order-6 lg:order-none"
             />
           </div>
 
           {/* Column B (Right): Quick Log, Budget, Coming Up, Goals, Accounts */}
-          <div className="flex flex-col gap-4 min-w-0 order-1 lg:order-2">
-            {/* Quick Log Card (Pinned to top on mobile for instant logging) */}
+          <div className="contents lg:flex lg:flex-col lg:gap-4 min-w-0">
+            {/* Quick Log Card (Hidden on mobile) */}
             <QuickLogCard
               todayCount={data.today.count}
               todaySpent={data.today.spent}
@@ -214,6 +224,7 @@ export function Dashboard() {
               categories={data.categories}
               currency={userCurrency}
               onRefresh={data.refresh}
+              className="hidden lg:flex lg:order-none"
             />
 
             {/* Monthly Budget Snap */}
@@ -222,12 +233,14 @@ export function Dashboard() {
               spent={data.spent}
               budgetLimit={data.budget?.planned ?? 0}
               currency={userCurrency}
+              className="order-5 lg:order-none"
             />
 
             {/* Coming Up (Recurring bills) */}
             <ComingUpCard
               bills={data.bills}
               currency={userCurrency}
+              className="order-7 lg:order-none"
             />
 
             {/* Goals Preview */}
@@ -236,6 +249,7 @@ export function Dashboard() {
               currency={userCurrency}
               savingsRate={data.income > 0 ? (data.saved / data.income) * 100 : 0}
               income={data.income}
+              className="order-9 lg:order-none"
             />
 
             {/* Accounts */}
@@ -243,6 +257,7 @@ export function Dashboard() {
               accounts={accountList}
               totalBalance={data.balanceTotal}
               currency={userCurrency}
+              className="order-3 lg:order-none"
             />
           </div>
         </div>
