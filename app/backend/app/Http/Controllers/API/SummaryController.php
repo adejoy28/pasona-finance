@@ -126,7 +126,11 @@ class SummaryController extends Controller
                 ];
             })->sortKeys()->values();
 
-            // 5. 6-Month Historical Spending Trend (ending in selected month, excluding savings categories and transfers)
+            // 5. 6-Month Historical Spending Trend
+            // Powers the Dashboard SpendingTrendCard with authentic database history.
+            // Queries actual expense transactions across the 6-month window ending in the selected month,
+            // strictly excluding transfers and savings categories. Ensures all 6 consecutive months are
+            // populated chronologically (defaulting to 0.0 for inactive months) to prevent chart distortion.
             $trendStart = (clone $startOfMonth)->subMonths(5)->startOfMonth();
             $trendTxs = $user->transactions()
                 ->where('type', 'expense')
