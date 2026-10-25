@@ -1,15 +1,22 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router";
 import {
   AlertCircle,
-  Info,
+  ArrowRight,
+  Check,
+  CornerDownLeft,
   Loader2,
-  MessageSquare,
+  Pencil,
+  RotateCw,
   Send,
   Sparkles,
   WifiOff,
   X,
 } from "lucide-react";
 
+import { useAiChat, type MaryCard, type MaryMessage } from "@/hooks/use-ai-chat";
+import { usePrivacyMode } from "@/hooks/use-privacy-mode";
+import type { AssistantAction } from "@/lib/api/assistant";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAiChat } from "@/hooks/use-ai-chat";
@@ -29,273 +36,603 @@ const QUICK_PROMPTS = [
 
 const MAX_QUESTION_LENGTH = 500;
 
-type ChatMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
+const SUGGESTION_CHIPS = [
+  "Where did my money go?",
+  "How much do I have?",
+  "Check my budget",
+  "Any bills coming up?",
+  "Spent 2,500 on lunch from OPay",
+] as const;
 
 export function AiChat() {
   const [open, setOpen] = useState(false);
-  const isOnline = useOnline();
+  const navigate = useNavigate();
+  const { renderAmount } = usePrivacyMode();
 
-  // Listen for pasona:open-mary dispatched from sidebar or other buttons
+  const {
+    messages,
+    isSending,
+    accounts,
+    categories,
+    userCurrency,
+    send,
+    editAndResend,
+    retryLast,
+    confirmCard,
+    cancelCard,
+    updateCard,
+    ensureWelcome,
+  } = useAiChat();
+
+  const [inputValue, setInputValue] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Listen for open events (from sidebar "Ask Mary" or keyboard shortcuts)
   useEffect(() => {
-    const handleOpen = () => setOpen(true);
+    const handleOpen = () => {
+      setOpen(true);
+      ensureWelcome();
+      setTimeout(() => inputRef.current?.focus(), 50);
+    };
     window.addEventListener("pasona:open-mary", handleOpen);
+
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape" && open) {
+        setOpen(false);
+      }
     };
     window.addEventListener("keydown", handleKey);
+
     return () => {
       window.removeEventListener("pasona:open-mary", handleOpen);
       window.removeEventListener("keydown", handleKey);
     };
-  }, []);
+  }, [ensureWelcome, open]);
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    if (open) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isSending, open]);
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const text = inputValue.trim();
+    if (!text || isSending) return;
+    setInputValue("");
+    send(text);
+  };
+
+  const handleChipClick = (chip: string) => {
+    if (isSending) return;
+    setInputValue("");
+    send(chip);
+  };
+
+  const handleActionClick = (action: AssistantAction) => {
+    if (action.type === "navigate") {
+      setOpen(false);
+      switch (action.to) {
+        case "budgets":
+          navigate("/budgets");
+          break;
+        case "goals":
+          navigate("/budgets?tab=goals");
+          break;
+        case "bills":
+          navigate("/budgets?tab=recurring");
+          break;
+        case "duplicates":
+          navigate("/transactions");
+          break;
+        case "accounts":
+          navigate("/accounts");
+          break;
+        case "history":
+          navigate("/transactions");
+          break;
+        default:
+          navigate("/");
+          break;
+      }
+    }
+  };
 
   return (
     <>
-      {/* Mary Floating Action Button (Addendum F & mock up line 619/822) */}
+      {/* Floating Action Button (Addendum F & redesign mockup #maryfab) */}
       {!open && (
         <button
           type="button"
           id="maryfab"
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            setOpen(true);
+            ensureWelcome();
+            setTimeout(() => inputRef.current?.focus(), 50);
+          }}
           className="fixed right-4 sm:right-6 bottom-[74px] sm:bottom-6 z-40 inline-flex items-center gap-2 bg-[#0b1434] text-white border border-white/20 rounded-full py-2.5 px-4 font-extrabold text-xs sm:text-sm shadow-xl hover:bg-[#101b45] active:scale-95 transition-all cursor-pointer group"
           aria-label="Ask Mary"
         >
-          <Sparkles size={16} className="text-amber-400 fill-amber-400 group-hover:rotate-12 transition-transform" />
+          <Sparkles
+            size={16}
+            className="text-amber-400 fill-amber-400 group-hover:rotate-12 transition-transform"
+          />
           <span>Mary</span>
         </button>
       )}
 
-      {/* Overlay backdrop */}
+      {/* Backdrop overlay */}
       {open && (
         <div
-          className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-xs"
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs transition-opacity"
           onClick={() => setOpen(false)}
         />
       )}
 
-      {/* Chat panel / drawer */}
-      <div
-        className={`fixed bottom-0 sm:bottom-6 right-0 sm:right-6 z-[70] w-full sm:w-[400px] max-w-full transition-all duration-200 ${
-          open ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
-        }`}
+      {/* Mary Drawer: 400px side-drawer on desktop, full-height sheet on mobile */}
+      <aside
+        id="mary"
+        role="dialog"
+        aria-label="Mary, your money assistant"
+        aria-modal="true"
+        className={`fixed top-0 bottom-0 right-0 z-[55] w-full sm:w-[400px] max-w-full bg-[var(--surface)] text-[var(--ink)] border-l border-[var(--line)] shadow-2xl flex flex-col transition-transform duration-200 ease-out ${open ? "translate-x-0" : "translate-x-full pointer-events-none"
+          }`}
       >
-        <div className="bg-[var(--surface)] text-[var(--ink)] rounded-t-3xl sm:rounded-2xl border border-[var(--line)] flex flex-col max-h-[85vh] sm:max-h-[580px] shadow-2xl overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-[#0b1434] text-white">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-white/20 text-white flex items-center justify-center font-extrabold text-xs">
-                M
-              </div>
-              <div>
-                <h3 className="text-xs sm:text-sm font-bold leading-tight flex items-center gap-1.5">
-                  <span>Mary</span>
-                  <span className="text-[10px] font-semibold bg-white/15 px-1.5 py-0.5 rounded text-white/80">AI</span>
-                </h3>
-                <p className="text-[10.5px] text-white/70">
-                  Ask about your money
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-              aria-label="Close chat"
-            >
-              <X size={16} />
-            </button>
-          </div>
-
-          <AiChatBody isOnline={isOnline} />
-        </div>
-      </div>
-    </>
-  );
-}
-
-function AiChatBody({ isOnline }: { isOnline: boolean }) {
-  const { messages, lastResult, isSending, send, reset } = useAiChat();
-  const [inputValue, setInputValue] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  const trimmedInput = inputValue.trim();
-  const canSubmit = isOnline && trimmedInput.length >= 1 && !isSending;
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, lastResult]);
-
-  const onSubmit = () => {
-    if (!canSubmit) return;
-    send(trimmedInput);
-    setInputValue("");
-  };
-
-  const onQuickPrompt = (prompt: string) => {
-    setInputValue("");
-    send(prompt);
-  };
-
-  return (
-    <>
-      {/* Banners */}
-      {lastResult?.kind === "not_configured" && (
-        <div className="bg-slate-50 border-b border-slate-200 px-5 py-3 flex gap-3">
-          <Info size={16} className="text-slate-400 shrink-0 mt-0.5" />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-slate-700">AI chat is not configured</p>
-            <p className="text-[11px] text-slate-500 mt-0.5">{lastResult.message}</p>
-          </div>
-        </div>
-      )}
-
-      {lastResult?.kind === "empty_history" && (
-        <div className="bg-amber-50 border-b border-amber-100 px-5 py-3 flex gap-3">
-          <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-amber-900">Not enough data yet</p>
-            <p className="text-[11px] text-amber-700 mt-0.5">{lastResult.message}</p>
-          </div>
-        </div>
-      )}
-
-      {!isOnline && (
-        <div className="bg-amber-50 border-b border-amber-100 px-5 py-3 flex gap-2 items-center">
-          <WifiOff size={14} className="text-amber-600 shrink-0" />
-          <p className="text-xs font-bold text-amber-800">
-            You're offline. AI chat needs a connection.
-          </p>
-        </div>
-      )}
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[200px] max-h-[320px]">
-        {messages.length === 0 && !lastResult && (
-          <div className="flex flex-col items-center justify-center h-full py-8 text-center">
-            <Sparkles size={28} className="text-blue-200 mb-3" />
-            <p className="text-sm font-bold text-slate-400">
-              Ask anything about your finances
-            </p>
-            <p className="text-xs text-slate-300 mt-1">
-              Try one of the prompts below
-            </p>
-          </div>
-        )}
-
-        {messages.map((msg, i) => (
-          <ChatBubble key={i} message={msg} />
-        ))}
-
-        {isSending && (
-          <div className="flex justify-start">
-            <div className="bg-slate-50 rounded-2xl rounded-bl-md px-4 py-3 max-w-[85%]">
-              <div className="flex items-center gap-2">
-                <Loader2 size={14} className="animate-spin text-blue-500" />
-                <span className="text-xs text-slate-400 font-medium">Thinking...</span>
-              </div>
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--line)] bg-[var(--surface)] shrink-0">
+          <div className="flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-full bg-[var(--hero)] text-white flex items-center justify-center font-extrabold text-xs shrink-0 shadow-xs">
+              M
+            </span>
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold leading-tight flex items-center gap-1.5 text-[var(--ink)]">
+                <span>Mary</span>
+              </h3>
+              <p className="text-[11px] text-[var(--muted)] leading-tight">
+                Ask about your money
+              </p>
             </div>
           </div>
-        )}
-
-        {lastResult?.kind === "error" && (
-          <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex gap-3">
-            <AlertCircle size={18} className="text-red-600 shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-red-900">Couldn't get a response</p>
-              <p className="text-xs text-red-700 mt-1 break-words">{lastResult.message}</p>
-            </div>
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input */}
-      <div className="border-t border-slate-100 p-4 space-y-2">
-        {messages.length === 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {QUICK_PROMPTS.map((prompt) => (
-              <button
-                key={prompt}
-                type="button"
-                onClick={() => onQuickPrompt(prompt)}
-                disabled={!isOnline || isSending}
-                className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50"
-              >
-                {prompt}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="flex items-end gap-2">
-          <Textarea
-            ref={inputRef}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value.slice(0, MAX_QUESTION_LENGTH))}
-            placeholder="Ask a follow-up..."
-            rows={1}
-            disabled={!isOnline}
-            className="resize-none text-sm leading-relaxed min-h-[36px] max-h-[100px] flex-1"
-            onKeyDown={(e) => {
-              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-                e.preventDefault();
-                onSubmit();
-              }
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                onSubmit();
-              }
-            }}
-          />
-          <Button
+          <button
             type="button"
-            onClick={onSubmit}
-            disabled={!canSubmit}
-            size="icon"
-            className="rounded-xl h-9 w-9 shrink-0"
+            id="mclosebtn"
+            onClick={() => setOpen(false)}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--chip)] transition-colors cursor-pointer"
+            aria-label="Close Mary"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Message Log */}
+        <div
+          id="mlog"
+          aria-live="polite"
+          className="flex-1 overflow-y-auto p-4 space-y-3 overscroll-contain"
+        >
+          {messages.map((m) => (
+            <MessageItem
+              key={m.id}
+              message={m}
+              userCurrency={userCurrency}
+              accounts={accounts}
+              categories={categories}
+              renderAmount={renderAmount}
+              onConfirmCard={confirmCard}
+              onCancelCard={cancelCard}
+              onUpdateCard={updateCard}
+              onActionClick={handleActionClick}
+              onRetry={(text) => send(text)}
+              onEditAndResend={editAndResend}
+              onRetryLast={retryLast}
+            />
+          ))}
+
+          {/* Typing Indicator */}
+          {isSending && (
+            <div className="flex justify-start">
+              <div className="bg-[var(--chip)] text-[var(--muted)] rounded-2xl rounded-bl-sm px-4 py-3 text-xs flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--muted)] animate-bounce" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--muted)] animate-bounce [animation-delay:0.15s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--muted)] animate-bounce [animation-delay:0.3s]" />
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Suggestion Chips */}
+        <div
+          id="mchips"
+          className="flex gap-1.5 overflow-x-auto px-4 py-2 border-t border-[var(--line)] bg-[var(--surface)] no-scrollbar shrink-0"
+        >
+          {SUGGESTION_CHIPS.map((chip, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleChipClick(chip)}
+              disabled={isSending}
+              className="text-xs font-semibold px-2.5 py-1.5 rounded-full bg-[var(--chip)] text-[var(--ink)] hover:border-[var(--primary)] border border-transparent whitespace-nowrap transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+
+        {/* Input Form */}
+        <form
+          id="mform"
+          onSubmit={handleSubmit}
+          className="p-3 border-t border-[var(--line)] bg-[var(--surface)] flex items-center gap-2 shrink-0"
+        >
+          <input
+            ref={inputRef}
+            id="min"
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="Ask Mary or say what you spent"
+            autoComplete="off"
+            aria-label="Message Mary"
+            className="flex-1 bg-[var(--bg)] text-[var(--ink)] border border-[var(--line)] rounded-xl px-3 py-2 text-xs sm:text-sm outline-none focus:border-[var(--primary)] transition-colors"
+          />
+          <button
+            type="submit"
+            id="msend"
+            disabled={!inputValue.trim() || isSending}
+            aria-label="Send"
+            className="w-9 h-9 rounded-xl bg-[var(--primary)] text-[var(--primary-ink)] flex items-center justify-center shrink-0 disabled:opacity-40 hover:brightness-105 active:scale-95 transition-all cursor-pointer"
           >
             {isSending ? (
-              <Loader2 size={14} className="animate-spin" />
+              <Loader2 size={16} className="animate-spin" />
             ) : (
-              <Send size={14} />
+              <Send size={15} />
             )}
-          </Button>
-        </div>
+          </button>
+        </form>
 
-        <div className="flex items-center justify-between">
-          <p className="text-[10px] text-slate-400">
-            <kbd className="font-bold">Enter</kbd> to send
-          </p>
-          <p className="text-[10px] font-bold text-slate-400 tabular-nums">
-            {isOnline ? `${trimmedInput.length}/${MAX_QUESTION_LENGTH}` : ""}
+        {/* Disclaimer Note (Addendum F binding rule) */}
+        <div className="px-4 pb-3 pt-1 text-center shrink-0 bg-[var(--surface)]">
+          <p className="text-[10px] text-[var(--muted)]">
+            Mary can make mistakes. Check amounts before you confirm.
           </p>
         </div>
-        <p className="text-[10px] text-slate-400 text-center leading-relaxed pt-1">
-          For budgeting guidance only. Does not constitute certified financial advice.
-        </p>
-      </div>
+      </aside>
     </>
   );
 }
 
-function ChatBubble({ message }: { message: ChatMessage }) {
+function MessageItem({
+  message,
+  userCurrency,
+  accounts,
+  categories,
+  renderAmount,
+  onConfirmCard,
+  onCancelCard,
+  onUpdateCard,
+  onActionClick,
+  onRetry,
+  onEditAndResend,
+  onRetryLast,
+}: {
+  message: MaryMessage;
+  userCurrency: string;
+  accounts: Array<{ id: number; name: string }>;
+  categories: Array<{ id: number; name: string; type: string }>;
+  renderAmount: (amount: number, currency: string) => string;
+  onConfirmCard: (cardId: string) => void;
+  onCancelCard: (cardId: string) => void;
+  onUpdateCard: (cardId: string, updates: Partial<MaryCard>) => void;
+  onActionClick: (action: AssistantAction) => void;
+  onRetry: (prompt: string) => void;
+  onEditAndResend: (messageId: string, newContent: string) => void;
+  onRetryLast?: () => void;
+}) {
   const isUser = message.role === "user";
+  const isError = message.role === "error";
+
+  if (isUser) {
+    return (
+      <UserBubbleItem
+        message={message}
+        onEditAndResend={onEditAndResend}
+      />
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex justify-start">
+        <div className="max-w-[88%] rounded-2xl rounded-bl-sm p-3.5 text-xs sm:text-sm leading-relaxed border border-red-300 bg-red-50/90 text-red-950 space-y-2 shadow-xs">
+          <div className="flex items-start gap-2">
+            {message.errorKind === "offline" ? (
+              <WifiOff size={15} className="text-red-700 shrink-0 mt-0.5" />
+            ) : (
+              <AlertCircle size={15} className="text-red-700 shrink-0 mt-0.5" />
+            )}
+            <p className="flex-1">{message.content}</p>
+          </div>
+          {message.retryPrompt && (
+            <div>
+              {message.errorKind === "expired" ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent("pasona:reauth-required"));
+                  }}
+                  className="px-2.5 py-1 text-xs font-bold rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors cursor-pointer"
+                >
+                  Sign in
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onRetry(message.retryPrompt!)}
+                  className="px-2.5 py-1 text-xs font-bold rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors cursor-pointer"
+                >
+                  Try again
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-          isUser
-            ? "bg-blue-600 text-white rounded-br-md whitespace-pre-wrap"
-            : "bg-slate-50 text-slate-800 rounded-bl-md"
-        }`}
-      >
-        {isUser ? message.content : <FormattedAiResponse text={message.content} />}
+    <div className="flex justify-start">
+      <div className="max-w-[92%] rounded-2xl rounded-bl-sm p-3 text-xs sm:text-sm leading-relaxed bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] shadow-xs space-y-2.5 break-words">
+        {/* Reply Body with Markdown formatting */}
+        <FormattedMaryText
+          content={message.content}
+          isMasked={!renderAmount(100, userCurrency).includes("100")}
+        />
+
+        {/* Interactive Confirm Card */}
+        {message.card && (
+          <ConfirmCardView
+            card={message.card}
+            userCurrency={userCurrency}
+            accounts={accounts}
+            categories={categories}
+            renderAmount={renderAmount}
+            onConfirm={() => onConfirmCard(message.card!.id)}
+            onCancel={() => onCancelCard(message.card!.id)}
+            onUpdate={(updates) => onUpdateCard(message.card!.id, updates)}
+          />
+        )}
+
+        {/* Action Buttons & Quick Retry */}
+        <div className="flex items-center justify-between gap-2 pt-1 border-t border-[var(--line)]/50">
+          <div className="flex flex-wrap gap-1.5 flex-1">
+            {message.actions &&
+              message.actions.map((act, i) => {
+                if (act.type === "navigate") {
+                  const label =
+                    act.to === "budgets"
+                      ? "Open budgets"
+                      : act.to === "bills"
+                        ? "View bills"
+                        : act.to === "goals"
+                          ? "View goals"
+                          : act.to === "duplicates"
+                            ? "Review duplicates"
+                            : `Go to ${act.to}`;
+
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => onActionClick(act)}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-bold rounded-md bg-[var(--chip)] text-[var(--primary)] hover:border-[var(--primary)] border border-transparent transition-all cursor-pointer"
+                    >
+                      <span>{label}</span>
+                      <ArrowRight size={11} />
+                    </button>
+                  );
+                }
+                return null;
+              })}
+          </div>
+
+          {message.id !== "welcome" && onRetryLast && (
+            <button
+              type="button"
+              onClick={onRetryLast}
+              className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-[var(--muted)] hover:text-[var(--ink)] px-1.5 py-0.5 rounded hover:bg-[var(--chip)] transition-colors cursor-pointer shrink-0"
+              title="Regenerate reply"
+            >
+              <RotateCw size={11} />
+              <span>Retry</span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
+}
+
+function UserBubbleItem({
+  message,
+  onEditAndResend,
+}: {
+  message: MaryMessage;
+  onEditAndResend: (messageId: string, newContent: string) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(message.content);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      textareaRef.current?.focus();
+      textareaRef.current?.select();
+    }
+  }, [isEditing]);
+
+  const handleSave = () => {
+    const trimmed = editValue.trim();
+    if (!trimmed) return;
+    setIsEditing(false);
+    onEditAndResend(message.id, trimmed);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === "Escape") {
+      setIsEditing(false);
+      setEditValue(message.content);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex justify-end w-full">
+        <div className="w-full max-w-[90%] sm:max-w-[85%] rounded-2xl bg-[var(--surface)] text-[var(--ink)] border border-[var(--primary)] p-2.5 shadow-md space-y-2">
+          <textarea
+            ref={textareaRef}
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            rows={2}
+            className="w-full bg-[var(--bg)] border border-[var(--line)] rounded-xl p-2 text-xs sm:text-sm outline-none focus:border-[var(--primary)] resize-none"
+          />
+          <div className="flex items-center justify-end gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setIsEditing(false);
+                setEditValue(message.content);
+              }}
+              className="px-2.5 py-1 text-xs font-semibold rounded-lg text-[var(--muted)] hover:bg-[var(--chip)] transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!editValue.trim()}
+              className="px-3 py-1 text-xs font-bold rounded-lg bg-[var(--primary)] text-[var(--primary-ink)] hover:brightness-105 transition-all cursor-pointer disabled:opacity-50"
+            >
+              Save & Resend
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="group flex justify-end items-center gap-1.5">
+      <button
+        type="button"
+        onClick={() => {
+          setEditValue(message.content);
+          setIsEditing(true);
+        }}
+        className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1 text-[var(--muted)] hover:text-[var(--ink)] rounded-md hover:bg-[var(--chip)] cursor-pointer"
+        aria-label="Edit message"
+        title="Edit and resend"
+      >
+        <Pencil size={13} />
+      </button>
+
+      <div className="max-w-[88%] rounded-2xl rounded-br-sm px-3.5 py-2.5 text-xs sm:text-sm leading-relaxed bg-[var(--primary)] text-[var(--primary-ink)] shadow-xs whitespace-pre-wrap break-words">
+        {message.content}
+      </div>
+    </div>
+  );
+}
+
+function ConfirmCardView({
+  card,
+  userCurrency,
+  accounts,
+  categories,
+  renderAmount,
+  onConfirm,
+  onCancel,
+  onUpdate,
+}: {
+  card: MaryCard;
+  userCurrency: string;
+  accounts: Array<{ id: number; name: string }>;
+  categories: Array<{ id: number; name: string; type: string }>;
+  renderAmount: (amount: number, currency: string) => string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  onUpdate: (updates: Partial<MaryCard>) => void;
+}) {
+  const isIncome = card.kind === "income";
+  const filteredCats = categories.filter((c) => c.type === card.kind);
+
+  return (
+    <div className="mcard border-t border-[var(--line)] pt-2.5 mt-2 space-y-2">
+      {/* Amount and Kind */}
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-[var(--muted)] font-medium">
+          {isIncome ? "Income" : "Expense"}
+        </span>
+        <b className="text-sm font-extrabold text-[var(--ink)]">
+          {renderAmount(card.amount, userCurrency)}
+        </b>
+      </div>
+
+      {/* Description */}
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-[var(--muted)] font-medium">Description</span>
+        <b className="font-bold text-[var(--ink)] truncate max-w-[180px]">
+          {card.description || "transaction"}
+        </b>
+      </div>
+
+      {/* Date */}
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-[var(--muted)] font-medium">Date</span>
+        <b className="font-semibold text-[var(--ink)]">Today</b>
+      </div>
+
+      {/* Done status */}
+      {card.done === "added" && (
+        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
+          <Check size={14} />
+          <span>Added</span>
+        </div>
+      )}
+
+      {card.done === "cancel" && (
+        <div className="space-y-2">
+          <div className="text-xs font-semibold text-[var(--muted)] bg-[var(--chip)] px-2 py-1 rounded-md">
+            Cancelled
+          </div>
+
+          <p className="text-[10px] text-slate-400 text-center leading-relaxed pt-1">
+            For budgeting guidance only. Does not constitute certified financial
+            advice.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FormattedMaryText({
+  content,
+  isMasked,
+}: {
+  content: string;
+  isMasked: boolean;
+}) {
+  const text = isMasked
+    ? content.replace(/(?:₦|NGN|\$)\s*[\d,]+(?:\.\d+)?/gi, "****")
+    : content;
+
+  return <FormattedAiResponse text={text} />;
 }
