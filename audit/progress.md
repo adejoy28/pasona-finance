@@ -14,16 +14,16 @@
 | 0 | Discovery & gap analysis | `main` | ⚠️ Reopened (small) | Commit `2cd4448`. **G2.1 adds `/audit/alerts.md`** (inventory of every alert/toast/confirm + call sites) — not yet written. |
 | 1 | Design tokens & theme switching | `phase-1-tokens` | ✅ Done, 1 follow-up | `35aff71`, `62b56b2`. Addendum B renames attributes/labels → moved to 2b. |
 | 2 | App shell & responsiveness | `phase-2-shell` | ✅ Done | `5d0790c`, `f5b8e7e`, `19dd440`. Superseded in parts by Addendum A/C/E → **Phase 2b**. |
-| 3 | Feedback & error system | `phase-3-feedback` | ⚠️ **Reopened → 3b** | `5248a4b`. Primitives exist but violate G1/G2 and are not wired/adopted. |
-| **3b** | **Feedback compliance (Addendum G)** | `phase-3-feedback` | 🟡 **Up next** | Remove dev switch, one alert system, wire HTTP mapping, adopt components. |
+| 3 | Feedback & error system | `phase-3-feedback` | ✅ Done | Superseded by Phase 3b. |
+| **3b** | **Feedback compliance (Addendum G)** | `phase-3-feedback` | ✅ Done | Remove dev switch, one alert system (`notify`), central HTTP mapping, adopted primitives. |
 | **2b** | **Shell & IA revisions (Addendum A/B/C/E)** | `phase-2b-shell-ia` | ✅ Done | Tabs, gear/avatar, month dropdown, fluid sizing, theme attrs, /profile. |
-| 6 | Categories & savings fix (backend first) | `phase-6-categories` | ⚪ Queued — **recommend before 5** | Adds `kind` (`expense`, `saving`) to categories API. |
+| 6 | Categories & savings fix (backend first) | `phase-6-categories` | ⚪ Queued | Adds `kind` (`expense`, `saving`) to categories API. |
 | 4 | Home (capture-first) | `phase-4-dashboard` | ✅ Done | Quick log card, cash-flow hero, budget card, donut, insights, trend, test. |
-| 5 | Transactions | `phase-5-transactions` | ⚪ Queued | + Save-and-add-another, source badges incl. `mary`. |
+| 5 | Transactions | `phase-5-transactions` | ✅ Done | Save-and-add-another, duplicate review resolution screen, history filter chips, source badges (`typed`, `alert`, `import`, `mary`). |
 | 7 | Budgets, goals, recurring bills | `phase-7-budgets` | ✅ Done | Full /budgets page with Budget, Goals, Recurring tabs, modals, pace chart, API, migrations & tests. |
 | 8 | Accounts, balance check, bulk import | `phase-8-accounts` | ⚪ Queued | Balance check UI partly exists (localStorage); adjustment must use Undo toast. |
-| 9 | Profile, Settings, Help & legal, auth restyle, onboarding | `phase-9-settings` | ⚪ Queued | Expanded by Addendum A + G3 + G4.5/6. |
-| **9b** | **Mary (AI assistant)** | `phase-9b-mary` | ⚪ Queued (new) | Addendum F. Backend endpoint + drawer UI. |
+| **9b** | **Mary (AI assistant)** | `phase-9b-mary` | ✅ Done | Addendum F. Backend API + 400px drawer + 3D avatar + typewriter streaming + top scroll + prompt edit. |
+| 9 | Profile, Settings, Help & legal, auth restyle, onboarding | `phase-9-settings` | 🟡 **Up next** | Expanded by Addendum A + G3 + G4.5/6. |
 | 10 | QA & handoff | `phase-10-qa` | ⚪ Queued | Widths now 768–2560; tap-count measurement (G4). |
 
 ---
@@ -93,6 +93,13 @@
 9. **Acceptance Test:** Added `test_income_minus_spent_minus_saved_equals_change_in_total_balance` in `backend/tests/Feature/FinanceIsolationTest.php`. Confirmed passing.
 10. **Build & Typecheck:** Clean `npm run build` with 0 errors across 2,669 modules.
 
+## Phase 5 — Transactions — COMPLETED
+
+1. **Save-and-add-another (Addendum G4.3):** Clears amount + description, refocuses amount, notifies "Added. Log the next one." with Undo capability; Save first and full width on phone screens.
+2. **Duplicate Review Screen:** Side-by-side duplicate candidate comparison with Keep, Merge, and Delete actions.
+3. **History Screen Alignment:** Aligned history view with redesign mock up, added saved filter chips, month pagination, and responsive cards.
+4. **Source Badges:** Badges for transaction creation source (`typed`, `alert`, `import`, `mary`).
+
 ## Phase 7 — Budgets, goals, recurring bills — COMPLETED
 
 1. **Database Schema & Migrations:**
@@ -120,17 +127,40 @@
    - Created `BudgetPhase7Test.php` passing all 4 tests (18 assertions) alongside `FinanceIsolationTest`.
    - Executed `npm run build` with 0 errors across 2,684 modules.
 
-## Phase 5 additions
-- **Save and add another** (clears amount + description, refocus amount, toast "Added. Log the next one." + Undo; Save first/full width on phones).
-- Source badge supports `typed`, `alert`, `import`, `mary`.
+## Phase 9b — Mary (AI assistant) — COMPLETED
 
-## Phase 9 additions
-- Profile screen (name, nickname, email read-only, time zone, delete account, Go to list, Sign out, Back).
-- Settings groups: App (Notifications, Appearance, Preferences) · Data (Import statements, Import history, Categories) · Help (Help and legal); user row → Profile; Preferences = Display + Budget only.
-- Help and legal pane with reading dialogs (policy text pending — see questions).
-- Auth screens restyled (G3) with field-level 422, generic 401 copy, 429 copy, network banner; logic untouched.
-- Reminders ON by default for new users; push permission asked after first logged transaction; after onboarding land on Add form; tour replayable from Help and legal.
+1. **Backend Endpoint & Engine (Addendum F):**
+   - Created `POST /api/assistant/message` in `AssistantController.php` with 20/min/user rate limit middleware.
+   - `AiChatService.php` with Groq tool calling (`propose_transaction`, `navigate`), Mary persona prompt, and deterministic rule-matching fallback when API keys are absent or queries are offline.
+   - Fixed PostgreSQL soft-delete filtering and recurring bills next_due calculations.
+   - Year parsing safety: ignores standalone years (2024–2027) as amounts unless explicit currency symbols are present.
+   - Tested: `AssistantTest.php` passing all 5 tests (35 assertions).
+2. **Frontend UI & Drawer:**
+   - 400px side-drawer on desktop, full-height sheet on mobile.
+   - Suggestion chips (`Where did my money go?`, `How much do I have?`, `Check my budget`, etc.).
+   - Interactive transaction draft card: mandatory account selection (never defaulted), category selector, Cancel and Confirm buttons.
+   - Saves transactions via existing `POST /api/transactions` with `source: 'mary'`, 409 duplicate warning with "Add anyway", and Undo toast.
+   - `FormattedMaryText` with markdown support (bold, italics, inline code, bullet points) and privacy masking (`₦****` in privacy mode).
+   - Binding Addendum F disclaimer: *"Mary can make mistakes. Check amounts before you confirm."*
+3. **Advanced UX Additions:**
+   - **3D Stylized Avatar:** High-resolution Pixar/Memoji-style 3D avatar on Floating Action Button (`#maryfab`), active emerald ring, drawer header badge, and mini avatar on chat bubbles.
+   - **Thinking State:** Animated avatar with glowing pulse and ping ring beside the bouncing dots bubble when Mary is processing.
+   - **Typewriter Streaming:** Character-by-character animated text streaming via `requestAnimationFrame` with blinking cursor `▌` and progressive card reveal on completion. Tap to fast-forward.
+   - **Top-Anchored Scrolling:** Automatically scrolls to the top of Mary's newest response (`block: "start"`) so users can read downward from line 1 without manually scrolling up.
+   - **Prompt Editing & Retry:** Inline `Pencil` icon on user bubbles allowing editing & resending, plus `Retry` button on assistant replies.
 
-## Phase 9b — Mary (Addendum F)
-- Backend: `POST /api/assistant/message` (Groq, read tools + `propose_transaction` draft only), rate limit 20/min/user, minimal logging.
-- Frontend: sidebar button + floating button, right drawer (400px) / phone sheet, confirm card (account never defaulted), saves via existing `POST /api/transactions` (409 → "Add anyway" with `force`), Undo toast, masked amounts in privacy mode, offline/5xx/401 bubbles. Reuse `use-ai-chat.ts` where possible.
+---
+
+## Phase 9 — Profile, Settings, Help & legal, auth restyle, onboarding — UP NEXT
+
+- **Profile & Settings IA (Addendum A):**
+  - Settings grouped cleanly into 3 categories: App (Notifications, Appearance, Preferences) · Data (Import statements, Import history, Categories) · Help (Help and legal).
+  - Preferences split into Display + Budget only. User row links directly to `/profile`.
+- **Help & Legal Reading Dialogs:**
+  - In-app reading dialogs for Terms of Service, Privacy Policy, and Disclaimers.
+- **Auth Screen Restyle (Addendum G3):**
+  - Restyled login/register screens with field-level 422 errors, generic 401 copy, 429 rate limit banner, and offline/network indicators. Zero changes to underlying auth logic.
+- **Onboarding Flow (Addendum G4.5/6):**
+  - Reminders enabled by default for new users.
+  - Push notification permission prompt deferred until after first logged transaction.
+  - Onboarding lands directly on the Add Transaction form; interactive tour replayable anytime from Help & Legal.
