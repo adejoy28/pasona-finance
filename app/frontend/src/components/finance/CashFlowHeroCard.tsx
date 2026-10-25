@@ -92,7 +92,7 @@ export function CashFlowHeroCard({
       <div className="pt-2.5 border-t border-white/15 grid grid-cols-3 gap-2">
         {/* Stat 1: Income */}
         <div className="flex flex-col min-w-0">
-          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">
+          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider truncate">
             Income
           </span>
           <span className="font-extrabold text-[13px] text-[#8CE6B8] tabular-nums truncate mt-0.5">
@@ -102,17 +102,17 @@ export function CashFlowHeroCard({
 
         {/* Stat 2: Spent + optional change chip */}
         <div className="flex flex-col min-w-0 border-l border-white/10 pl-2">
-          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">
+          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider truncate">
             Spent
           </span>
-          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+          <div className="flex items-center gap-1 mt-0.5 min-w-0">
             <span className="font-extrabold text-[13px] text-white tabular-nums truncate">
               {renderCompactAmount(monthlySpent, currency)}
             </span>
             {spentChangeVsLastMonth !== null && lastMonthName && (
               <span
                 className={cn(
-                  "text-[9px] font-extrabold px-1.5 py-0.5 rounded-[4px] leading-none shrink-0",
+                  "text-[9px] font-extrabold px-1 py-0.5 rounded-[3px] leading-none shrink-0 inline-flex items-center gap-0.5",
                   spentChangeVsLastMonth <= 0
                     ? "bg-emerald-500/20 text-[#8CE6B8]"
                     : "bg-amber-500/20 text-amber-300"
@@ -121,8 +121,8 @@ export function CashFlowHeroCard({
                   spentChangeVsLastMonth <= 0 ? "lower" : "higher"
                 } than ${lastMonthName}`}
               >
-                {Math.abs(spentChangeVsLastMonth)}%{" "}
-                {spentChangeVsLastMonth <= 0 ? "lower" : "higher"} than {lastMonthName}
+                {spentChangeVsLastMonth <= 0 ? "↓" : "↑"}{Math.abs(spentChangeVsLastMonth)}%
+
               </span>
             )}
           </div>
@@ -130,8 +130,8 @@ export function CashFlowHeroCard({
 
         {/* Stat 3: Net cash flow */}
         <div className="flex flex-col min-w-0 border-l border-white/10 pl-2">
-          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">
-            Net cash flow
+          <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider truncate">
+            Net<span className="hidden sm:inline"> cash flow</span>
           </span>
           <span
             className={cn(
