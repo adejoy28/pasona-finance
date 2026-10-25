@@ -11,6 +11,8 @@ export * as notifications from "./notifications";
 export * as budgets from "./budgets";
 export * as goals from "./goals";
 export * as recurringBills from "./recurring-bills";
+export * as assistant from "./assistant";
+export * from "./assistant";
 export {
   checkImportExisting,
   storeImportTransactions,

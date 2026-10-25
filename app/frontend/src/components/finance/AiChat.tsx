@@ -588,7 +588,9 @@ function ConfirmCardView({
           <Check size={14} />
           <span>Added</span>
         </div>
-      )}
+      </div>
+    );
+  }
 
       {card.done === "cancel" && (
         <div className="text-xs font-semibold text-[var(--muted)] bg-[var(--chip)] px-2 py-1 rounded-md">

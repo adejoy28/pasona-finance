@@ -82,7 +82,7 @@ export function App() {
 
   useEffect(() => {
     initCapacitor();
-    if ("serviceWorker" in navigator) {
+    if (import.meta.env.PROD && "serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/sw.js")
         .then(() => console.log("[pwa] service worker registered"))

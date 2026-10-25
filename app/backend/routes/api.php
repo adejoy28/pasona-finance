@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\API\AccountController;
 use App\Http\Controllers\API\AiController;
+use App\Http\Controllers\API\AssistantController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\CategoryController;
 use App\Http\Controllers\API\EmailVerificationController;
@@ -180,4 +181,6 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         ->middleware('throttle:30,1');
     Route::post('ai/insights', [AiController::class, 'insights'])
         ->middleware('throttle:30,1');
+    Route::post('assistant/message', [AssistantController::class, 'message'])
+        ->middleware('throttle:20,1');
 });
