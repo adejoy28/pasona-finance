@@ -843,6 +843,35 @@ body {
 .stat .v.in {
   color: var(--pos);
 }
+.stat .v.neg {
+  color: var(--neg);
+}
+.stat .c {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (min-width: 640px) {
+  .stat {
+    padding: 10px 14px;
+  }
+  .stat .v {
+    font-size: 15px;
+  }
+  .stat .c {
+    font-size: 11px;
+  }
+}
+/* Accounts / donut / quick-actions aside is desktop-only; phones and tablets go straight to the list */
+@media (max-width: 959px) {
+  .hist .aside {
+    display: none;
+  }
+}
 .chips {
   display: flex;
   gap: 6px;

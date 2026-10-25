@@ -68,7 +68,10 @@ function tokenize(input: string): Token[] | null {
 
 class MathParser {
   private pos = 0;
-  constructor(private tokens: Token[]) {}
+  private tokens: Token[];
+  constructor(tokens: Token[]) {
+    this.tokens = tokens;
+  }
 
   parse(): number {
     const result = this.parseExpr();
@@ -195,7 +198,7 @@ export function parseAmountInput(raw: string): AmountParse {
   };
 }
 
-import { DEFAULT_CURRENCY, resolveCurrency, getIntlCode } from "@/lib/currencies";
+import { DEFAULT_CURRENCY, resolveCurrency, getIntlCode } from "./currencies.ts";
 
 export function formatCurrency(value: number, currencySymbol?: string): string {
   const input = currencySymbol || DEFAULT_CURRENCY;
@@ -217,23 +220,32 @@ export function formatCurrency(value: number, currencySymbol?: string): string {
   }).format(value || 0);
 }
 
-export function formatCompactCurrency(value: number, currencySymbol?: string): string {
-  const abs = Math.abs(value);
+export function formatCompactCurrency(
+  value: number,
+  currencySymbol?: string,
+  maxDecimals: number = 2
+): string {
+  const isNeg = value < 0;
+  const abs = Math.abs(value || 0);
+  const sign = isNeg ? "-" : "";
   const input = currencySymbol || DEFAULT_CURRENCY;
   const currency = resolveCurrency(input);
   const symbol = currency?.symbol ?? "₦";
 
+  const formatNum = (n: number) =>
+    n.toLocaleString("en-US", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: maxDecimals,
+    });
+
   if (abs >= 1_000_000_000) {
-    const formatted = (value / 1_000_000_000).toFixed(1).replace(/\.0$/, "");
-    return `${symbol}${formatted}B`;
+    return `${sign}${symbol}${formatNum(abs / 1_000_000_000)}B`;
   }
   if (abs >= 1_000_000) {
-    const formatted = (value / 1_000_000).toFixed(1).replace(/\.0$/, "");
-    return `${symbol}${formatted}M`;
+    return `${sign}${symbol}${formatNum(abs / 1_000_000)}M`;
   }
-  if (abs >= 100_000) {
-    const formatted = (value / 1_000).toFixed(0);
-    return `${symbol}${formatted}k`;
+  if (abs >= 10_000) {
+    return `${sign}${symbol}${formatNum(abs / 1_000)}K`;
   }
   return formatCurrency(value, currencySymbol);
 }

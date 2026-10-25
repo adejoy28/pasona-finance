@@ -52,6 +52,7 @@ import { DEFAULT_CURRENCY, resolveCurrency } from "@/lib/currencies";
 import { HistorySkeleton, TransactionsSkeleton } from "@/components/finance/Skeletons";
 import { useMe } from "@/hooks/use-me";
 import { getUserInitials } from "@/components/finance/ScreenHeader";
+import { NotificationBell } from "@/components/finance/NotificationBell";
 
 type Filter = "all" | "expense" | "income" | "transfer";
 
@@ -645,8 +646,9 @@ function TransactionDetailModal({
 }
 
 export function TransactionsIndex() {
+  const navigate = useNavigate();
   const { data: user } = useMe();
-  const { isRevealed, renderAmount } = usePrivacyMode();
+  const { isRevealed, renderAmount, renderCompactAmount } = usePrivacyMode();
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryIdParam = searchParams.get("category_id");
   const accountIdParam = searchParams.get("account_id");
@@ -741,6 +743,25 @@ export function TransactionsIndex() {
       return [];
     }
   });
+
+  // Filters that live behind the filter toggle (drives the toggle's active state)
+  const isPanelFilterActive =
+    selectedAccount !== "all" ||
+    selectedCategory !== "all" ||
+    selectedTag !== "all" ||
+    hasNoteOnly ||
+    Boolean(minAmount) ||
+    dateFilter === "custom";
+
+  // Return to the previous in-app screen; fall back to Home on a fresh entry (deep link / reload)
+  const goBack = () => {
+    const historyIndex = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+    if (historyIndex > 0) {
+      void navigate(-1);
+    } else {
+      void navigate("/dashboard");
+    }
+  };
 
   const isFilterActive =
     filter !== "all" ||
@@ -1145,19 +1166,58 @@ export function TransactionsIndex() {
           Header Bar: Clean, institutional layout
           =================================================================== */}
       <header className="sticky top-0 z-30 bg-[#0b1434] pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-3 sm:px-5 lg:px-6 shadow-sm border-b border-white/5 text-white">
-        <div className="w-full flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="font-display font-semibold text-xl sm:text-2xl text-white tracking-tight leading-tight truncate">
-              Transaction history
-            </h1>
-            <div className="text-[11px] font-semibold text-white/70 mt-0.5">
-              View and manage all your income and expenses
+        <div className="w-full flex flex-col gap-2">
+          {/* Title row: same pattern as Dashboard/Budgets so gear + avatar stay pinned top-right */}
+          <div className="flex justify-between items-center gap-3">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <button
+                type="button"
+                onClick={goBack}
+                className="w-9 h-9 -ml-2 rounded-xl text-white flex items-center justify-center hover:bg-white/10 transition-colors md:hidden outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 cursor-pointer"
+                aria-label="Go back"
+                title="Back"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-lg font-bold tracking-tight text-white truncate">
+                  History
+                </h1>
+                <p className="text-[11px] font-semibold text-white/70 truncate">
+                  {transactions.length} {transactions.length === 1 ? "entry" : "entries"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <NotificationBell />
+
+              {/* Mobile-only gear icon leading to /settings */}
+              <Link
+                to="/settings"
+                className="w-9 h-9 rounded-xl border border-white/10 bg-white/10 text-white flex items-center justify-center transition-colors hover:bg-white/20 md:hidden outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                aria-label="Settings"
+                title="Settings"
+              >
+                <SettingsIcon size={16} />
+              </Link>
+
+              {/* Avatar leading to /profile */}
+              <Link
+                to="/profile"
+                className="w-9 h-9 rounded-full bg-[var(--primary)] text-white font-bold text-xs flex items-center justify-center transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/50 shadow-sm"
+                aria-label="User Profile"
+                title={`Profile: ${user?.name || "User"}`}
+              >
+                {getUserInitials(user?.name, user?.email)}
+              </Link>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
+          {/* Toolbar row: date range, search, more filters */}
+          <div className="flex items-center gap-2">
             {/* Date range dropdown button */}
-            <div className="relative">
+            <div className="relative shrink-0">
               <button
                 type="button"
                 onClick={() => setShowDateDropdown((v) => !v)}
@@ -1207,7 +1267,7 @@ export function TransactionsIndex() {
             </div>
 
             {/* Search Input */}
-            <div className="relative">
+            <div className="relative flex-1 min-w-0 sm:flex-none">
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/60" />
               <input
                 ref={searchInputRef}
@@ -1219,7 +1279,7 @@ export function TransactionsIndex() {
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="h-8 pl-8 pr-7 bg-white/10 hover:bg-white/15 focus:bg-white/20 border border-white/10 rounded-[var(--r-sm)] text-xs text-white placeholder-white/50 outline-none w-36 sm:w-48 transition-all"
+                className="h-8 pl-8 pr-7 bg-white/10 hover:bg-white/15 focus:bg-white/20 border border-white/10 rounded-[var(--r-sm)] text-xs text-white placeholder-white/50 outline-none w-full sm:w-56 transition-all"
               />
               {search && (
                 <button
@@ -1237,8 +1297,8 @@ export function TransactionsIndex() {
               type="button"
               onClick={() => setShowF((prev) => !prev)}
               className={cn(
-                "w-8 h-8 rounded-[var(--r-sm)] flex items-center justify-center transition-colors cursor-pointer",
-                showF || minAmount || dateFilter === "custom"
+                "w-8 h-8 shrink-0 rounded-[var(--r-sm)] flex items-center justify-center transition-colors cursor-pointer",
+                showF || isPanelFilterActive
                   ? "bg-[var(--primary)] text-white"
                   : "bg-white/10 hover:bg-white/20 text-white"
               )}
@@ -1249,35 +1309,6 @@ export function TransactionsIndex() {
               <FilterIcon size={14} />
             </button>
 
-            {/* Add Transaction Button */}
-            <Link
-              to="/transactions/add"
-              className="h-8 px-2.5 rounded-[var(--r-sm)] bg-[var(--add)] text-[var(--add-ink)] flex items-center gap-1.5 font-bold text-xs hover:brightness-105 transition-all shadow-sm"
-              aria-label="Add Transaction"
-            >
-              <Plus size={14} strokeWidth={2.8} />
-              <span className="hidden sm:inline">Add transaction</span>
-            </Link>
-
-            {/* Mobile Settings */}
-            <Link
-              to="/settings"
-              className="w-8 h-8 rounded-[var(--r-sm)] border border-white/10 bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all md:hidden"
-              aria-label="Settings"
-              title="Settings"
-            >
-              <SettingsIcon size={14} />
-            </Link>
-
-            {/* User Profile Avatar */}
-            <Link
-              to="/profile"
-              className="w-8 h-8 rounded-[var(--r-sm)] bg-[var(--primary)] text-white font-bold text-xs flex items-center justify-center transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/50 shadow-sm"
-              aria-label="User Profile"
-              title={`Profile: ${user?.name || "User"}`}
-            >
-              {getUserInitials(user?.name, user?.email)}
-            </Link>
           </div>
         </div>
       </header>
@@ -1286,73 +1317,35 @@ export function TransactionsIndex() {
           Main Container: 3 Top KPI Cards, Filter Bar, 2-Column Grid
           =================================================================== */}
       <main className="w-full px-3 sm:px-5 lg:px-6 pt-4 pb-20 space-y-4">
-        {/* Top Row: 3 KPI Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* Card 1: Total income */}
-          <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[var(--r-md)] p-3.5 shadow-[var(--lift)] flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-              <ArrowDownLeft size={20} />
-            </div>
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                Total income
-              </div>
-              <div className="font-display font-bold text-lg text-[var(--pos)] leading-tight">
-                +{renderAmount(allTotals.income, userCurrency)}
-              </div>
-              <div className="text-[11px] text-[var(--muted)] mt-0.5">
-                {incomeCount} {incomeCount === 1 ? "transaction" : "transactions"}
-              </div>
+        {/* Compact stats strip (mockup .stats): 3-up on every screen size with compact overflow-safe notation */}
+        <div className="stats" aria-label="Totals">
+          <div className="stat" title={isRevealed ? `+${renderAmount(allTotals.income, userCurrency)}` : undefined}>
+            <div className="l">In</div>
+            <div className="v in">+{renderCompactAmount(allTotals.income, userCurrency)}</div>
+            <div className="c">
+              {incomeCount} {incomeCount === 1 ? "entry" : "entries"}
             </div>
           </div>
-
-          {/* Card 2: Total spent */}
-          <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[var(--r-md)] p-3.5 shadow-[var(--lift)] flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-              <ArrowUpRight size={20} />
-            </div>
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                Total spent
-              </div>
-              <div className="font-display font-bold text-lg text-[var(--ink)] leading-tight">
-                {renderAmount(allTotals.expense, userCurrency)}
-              </div>
-              <div className="text-[11px] text-[var(--muted)] mt-0.5">
-                {expenseCount} {expenseCount === 1 ? "transaction" : "transactions"}
-              </div>
+          <div className="stat" title={isRevealed ? renderAmount(allTotals.expense, userCurrency) : undefined}>
+            <div className="l">Out</div>
+            <div className="v">{renderCompactAmount(allTotals.expense, userCurrency)}</div>
+            <div className="c">
+              {expenseCount} {expenseCount === 1 ? "entry" : "entries"}
             </div>
           </div>
-
-          {/* Card 3: Net cash flow */}
-          <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[var(--r-md)] p-3.5 shadow-[var(--lift)] flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-              <ArrowRightLeft size={20} />
+          <div className="stat" title={isRevealed ? `${netCashFlow >= 0 ? "+" : "−"}${renderAmount(Math.abs(netCashFlow), userCurrency)}` : undefined}>
+            <div className="l">Net</div>
+            <div className={cn("v", netCashFlow >= 0 ? "in" : "neg")}>
+              {netCashFlow >= 0 ? "+" : "−"}
+              {renderCompactAmount(Math.abs(netCashFlow), userCurrency)}
             </div>
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                Net cash flow
-              </div>
-              <div
-                className={cn(
-                  "font-display font-bold text-lg leading-tight",
-                  netCashFlow >= 0 ? "text-[var(--pos)]" : "text-[var(--neg)]"
-                )}
-              >
-                {netCashFlow >= 0 ? "+" : "−"}
-                {renderAmount(Math.abs(netCashFlow), userCurrency)}
-              </div>
-              <div className="text-[11px] text-[var(--muted)] mt-0.5">
-                This period
-              </div>
-            </div>
+            <div className="c">This period</div>
           </div>
         </div>
 
-        {/* Filter Controls Row: Type segmented tabs + Account and Category dropdowns */}
-        <div className="flex flex-wrap items-center justify-between gap-2.5">
-          {/* Left: Type Chips */}
-          <div className="chips">
+        {/* Type chips + clear */}
+        <div className="flex items-center justify-between gap-2.5">
+          <div className="chips min-w-0">
             {FILTERS.map((f) => (
               <button
                 key={f.id}
@@ -1369,64 +1362,39 @@ export function TransactionsIndex() {
             ))}
           </div>
 
-          {/* Right: Dropdowns + Duplicate Review Button */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {openDuplicatePairs.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setViewMode("duplicates")}
-                className="px-2.5 py-1.5 rounded-[var(--r-sm)] bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1.5 text-xs font-bold hover:bg-amber-500/25 transition-all cursor-pointer"
-              >
-                <ShieldAlert size={14} />
-                <span>{openDuplicatePairs.length} duplicates to review</span>
-              </button>
-            )}
-
-            {/* Account Dropdown */}
-            <select
-              value={selectedAccount}
-              onChange={(e) => {
-                setSelectedAccount(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="bg-[var(--surface)] border border-[var(--line)] rounded-[var(--r-sm)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink)] cursor-pointer shadow-xs"
+          {isFilterActive && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="text-[11px] font-bold text-[var(--accent)] hover:underline shrink-0 cursor-pointer px-1"
             >
-              <option value="all">All accounts</option>
-              {accountsList.map((a) => (
-                <option key={a.id} value={String(a.id)}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-
-            {/* Category Dropdown */}
-            <select
-              value={selectedCategory}
-              onChange={(e) => {
-                setSelectedCategory(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="bg-[var(--surface)] border border-[var(--line)] rounded-[var(--r-sm)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink)] cursor-pointer shadow-xs"
-            >
-              <option value="all">All categories</option>
-              {categoriesList.map((c) => (
-                <option key={c.id} value={String(c.id)}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-
-            {isFilterActive && (
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="text-[11px] font-bold text-[var(--accent)] hover:underline shrink-0 cursor-pointer px-1"
-              >
-                Clear all
-              </button>
-            )}
-          </div>
+              Clear all
+            </button>
+          )}
         </div>
+
+        {/* Duplicate review banner (single entry point) */}
+        {openDuplicatePairs.length > 0 && (
+          <div className="dup flex items-center gap-2.5 p-3 rounded-xl bg-[var(--info-soft)] text-[var(--ink)] border border-[var(--line)]">
+            <ShieldAlert size={18} className="text-[var(--primary)] shrink-0" />
+            <div className="grow min-w-0">
+              <b className="block text-xs font-bold text-[var(--ink)]">
+                {openDuplicatePairs.length}{" "}
+                {openDuplicatePairs.length === 1 ? "item" : "items"} to review
+              </b>
+              <span className="text-[11px] text-[var(--muted)]">
+                Possible duplicates and transfers
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setViewMode("duplicates")}
+              className="font-extrabold text-xs text-[var(--accent-text)] hover:underline cursor-pointer px-1 py-0.5"
+            >
+              Review
+            </button>
+          </div>
+        )}
 
         {/* Saved Filters Row */}
         {(savedFilters.length > 0 || isFilterActive) && (
@@ -1474,7 +1442,55 @@ export function TransactionsIndex() {
 
         {/* Filter Panel (if showF) */}
         {showF && (
-          <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[var(--r-md)] p-3.5 shadow-[var(--lift)] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[var(--r-md)] p-3.5 shadow-[var(--lift)] grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div>
+              <label
+                htmlFor="f-acc"
+                className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] block mb-1"
+              >
+                Account
+              </label>
+              <select
+                id="f-acc"
+                value={selectedAccount}
+                onChange={(e) => {
+                  setSelectedAccount(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full bg-[var(--bg)] border border-[var(--line)] rounded-[var(--r-sm)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink)] cursor-pointer"
+              >
+                <option value="all">All accounts</option>
+                {accountsList.map((a) => (
+                  <option key={a.id} value={String(a.id)}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label
+                htmlFor="f-cat"
+                className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] block mb-1"
+              >
+                Category
+              </label>
+              <select
+                id="f-cat"
+                value={selectedCategory}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full bg-[var(--bg)] border border-[var(--line)] rounded-[var(--r-sm)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink)] cursor-pointer"
+              >
+                <option value="all">All categories</option>
+                {categoriesList.map((c) => (
+                  <option key={c.id} value={String(c.id)}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div>
               <label
                 htmlFor="f-min"
@@ -1564,7 +1580,7 @@ export function TransactionsIndex() {
               </label>
             </div>
             {dateFilter === "custom" && (
-              <div className="sm:col-span-2 md:col-span-4 grid grid-cols-2 gap-2 pt-1 border-t border-[var(--line)]">
+              <div className="col-span-2 md:col-span-3 grid grid-cols-2 gap-2 pt-1 border-t border-[var(--line)]">
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] block mb-1">
                     From
@@ -1595,7 +1611,7 @@ export function TransactionsIndex() {
         {/* 2-Column Responsive Layout (.hist) */}
         <div className="hist">
           {/* Column 1: Transactions Table Card */}
-          <section className="listwrap order-2 lg:order-1" aria-label="Transactions List">
+          <section className="listwrap" aria-label="Transactions List">
             <div className="flex items-center justify-between py-2 border-b border-[var(--line)]">
               <h2 className="font-display font-semibold text-base text-[var(--ink)]">
                 Transactions
@@ -1609,7 +1625,7 @@ export function TransactionsIndex() {
                 </span>
                 <span>
                   {isRevealed &&
-                    `Out ${renderAmount(filteredTotals.expense, userCurrency)} · In ${renderAmount(filteredTotals.income, userCurrency)}`}
+                    `Out ${renderCompactAmount(filteredTotals.expense, userCurrency)} · In ${renderCompactAmount(filteredTotals.income, userCurrency)}`}
                 </span>
                 <button
                   type="button"
@@ -1721,7 +1737,7 @@ export function TransactionsIndex() {
                         )}
                       >
                         {dayNet > 0 ? "+" : dayNet < 0 ? "−" : ""}
-                        {renderAmount(Math.abs(dayNet), userCurrency)}
+                        {renderCompactAmount(Math.abs(dayNet), userCurrency)}
                       </span>
                     </div>
 
@@ -1770,7 +1786,7 @@ export function TransactionsIndex() {
                             onClick={() => {
                               if (rawDto) setActiveModalDto(rawDto);
                             }}
-                            className="flex-1 flex flex-col sm:grid sm:grid-cols-[80px_1fr_140px_130px_100px] gap-2 items-start sm:items-center text-left min-w-0 cursor-pointer bg-none border-none p-0"
+                            className="flex-1 flex items-center gap-2.5 sm:grid sm:grid-cols-[80px_1fr_140px_130px_100px] sm:gap-2 text-left min-w-0 cursor-pointer bg-none border-none p-0"
                             aria-label={`View transaction ${tx.description || "item"}`}
                           >
                             {/* Date & Time */}
@@ -1778,18 +1794,19 @@ export function TransactionsIndex() {
                               <span className={cn("txi", tx.type, "w-7 h-7 shrink-0")}>
                                 {getCategoryIcon(tx.type, tx.category?.name)}
                               </span>
-                              <span className="text-[11px] font-semibold text-[var(--muted)] font-mono">
+                              <span className="hidden sm:inline text-[11px] font-semibold text-[var(--muted)] font-mono">
                                 {formatTxTime(tx.transaction_date)}
                               </span>
                             </div>
 
                             {/* Description & subline */}
-                            <div className="min-w-0 pr-2">
+                            <div className="flex-1 min-w-0 pr-2">
                               <div className="font-bold text-xs text-[var(--ink)] truncate">
                                 {tx.description ||
                                   (tx.type === "transfer" ? "Transfer" : "Transaction")}
                               </div>
                               <div className="text-[11px] text-[var(--muted)] truncate">
+                                <span className="sm:hidden">{formatTxTime(tx.transaction_date)} · </span>
                                 {tx.account?.name && <span>{tx.account.name}</span>}
                                 {sourceBadge && <span> · {sourceBadge}</span>}
                                 {isDuplicate && (
@@ -1820,7 +1837,7 @@ export function TransactionsIndex() {
                             {/* Amount */}
                             <div
                               className={cn(
-                                "font-bold text-xs font-mono text-left sm:text-right shrink-0",
+                                "font-bold text-xs font-mono text-right shrink-0 whitespace-nowrap",
                                 tx.type
                               )}
                             >
@@ -1957,30 +1974,7 @@ export function TransactionsIndex() {
           </section>
 
           {/* Column 2: Stacked Sidebar Cards */}
-          <aside className="aside order-1 lg:order-2 space-y-4">
-            {/* Redesign Duplicate Guard Alert Banner */}
-            {openDuplicatePairs.length > 0 && (
-              <div className="dup flex items-center gap-2.5 p-3 rounded-xl bg-[var(--info-soft)] text-[var(--ink)] border border-[var(--line)]">
-                <ShieldAlert size={18} className="text-[var(--primary)] shrink-0" />
-                <div className="grow min-w-0">
-                  <b className="block text-xs font-bold text-[var(--ink)]">
-                    {openDuplicatePairs.length}{" "}
-                    {openDuplicatePairs.length === 1 ? "item" : "items"} to review
-                  </b>
-                  <span className="text-[11px] text-[var(--muted)]">
-                    Possible duplicates and transfers
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setViewMode("duplicates")}
-                  className="font-extrabold text-xs text-[var(--accent-text)] hover:underline cursor-pointer px-1 py-0.5"
-                >
-                  Review
-                </button>
-              </div>
-            )}
-
+          <aside className="aside space-y-4">
             {/* Card 1: Your accounts */}
             <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[var(--r-md)] p-4 shadow-[var(--lift)] space-y-3">
               <div className="flex items-center justify-between">

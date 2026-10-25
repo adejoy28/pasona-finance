@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { formatCurrency } from "@/lib/finance";
+import { formatCurrency, formatCompactCurrency } from "@/lib/finance";
 
 const PRIVACY_MODE_KEY = 'pasona_privacy_mode_default';
 
@@ -59,6 +59,17 @@ export function usePrivacyMode() {
     [state.isRevealed]
   );
 
+  const renderCompactAmount = useCallback(
+    (amount: number | string | null | undefined, currency: string, maxDecimals: number = 2) => {
+      if (!state.isRevealed) {
+        return "****";
+      }
+      const num = typeof amount === "string" ? parseFloat(amount) : (amount || 0);
+      return formatCompactCurrency(num, currency, maxDecimals);
+    },
+    [state.isRevealed]
+  );
+
   return {
     isPrivacyModeEnabled: state.isPrivacyModeEnabled,
     setPrivacyMode,
@@ -66,5 +77,6 @@ export function usePrivacyMode() {
     isMasked: !state.isRevealed,
     toggleReveal,
     renderAmount,
+    renderCompactAmount,
   };
 }
