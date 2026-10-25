@@ -126,6 +126,31 @@ class SummaryController extends Controller
                 ];
             })->sortKeys()->values();
 
+            // 5. 6-Month Historical Spending Trend (ending in selected month, excluding savings categories and transfers)
+            $trendStart = (clone $startOfMonth)->subMonths(5)->startOfMonth();
+            $trendTxs = $user->transactions()
+                ->where('type', 'expense')
+                ->whereNotIn('category_id', $savingsCategoryIds)
+                ->whereBetween('transaction_date', [$trendStart, $endOfMonth])
+                ->get(['transaction_date', 'amount']);
+
+            $monthlyTrendMap = $trendTxs->groupBy(function ($item) {
+                return \Carbon\Carbon::parse($item->transaction_date)->format('Y-m');
+            })->map(function ($txs) {
+                return (float) $txs->sum('amount');
+            });
+
+            $monthlyTrend = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $mDate = (clone $startOfMonth)->subMonths($i);
+                $mKey = $mDate->format('Y-m');
+                $monthlyTrend[] = [
+                    'month_key' => $mKey,
+                    'month' => $mDate->format('M'),
+                    'spent' => (float) ($monthlyTrendMap->get($mKey) ?? 0.0),
+                ];
+            }
+
             return [
                 'total_balance' => $totalBalance,
                 'accounts' => $accounts,
@@ -138,6 +163,7 @@ class SummaryController extends Controller
                 ],
                 'category_breakdown' => $categoryBreakdown,
                 'daily_breakdown' => $dailyBreakdown,
+                'monthly_trend' => $monthlyTrend,
             ];
         });
 
