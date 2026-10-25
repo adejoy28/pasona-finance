@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router";
 import {
   AlertCircle,
@@ -26,6 +26,53 @@ const SUGGESTION_CHIPS = [
   "Spent 2,500 on lunch from OPay",
 ] as const;
 
+function useTypewriter(
+  text: string,
+  active: boolean,
+  onComplete?: () => void
+): string {
+  const [displayed, setDisplayed] = useState(active ? "" : text);
+  const idxRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!active) {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      setDisplayed(text);
+      idxRef.current = text.length;
+      return;
+    }
+
+    setDisplayed("");
+    idxRef.current = 0;
+    let lastTime = performance.now();
+
+    const tick = (now: number) => {
+      // Step roughly every 18ms, adding 2 chars for a realistic, readable typing pace
+      const elapsed = now - lastTime;
+      if (elapsed >= 18) {
+        lastTime = now;
+        const step = Math.min(2, text.length - idxRef.current);
+        idxRef.current += step;
+        setDisplayed(text.slice(0, idxRef.current));
+      }
+
+      if (idxRef.current < text.length) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        if (onComplete) onComplete();
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [text, active, onComplete]);
+
+  return active ? displayed : text;
+}
+
 export function AiChat() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
@@ -47,8 +94,24 @@ export function AiChat() {
   } = useAiChat();
 
   const [inputValue, setInputValue] = useState("");
+  const [completedTypingIds, setCompletedTypingIds] = useState<Set<string>>(
+    () => new Set(["welcome"])
+  );
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastMessageRef = useRef<HTMLDivElement>(null);
+  const prevMessagesCountRef = useRef(messages.length);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Mark message typing as completed
+  const markTypingComplete = useCallback((id: string) => {
+    setCompletedTypingIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }, []);
 
   // Listen for open events (from sidebar "Ask Mary" or keyboard shortcuts)
   useEffect(() => {
@@ -72,10 +135,30 @@ export function AiChat() {
     };
   }, [ensureWelcome, open]);
 
-  // Scroll to bottom on new messages
+  // Smart scrolling:
+  // - When sending: scroll to bottom to show prompt + typing indicator
+  // - When Mary replies: scroll to the TOP of Mary's response so reading begins from line 1
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+
+    if (isSending) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+
+    const isNewMessage = messages.length > prevMessagesCountRef.current;
+    prevMessagesCountRef.current = messages.length;
+
+    if (isNewMessage) {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg && lastMsg.role === "assistant") {
+        lastMessageRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      } else {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
     }
   }, [messages, isSending, open]);
 
@@ -195,22 +278,32 @@ export function AiChat() {
           aria-live="polite"
           className="flex-1 overflow-y-auto p-4 space-y-3 overscroll-contain"
         >
-          {messages.map((m) => (
-            <MessageItem
+          {messages.map((m, idx) => (
+            <div
               key={m.id}
-              message={m}
-              userCurrency={userCurrency}
-              accounts={accounts}
-              categories={categories}
-              renderAmount={renderAmount}
-              onConfirmCard={confirmCard}
-              onCancelCard={cancelCard}
-              onUpdateCard={updateCard}
-              onActionClick={handleActionClick}
-              onRetry={(text) => send(text)}
-              onEditAndResend={editAndResend}
-              onRetryLast={retryLast}
-            />
+              ref={idx === messages.length - 1 ? lastMessageRef : null}
+            >
+              <MessageItem
+                message={m}
+                userCurrency={userCurrency}
+                accounts={accounts}
+                categories={categories}
+                renderAmount={renderAmount}
+                onConfirmCard={confirmCard}
+                onCancelCard={cancelCard}
+                onUpdateCard={updateCard}
+                onActionClick={handleActionClick}
+                onRetry={(text) => send(text)}
+                onEditAndResend={editAndResend}
+                onRetryLast={retryLast}
+                shouldType={
+                  m.role === "assistant" &&
+                  m.id !== "welcome" &&
+                  !completedTypingIds.has(m.id)
+                }
+                onTypingComplete={() => markTypingComplete(m.id)}
+              />
+            </div>
           ))}
 
           {/* Typing Indicator */}
@@ -301,6 +394,8 @@ function MessageItem({
   onRetry,
   onEditAndResend,
   onRetryLast,
+  shouldType = false,
+  onTypingComplete,
 }: {
   message: MaryMessage;
   userCurrency: string;
@@ -314,9 +409,30 @@ function MessageItem({
   onRetry: (prompt: string) => void;
   onEditAndResend: (messageId: string, newContent: string) => void;
   onRetryLast?: () => void;
+  shouldType?: boolean;
+  onTypingComplete?: () => void;
 }) {
   const isUser = message.role === "user";
   const isError = message.role === "error";
+
+  const [activeTypewriter, setActiveTypewriter] = useState(shouldType);
+
+  const handleFinishTyping = useCallback(() => {
+    setActiveTypewriter(false);
+    if (onTypingComplete) onTypingComplete();
+  }, [onTypingComplete]);
+
+  const displayedContent = useTypewriter(
+    message.content,
+    activeTypewriter,
+    handleFinishTyping
+  );
+
+  const handleSkipTyping = () => {
+    if (activeTypewriter) {
+      handleFinishTyping();
+    }
+  };
 
   if (isUser) {
     return (
@@ -369,15 +485,25 @@ function MessageItem({
 
   return (
     <div className="flex justify-start">
-      <div className="max-w-[92%] rounded-2xl rounded-bl-sm p-3 text-xs sm:text-sm leading-relaxed bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] shadow-xs space-y-2.5 break-words">
-        {/* Reply Body with Markdown formatting */}
-        <FormattedMaryText
-          content={message.content}
-          isMasked={!renderAmount(100, userCurrency).includes("100")}
-        />
+      <div
+        onClick={handleSkipTyping}
+        className="max-w-[92%] rounded-2xl rounded-bl-sm p-3 text-xs sm:text-sm leading-relaxed bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] shadow-xs space-y-2.5 break-words select-text cursor-default"
+      >
+        {/* Reply Body with Markdown formatting & typewriter streaming */}
+        <div className="relative">
+          <FormattedMaryText
+            content={activeTypewriter ? displayedContent : message.content}
+            isMasked={!renderAmount(100, userCurrency).includes("100")}
+          />
+          {activeTypewriter && (
+            <span className="inline-block animate-pulse font-mono ml-0.5 text-[var(--primary)] font-bold">
+              ▌
+            </span>
+          )}
+        </div>
 
-        {/* Interactive Confirm Card */}
-        {message.card && (
+        {/* Interactive Confirm Card (appears once typing finishes or immediately if already typed) */}
+        {message.card && !activeTypewriter && (
           <ConfirmCardView
             card={message.card}
             userCurrency={userCurrency}
@@ -391,50 +517,52 @@ function MessageItem({
         )}
 
         {/* Action Buttons & Quick Retry */}
-        <div className="flex items-center justify-between gap-2 pt-1 border-t border-[var(--line)]/50">
-          <div className="flex flex-wrap gap-1.5 flex-1">
-            {message.actions &&
-              message.actions.map((act, i) => {
-                if (act.type === "navigate") {
-                  const label =
-                    act.to === "budgets"
-                      ? "Open budgets"
-                      : act.to === "bills"
-                        ? "View bills"
-                        : act.to === "goals"
-                          ? "View goals"
-                          : act.to === "duplicates"
-                            ? "Review duplicates"
-                            : `Go to ${act.to}`;
+        {!activeTypewriter && (
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-[var(--line)]/50">
+            <div className="flex flex-wrap gap-1.5 flex-1">
+              {message.actions &&
+                message.actions.map((act, i) => {
+                  if (act.type === "navigate") {
+                    const label =
+                      act.to === "budgets"
+                        ? "Open budgets"
+                        : act.to === "bills"
+                          ? "View bills"
+                          : act.to === "goals"
+                            ? "View goals"
+                            : act.to === "duplicates"
+                              ? "Review duplicates"
+                              : `Go to ${act.to}`;
 
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => onActionClick(act)}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-bold rounded-md bg-[var(--chip)] text-[var(--primary)] hover:border-[var(--primary)] border border-transparent transition-all cursor-pointer"
-                    >
-                      <span>{label}</span>
-                      <ArrowRight size={11} />
-                    </button>
-                  );
-                }
-                return null;
-              })}
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => onActionClick(act)}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-bold rounded-md bg-[var(--chip)] text-[var(--primary)] hover:border-[var(--primary)] border border-transparent transition-all cursor-pointer"
+                      >
+                        <span>{label}</span>
+                        <ArrowRight size={11} />
+                      </button>
+                    );
+                  }
+                  return null;
+                })}
+            </div>
+
+            {message.id !== "welcome" && onRetryLast && (
+              <button
+                type="button"
+                onClick={onRetryLast}
+                className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-[var(--muted)] hover:text-[var(--ink)] px-1.5 py-0.5 rounded hover:bg-[var(--chip)] transition-colors cursor-pointer shrink-0"
+                title="Regenerate reply"
+              >
+                <RotateCw size={11} />
+                <span>Retry</span>
+              </button>
+            )}
           </div>
-
-          {message.id !== "welcome" && onRetryLast && (
-            <button
-              type="button"
-              onClick={onRetryLast}
-              className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-[var(--muted)] hover:text-[var(--ink)] px-1.5 py-0.5 rounded hover:bg-[var(--chip)] transition-colors cursor-pointer shrink-0"
-              title="Regenerate reply"
-            >
-              <RotateCw size={11} />
-              <span>Retry</span>
-            </button>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );
